@@ -10,6 +10,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Congregations from "./pages/Congregations";
+import CongregationForm from "./pages/CongregationForm";
 import Events from "./pages/Events";
 import Schedule from "./pages/Schedule";
 import Reports from "./pages/Reports";
@@ -43,6 +44,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Congregations />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/congregations/new"
+              element={
+                <ProtectedRoute>
+                  <CongregationForm />
                 </ProtectedRoute>
               }
             />
