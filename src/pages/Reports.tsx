@@ -1,7 +1,65 @@
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Download, Filter } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+  LineChart,
+  Line,
+  Area,
+  AreaChart,
+} from 'recharts';
+
+// Dados para os gráficos
+const ministryData = [
+  { name: 'Anciões Locais', value: 45, fill: 'hsl(217, 91%, 40%)' },
+  { name: 'Coop. Ofício', value: 78, fill: 'hsl(38, 92%, 50%)' },
+  { name: 'Diáconos', value: 120, fill: 'hsl(142, 76%, 36%)' },
+  { name: 'Coop. Jovens', value: 56, fill: 'hsl(217, 91%, 55%)' },
+];
+
+const cityData = [
+  { name: 'São Paulo', congregations: 18 },
+  { name: 'Campinas', congregations: 8 },
+  { name: 'Ribeirão Preto', congregations: 6 },
+  { name: 'Santos', congregations: 5 },
+  { name: 'Sorocaba', congregations: 4 },
+  { name: 'Outras', congregations: 4 },
+];
+
+const worshipDayData = [
+  { name: 'Domingo', value: 45, fill: 'hsl(217, 91%, 40%)' },
+  { name: 'Quarta', value: 32, fill: 'hsl(38, 92%, 50%)' },
+  { name: 'Sexta', value: 28, fill: 'hsl(142, 76%, 36%)' },
+  { name: 'Sábado', value: 15, fill: 'hsl(217, 91%, 55%)' },
+];
+
+const monthlyEventsData = [
+  { month: 'Jan', eventos: 12, batismos: 2 },
+  { month: 'Fev', eventos: 15, batismos: 1 },
+  { month: 'Mar', eventos: 18, batismos: 3 },
+  { month: 'Abr', eventos: 22, batismos: 2 },
+  { month: 'Mai', eventos: 20, batismos: 4 },
+  { month: 'Jun', eventos: 25, batismos: 3 },
+  { month: 'Jul', eventos: 28, batismos: 5 },
+  { month: 'Ago', eventos: 24, batismos: 2 },
+  { month: 'Set', eventos: 30, batismos: 4 },
+  { month: 'Out', eventos: 26, batismos: 3 },
+  { month: 'Nov', eventos: 32, batismos: 6 },
+  { month: 'Dez', eventos: 35, batismos: 8 },
+];
+
+const COLORS = ['hsl(217, 91%, 40%)', 'hsl(38, 92%, 50%)', 'hsl(142, 76%, 36%)', 'hsl(217, 91%, 55%)'];
 
 export default function Reports() {
   return (
@@ -44,26 +102,182 @@ export default function Reports() {
           </Select>
         </div>
 
-        {/* Report Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Charts Grid - Top Row */}
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Ministry Bar Chart */}
           <div className="bg-card rounded-xl p-6 shadow-sm border border-border/50">
-            <h3 className="font-semibold text-foreground mb-4">Por Ministério</h3>
+            <h3 className="font-semibold text-foreground mb-4">Distribuição por Ministério</h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={ministryData} layout="vertical" margin={{ left: 20, right: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis type="number" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} 
+                    width={100}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                  />
+                  <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                    {ministryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Worship Day Pie Chart */}
+          <div className="bg-card rounded-xl p-6 shadow-sm border border-border/50">
+            <h3 className="font-semibold text-foreground mb-4">Cultos por Dia da Semana</h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={worshipDayData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={4}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {worshipDayData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Monthly Events Area Chart */}
+        <div className="bg-card rounded-xl p-6 shadow-sm border border-border/50">
+          <h3 className="font-semibold text-foreground mb-4">Eventos Mensais - 2024</h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={monthlyEventsData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorEventos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(217, 91%, 40%)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(217, 91%, 40%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="colorBatismos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(38, 92%, 50%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="month" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    color: 'hsl(var(--foreground))',
+                  }}
+                />
+                <Legend 
+                  formatter={(value) => <span style={{ color: 'hsl(var(--foreground))' }}>{value}</span>}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="eventos"
+                  name="Total de Eventos"
+                  stroke="hsl(217, 91%, 40%)"
+                  fillOpacity={1}
+                  fill="url(#colorEventos)"
+                  strokeWidth={2}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="batismos"
+                  name="Batismos"
+                  stroke="hsl(38, 92%, 50%)"
+                  fillOpacity={1}
+                  fill="url(#colorBatismos)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* City Bar Chart */}
+        <div className="bg-card rounded-xl p-6 shadow-sm border border-border/50">
+          <h3 className="font-semibold text-foreground mb-4">Congregações por Cidade</h3>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={cityData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))' }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(var(--card))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    color: 'hsl(var(--foreground))',
+                  }}
+                />
+                <Bar 
+                  dataKey="congregations" 
+                  name="Congregações"
+                  fill="hsl(217, 91%, 40%)" 
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="bg-card rounded-xl p-6 shadow-sm border border-border/50">
+            <h3 className="font-semibold text-foreground mb-4">Resumo Ministério</h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Anciões Locais</span>
-                <span className="font-semibold text-foreground">45</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Cooperadores do Ofício</span>
-                <span className="font-semibold text-foreground">78</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Diáconos</span>
-                <span className="font-semibold text-foreground">120</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Cooperadores de Jovens</span>
-                <span className="font-semibold text-foreground">56</span>
+              {ministryData.map((item) => (
+                <div key={item.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
+                    <span className="text-muted-foreground text-sm">{item.name}</span>
+                  </div>
+                  <span className="font-semibold text-foreground">{item.value}</span>
+                </div>
+              ))}
+              <div className="pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-foreground">Total</span>
+                  <span className="font-bold text-primary">
+                    {ministryData.reduce((acc, item) => acc + item.value, 0)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -71,21 +285,19 @@ export default function Reports() {
           <div className="bg-card rounded-xl p-6 shadow-sm border border-border/50">
             <h3 className="font-semibold text-foreground mb-4">Por Cidade</h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">São Paulo</span>
-                <span className="font-semibold text-foreground">18</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Campinas</span>
-                <span className="font-semibold text-foreground">8</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Ribeirão Preto</span>
-                <span className="font-semibold text-foreground">6</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Santos</span>
-                <span className="font-semibold text-foreground">5</span>
+              {cityData.slice(0, 4).map((item) => (
+                <div key={item.name} className="flex items-center justify-between">
+                  <span className="text-muted-foreground text-sm">{item.name}</span>
+                  <span className="font-semibold text-foreground">{item.congregations}</span>
+                </div>
+              ))}
+              <div className="pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-foreground">Total</span>
+                  <span className="font-bold text-primary">
+                    {cityData.reduce((acc, item) => acc + item.congregations, 0)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -93,35 +305,23 @@ export default function Reports() {
           <div className="bg-card rounded-xl p-6 shadow-sm border border-border/50">
             <h3 className="font-semibold text-foreground mb-4">Por Dia de Culto</h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Domingo</span>
-                <span className="font-semibold text-foreground">45</span>
+              {worshipDayData.map((item) => (
+                <div key={item.name} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
+                    <span className="text-muted-foreground text-sm">{item.name}</span>
+                  </div>
+                  <span className="font-semibold text-foreground">{item.value}</span>
+                </div>
+              ))}
+              <div className="pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium text-foreground">Total</span>
+                  <span className="font-bold text-primary">
+                    {worshipDayData.reduce((acc, item) => acc + item.value, 0)}
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Quarta-feira</span>
-                <span className="font-semibold text-foreground">32</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Sexta-feira</span>
-                <span className="font-semibold text-foreground">28</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Sábado</span>
-                <span className="font-semibold text-foreground">15</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Chart Placeholder */}
-        <div className="bg-card rounded-xl p-8 shadow-sm border border-border/50">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">Gráficos em breve</h3>
-              <p className="text-muted-foreground">
-                Os gráficos interativos estarão disponíveis em uma próxima atualização.
-              </p>
             </div>
           </div>
         </div>
