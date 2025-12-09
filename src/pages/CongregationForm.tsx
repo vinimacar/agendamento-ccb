@@ -16,13 +16,13 @@ import {
   Users, 
   Calendar, 
   Music, 
-  Save, 
   Plus, 
   X,
   Building,
-  User
+  Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { congregationService } from '@/services/congregationService';
 
 const STATES = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -166,7 +166,6 @@ export default function CongregationForm() {
     }
 
     try {
-      // Here we would save to Firebase
       const congregationData = {
         name,
         street,
@@ -190,7 +189,7 @@ export default function CongregationForm() {
         updatedAt: new Date(),
       };
 
-      console.log('Congregation data:', congregationData);
+      await congregationService.create(congregationData);
 
       toast({
         title: 'Congregação cadastrada!',
@@ -199,9 +198,10 @@ export default function CongregationForm() {
 
       navigate('/congregations');
     } catch (error) {
+      console.error('Error saving congregation:', error);
       toast({
         title: 'Erro ao cadastrar',
-        description: 'Ocorreu um erro ao salvar a congregação.',
+        description: 'Ocorreu um erro ao salvar a congregação. Verifique sua conexão.',
         variant: 'destructive',
       });
     } finally {
@@ -838,8 +838,14 @@ export default function CongregationForm() {
             disabled={loading}
             className="gradient-primary text-primary-foreground hover:opacity-90 gap-2"
           >
-            <Save className="h-4 w-4" />
-            {loading ? 'Salvando...' : 'Salvar Congregação'}
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              'Salvar Congregação'
+            )}
           </Button>
         </div>
       </form>

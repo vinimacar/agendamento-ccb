@@ -3,63 +3,87 @@ import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, MapPin, Users, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Plus, Search, MapPin, Users, MoreVertical, Edit, Trash2, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-
-// Mock data
-const mockCongregations = [
-  {
-    id: '1',
-    name: 'Congregação Central',
-    city: 'São Paulo',
-    state: 'SP',
-    neighborhood: 'Centro',
-    admin: 'Regional São Paulo',
-    localElders: ['Ancião João', 'Ancião Pedro'],
-  },
-  {
-    id: '2',
-    name: 'Congregação Norte',
-    city: 'São Paulo',
-    state: 'SP',
-    neighborhood: 'Santana',
-    admin: 'Regional São Paulo',
-    localElders: ['Ancião Carlos'],
-  },
-  {
-    id: '3',
-    name: 'Congregação Sul',
-    city: 'Campinas',
-    state: 'SP',
-    neighborhood: 'Cambuí',
-    admin: 'Regional Campinas',
-    localElders: ['Ancião Marcos', 'Ancião Lucas'],
-  },
-  {
-    id: '4',
-    name: 'Congregação Leste',
-    city: 'Ribeirão Preto',
-    state: 'SP',
-    neighborhood: 'Jardim América',
-    admin: 'Regional Interior',
-    localElders: ['Ancião Paulo'],
-  },
-];
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useCongregations } from '@/hooks/useCongregations';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Congregations() {
   const [search, setSearch] = useState('');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { congregations, loading, error, deleteCongregation, refetch } = useCongregations();
+  const { toast } = useToast();
 
-  const filteredCongregations = mockCongregations.filter(
+  const filteredCongregations = congregations.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.city.toLowerCase().includes(search.toLowerCase()) ||
       c.neighborhood.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    
+    setDeleting(true);
+    try {
+      await deleteCongregation(deleteId);
+      toast({
+        title: 'Congregação excluída',
+        description: 'A congregação foi removida com sucesso.',
+      });
+    } catch (err) {
+      toast({
+        title: 'Erro ao excluir',
+        description: 'Não foi possível excluir a congregação.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteId(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Carregando congregações...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-destructive mb-4">{error}</p>
+            <Button onClick={refetch}>Tentar novamente</Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -68,7 +92,9 @@ export default function Congregations() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Congregações</h1>
-            <p className="text-muted-foreground mt-1">Gerencie todas as congregações cadastradas</p>
+            <p className="text-muted-foreground mt-1">
+              {congregations.length} congregação(ões) cadastrada(s)
+            </p>
           </div>
           <Link to="/congregations/new">
             <Button className="gradient-primary text-primary-foreground hover:opacity-90 gap-2">
@@ -102,7 +128,8 @@ export default function Congregations() {
                   <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
                     <MapPin className="h-4 w-4 shrink-0" />
                     <span className="truncate">
-                      {congregation.neighborhood}, {congregation.city} - {congregation.state}
+                      {congregation.neighborhood ? `${congregation.neighborhood}, ` : ''}
+                      {congregation.city} - {congregation.state}
                     </span>
                   </div>
                 </div>
@@ -113,11 +140,16 @@ export default function Congregations() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar
+                    <DropdownMenuItem asChild>
+                      <Link to={`/congregations/${congregation.id}/edit`}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Editar
+                      </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
+                    <DropdownMenuItem 
+                      className="text-destructive"
+                      onClick={() => setDeleteId(congregation.id!)}
+                    >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Excluir
                     </DropdownMenuItem>
@@ -126,23 +158,35 @@ export default function Congregations() {
               </div>
 
               <div className="space-y-3">
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Administração:</span>
-                  <span className="ml-2 text-foreground">{congregation.admin}</span>
-                </div>
-                <div className="text-sm">
-                  <span className="text-muted-foreground">Anciões:</span>
-                  <div className="flex flex-wrap gap-1.5 mt-1">
-                    {congregation.localElders.map((elder, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
-                      >
-                        {elder}
-                      </span>
-                    ))}
+                {congregation.admin && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Administração:</span>
+                    <span className="ml-2 text-foreground">{congregation.admin}</span>
                   </div>
-                </div>
+                )}
+                {congregation.elders && congregation.elders.length > 0 && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Anciões:</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {congregation.elders.map((elder, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                        >
+                          {elder.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {congregation.worshipDays && congregation.worshipDays.length > 0 && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Dias de culto:</span>
+                    <span className="ml-2 text-foreground">
+                      {congregation.worshipDays.length} dia(s)
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4 pt-4 border-t border-border">
@@ -172,6 +216,35 @@ export default function Congregations() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta congregação? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Excluindo...
+                </>
+              ) : (
+                'Excluir'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
