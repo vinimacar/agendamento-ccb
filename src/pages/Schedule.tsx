@@ -1,62 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Book, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Clock, Filter } from 'lucide-react';
+import { Book, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Clock, Filter, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Event, eventTypeLabels, EventType } from '@/types';
+import { eventService } from '@/services/eventService';
 import { cn } from '@/lib/utils';
-
-// Mock events
-const mockEvents: Event[] = [
-  {
-    id: '1',
-    title: 'Culto de Adoração',
-    type: 'culto-busca-dons',
-    date: new Date(2024, 11, 15),
-    time: '19:00',
-    congregationName: 'Congregação Central',
-    description: 'Culto especial para busca dos dons espirituais.',
-    createdAt: new Date(),
-  },
-  {
-    id: '2',
-    title: 'Reunião da Mocidade',
-    type: 'reuniao-mocidade',
-    date: new Date(2024, 11, 18),
-    time: '15:00',
-    congregationName: 'Congregação Norte',
-    createdAt: new Date(),
-  },
-  {
-    id: '3',
-    title: 'Santa Ceia',
-    type: 'santa-ceia',
-    date: new Date(2024, 11, 20),
-    time: '09:00',
-    congregationName: 'Congregação Sul',
-    createdAt: new Date(),
-  },
-  {
-    id: '4',
-    title: 'Batismo',
-    type: 'batismo',
-    date: new Date(2024, 11, 22),
-    time: '10:00',
-    congregationName: 'Congregação Leste',
-    createdAt: new Date(),
-  },
-  {
-    id: '5',
-    title: 'Culto para Jovens',
-    type: 'culto-jovens',
-    date: new Date(2024, 11, 25),
-    time: '19:30',
-    congregationName: 'Congregação Central',
-    createdAt: new Date(),
-  },
-];
 
 const eventTypeColors: Record<string, string> = {
   'culto-busca-dons': 'bg-primary text-primary-foreground',
@@ -73,8 +24,24 @@ const eventTypeColors: Record<string, string> = {
 export default function Schedule() {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredEvents = mockEvents.filter(
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const data = await eventService.getAll();
+        setEvents(data);
+      } catch (error) {
+        console.error('Error loading events:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEvents();
+  }, []);
+
+  const filteredEvents = events.filter(
     (event) => selectedType === 'all' || event.type === selectedType
   );
 
@@ -160,7 +127,11 @@ export default function Schedule() {
 
           {/* Events List */}
           <div className="grid gap-4 max-w-3xl mx-auto">
-            {filteredEvents.length > 0 ? (
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : filteredEvents.length > 0 ? (
               filteredEvents.map((event) => {
                 const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
                 return (

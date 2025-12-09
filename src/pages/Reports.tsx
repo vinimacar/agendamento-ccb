@@ -1,6 +1,7 @@
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   BarChart,
@@ -19,49 +20,110 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-
-// Dados para os gráficos
-const ministryData = [
-  { name: 'Anciões Locais', value: 45, fill: 'hsl(217, 91%, 40%)' },
-  { name: 'Coop. Ofício', value: 78, fill: 'hsl(38, 92%, 50%)' },
-  { name: 'Diáconos', value: 120, fill: 'hsl(142, 76%, 36%)' },
-  { name: 'Coop. Jovens', value: 56, fill: 'hsl(217, 91%, 55%)' },
-];
-
-const cityData = [
-  { name: 'São Paulo', congregations: 18 },
-  { name: 'Campinas', congregations: 8 },
-  { name: 'Ribeirão Preto', congregations: 6 },
-  { name: 'Santos', congregations: 5 },
-  { name: 'Sorocaba', congregations: 4 },
-  { name: 'Outras', congregations: 4 },
-];
-
-const worshipDayData = [
-  { name: 'Domingo', value: 45, fill: 'hsl(217, 91%, 40%)' },
-  { name: 'Quarta', value: 32, fill: 'hsl(38, 92%, 50%)' },
-  { name: 'Sexta', value: 28, fill: 'hsl(142, 76%, 36%)' },
-  { name: 'Sábado', value: 15, fill: 'hsl(217, 91%, 55%)' },
-];
-
-const monthlyEventsData = [
-  { month: 'Jan', eventos: 12, batismos: 2 },
-  { month: 'Fev', eventos: 15, batismos: 1 },
-  { month: 'Mar', eventos: 18, batismos: 3 },
-  { month: 'Abr', eventos: 22, batismos: 2 },
-  { month: 'Mai', eventos: 20, batismos: 4 },
-  { month: 'Jun', eventos: 25, batismos: 3 },
-  { month: 'Jul', eventos: 28, batismos: 5 },
-  { month: 'Ago', eventos: 24, batismos: 2 },
-  { month: 'Set', eventos: 30, batismos: 4 },
-  { month: 'Out', eventos: 26, batismos: 3 },
-  { month: 'Nov', eventos: 32, batismos: 6 },
-  { month: 'Dez', eventos: 35, batismos: 8 },
-];
+import { eventService } from '@/services/eventService';
+import { congregationService } from '@/services/congregationService';
 
 const COLORS = ['hsl(217, 91%, 40%)', 'hsl(38, 92%, 50%)', 'hsl(142, 76%, 36%)', 'hsl(217, 91%, 55%)'];
 
 export default function Reports() {
+  const [loading, setLoading] = useState(true);
+  const [ministryData, setMinistryData] = useState<any[]>([]);
+  const [cityData, setCityData] = useState<any[]>([]);
+  const [worshipDayData, setWorshipDayData] = useState<any[]>([]);
+  const [monthlyEventsData, setMonthlyEventsData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadReportsData = async () => {
+      try {
+        const [events, congregations] = await Promise.all([
+          eventService.getAll(),
+          congregationService.getAll(),
+        ]);
+
+        // Calcular dados de ministério
+        const eldersCount = congregations.reduce((sum, c) => sum + (c.elders?.length || 0), 0);
+        const officeCoopCount = congregations.reduce((sum, c) => sum + (c.officeCooperators?.length || 0), 0);
+        const deaconsCount = congregations.reduce((sum, c) => sum + (c.deacons?.length || 0), 0);
+        const youthCoopCount = congregations.reduce((sum, c) => sum + (c.youthCooperators?.length || 0), 0);
+
+        setMinistryData([
+          { name: 'Anciões Locais', value: eldersCount, fill: 'hsl(217, 91%, 40%)' },
+          { name: 'Coop. Ofício', value: officeCoopCount, fill: 'hsl(38, 92%, 50%)' },
+          { name: 'Diáconos', value: deaconsCount, fill: 'hsl(142, 76%, 36%)' },
+          { name: 'Coop. Jovens', value: youthCoopCount, fill: 'hsl(217, 91%, 55%)' },
+        ]);
+
+        // Calcular dados por cidade
+        const cityCounts = congregations.reduce((acc: any, c) => {
+          acc[c.city] = (acc[c.city] || 0) + 1;
+          return acc;
+        }, {});
+        
+        const sortedCities = Object.entries(cityCounts)
+          .sort(([, a]: any, [, b]: any) => b - a)
+          .slice(0, 5)
+          .map(([name, congregations]) => ({ name, congregations }));
+        
+        setCityData(sortedCities);
+
+        // Calcular dados de dias de culto
+        const worshipDayCounts = congregations.reduce((acc: any, c) => {
+          c.worshipDays?.forEach((day: string) => {
+            acc[day] = (acc[day] || 0) + 1;
+          });
+          return acc;
+        }, {});
+
+        const dayColors = ['hsl(217, 91%, 40%)', 'hsl(38, 92%, 50%)', 'hsl(142, 76%, 36%)', 'hsl(217, 91%, 55%)'];
+        const worshipData = Object.entries(worshipDayCounts).map(([name, value], index) => ({
+          name,
+          value,
+          fill: dayColors[index % dayColors.length],
+        }));
+        
+        setWorshipDayData(worshipData);
+
+        // Calcular eventos por mês
+        const monthCounts = events.reduce((acc: any, event) => {
+          const month = new Date(event.date).getMonth();
+          const monthName = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][month];
+          if (!acc[monthName]) {
+            acc[monthName] = { month: monthName, eventos: 0, batismos: 0 };
+          }
+          acc[monthName].eventos++;
+          if (event.type === 'batismo') {
+            acc[monthName].batismos++;
+          }
+          return acc;
+        }, {});
+
+        const monthlyData = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+          .map(month => monthCounts[month] || { month, eventos: 0, batismos: 0 });
+        
+        setMonthlyEventsData(monthlyData);
+      } catch (error) {
+        console.error('Error loading reports data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReportsData();
+  }, []);
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Carregando relatórios...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
