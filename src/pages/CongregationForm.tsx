@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,8 +55,11 @@ interface RehearsalEntry {
 
 export default function CongregationForm() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
+  const isEditMode = !!id;
 
   // Address
   const [name, setName] = useState('');
@@ -150,6 +153,54 @@ export default function CongregationForm() {
     }
   };
 
+  useEffect(() => {
+    const loadCongregation = async () => {
+      if (!isEditMode || !id) return;
+      
+      setLoadingData(true);
+      try {
+        const data = await congregationService.getById(id);
+        if (data) {
+          setName(data.name || '');
+          setStreet(data.street || '');
+          setNumber(data.number || '');
+          setNeighborhood(data.neighborhood || '');
+          setCity(data.city || '');
+          setState(data.state || '');
+          setAdmin(data.admin || '');
+          setRegional(data.regional || '');
+          setElders(data.elders || []);
+          setOfficeCooperators(data.officeCooperators || []);
+          setYouthCooperators(data.youthCooperators || []);
+          setDeacons(data.deacons || []);
+          setRegionalSupervisor(data.regionalSupervisor || { name: '', isLocal: true });
+          setLocalSupervisor(data.localSupervisor || '');
+          setExaminer(data.examiner || { name: '', isLocal: true });
+          setWorshipDays(data.worshipDays || []);
+          setRjmDays(data.rjmDays || []);
+          setRehearsals(data.rehearsals || []);
+        } else {
+          toast({
+            title: 'Congregação não encontrada',
+            variant: 'destructive',
+          });
+          navigate('/congregations');
+        }
+      } catch (error) {
+        console.error('Error loading congregation:', error);
+        toast({
+          title: 'Erro ao carregar',
+          description: 'Não foi possível carregar os dados da congregação.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    loadCongregation();
+  }, [id, isEditMode, navigate, toast]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -189,12 +240,19 @@ export default function CongregationForm() {
         updatedAt: new Date(),
       };
 
-      await congregationService.create(congregationData);
-
-      toast({
-        title: 'Congregação cadastrada!',
-        description: `${name} foi cadastrada com sucesso.`,
-      });
+      if (isEditMode && id) {
+        await congregationService.update(id, congregationData);
+        toast({
+          title: 'Congregação atualizada!',
+          description: `${name} foi atualizada com sucesso.`,
+        });
+      } else {
+        await congregationService.create(congregationData);
+        toast({
+          title: 'Congregação cadastrada!',
+          description: `${name} foi cadastrada com sucesso.`,
+        });
+      }
 
       navigate('/congregations');
     } catch (error) {
@@ -220,8 +278,12 @@ export default function CongregationForm() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Nova Congregação</h1>
-            <p className="text-muted-foreground mt-1">Preencha os dados da congregação</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+              {isEditMode ? 'Editar Congregação' : 'Nova Congregação'}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {isEditMode ? 'Atualize os dados da congregação' : 'Preencha os dados da congregação'}
+            </p>
           </div>
         </div>
 

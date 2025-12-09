@@ -11,6 +11,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Congregations from "./pages/Congregations";
 import CongregationForm from "./pages/CongregationForm";
+import CongregationDetails from "./pages/CongregationDetails";
 import Events from "./pages/Events";
 import EventForm from "./pages/EventForm";
 import Schedule from "./pages/Schedule";
@@ -50,6 +51,22 @@ const App = () => (
             />
             <Route
               path="/congregations/new"
+              element={
+                <ProtectedRoute>
+                  <CongregationForm />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/congregations/:id"
+              element={
+                <ProtectedRoute>
+                  <CongregationDetails />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/congregations/:id/edit"
               element={
                 <ProtectedRoute>
                   <CongregationForm />
