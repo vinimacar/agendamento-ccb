@@ -73,6 +73,30 @@ export function EventCard({ event, compact = false }: EventCardProps) {
           {event.description && (
             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{event.description}</p>
           )}
+          
+          {/* Exibir contagem para Santa Ceia e Batismo */}
+          {(event.type === 'santa-ceia' || event.type === 'batismo') && (event.irmaos || event.irmas) && (
+            <div className="mt-3 p-2 bg-muted/50 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex gap-4">
+                  {event.irmaos !== undefined && (
+                    <span className="text-muted-foreground">
+                      {event.type === 'santa-ceia' ? 'Irmãos' : 'Homens'}: <strong className="text-foreground">{event.irmaos}</strong>
+                    </span>
+                  )}
+                  {event.irmas !== undefined && (
+                    <span className="text-muted-foreground">
+                      {event.type === 'santa-ceia' ? 'Irmãs' : 'Mulheres'}: <strong className="text-foreground">{event.irmas}</strong>
+                    </span>
+                  )}
+                </div>
+                <span className="font-semibold text-primary">
+                  Total: {(event.irmaos || 0) + (event.irmas || 0)}
+                </span>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-4 mt-3 text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4" />

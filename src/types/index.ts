@@ -38,6 +38,8 @@ export interface Event {
   congregationId?: string;
   congregationName?: string;
   description?: string;
+  irmaos?: number;
+  irmas?: number;
   createdAt: Date;
 }
 

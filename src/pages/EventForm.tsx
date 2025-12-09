@@ -32,6 +32,8 @@ export default function EventForm() {
     time: '',
     congregationId: '',
     description: '',
+    irmaos: '',
+    irmas: '',
   });
 
   useEffect(() => {
@@ -65,7 +67,7 @@ export default function EventForm() {
     setLoading(true);
 
     try {
-      await eventService.create({
+      const eventData: any = {
         title: formData.title,
         type: formData.type as EventType,
         date: formData.date,
@@ -73,7 +75,15 @@ export default function EventForm() {
         congregationId: formData.congregationId || undefined,
         congregationName: selectedCongregation?.name || undefined,
         description: formData.description || undefined,
-      });
+      };
+
+      // Adicionar campos de contagem para Santa Ceia e Batismo
+      if (formData.type === 'santa-ceia' || formData.type === 'batismo') {
+        if (formData.irmaos) eventData.irmaos = parseInt(formData.irmaos);
+        if (formData.irmas) eventData.irmas = parseInt(formData.irmas);
+      }
+
+      await eventService.create(eventData);
 
       toast({
         title: 'Evento agendado!',
@@ -156,6 +166,51 @@ export default function EventForm() {
                   rows={3}
                 />
               </div>
+
+              {/* Campos condicionais para Santa Ceia e Batismo */}
+              {(formData.type === 'santa-ceia' || formData.type === 'batismo') && (
+                <div className="space-y-4 pt-4 border-t">
+                  <h4 className="font-medium text-sm text-foreground">
+                    {formData.type === 'santa-ceia' ? 'Participantes da Santa Ceia' : 'Batizandos'}
+                  </h4>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="irmaos">
+                        {formData.type === 'santa-ceia' ? 'Irmãos' : 'Homens'}
+                      </Label>
+                      <Input
+                        id="irmaos"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={formData.irmaos}
+                        onChange={(e) => setFormData({ ...formData, irmaos: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="irmas">
+                        {formData.type === 'santa-ceia' ? 'Irmãs' : 'Mulheres'}
+                      </Label>
+                      <Input
+                        id="irmas"
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={formData.irmas}
+                        onChange={(e) => setFormData({ ...formData, irmas: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-sm">Total:</span>
+                      <span className="text-lg font-bold text-primary">
+                        {(parseInt(formData.irmaos) || 0) + (parseInt(formData.irmas) || 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
