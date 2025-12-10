@@ -290,10 +290,9 @@ export default function EventForm() {
                   onValueChange={(value) => setFormData({ ...formData, congregationId: value })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={loadingCongregations ? 'Carregando...' : 'Selecione uma congregação'} />
+                    <SelectValue placeholder={loadingCongregations ? 'Carregando...' : 'Nenhuma (evento geral)'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Nenhuma (evento geral)</SelectItem>
                     {congregations.map((congregation) => (
                       <SelectItem key={congregation.id} value={congregation.id}>
                         {congregation.name} - {congregation.city}/{congregation.state}
