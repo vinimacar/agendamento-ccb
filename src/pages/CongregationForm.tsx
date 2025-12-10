@@ -97,6 +97,10 @@ export default function CongregationForm() {
   const [newDeaconName, setNewDeaconName] = useState('');
   const [newDeaconIsLocal, setNewDeaconIsLocal] = useState(true);
 
+  // Autocomplete suggestions
+  const [elderSuggestions, setElderSuggestions] = useState<string[]>([]);
+  const [deaconSuggestions, setDeaconSuggestions] = useState<string[]>([]);
+
   // Rehearsal form
   const [newRehearsalType, setNewRehearsalType] = useState<typeof REHEARSAL_TYPES[number]>('Local');
   const [newRehearsalDay, setNewRehearsalDay] = useState('');
@@ -152,6 +156,24 @@ export default function CongregationForm() {
       setList([...list, dayId]);
     }
   };
+
+  useEffect(() => {
+    // Carregar sugestões de anciães e diáconos não-locais
+    const loadSuggestions = async () => {
+      try {
+        const [elders, deacons] = await Promise.all([
+          congregationService.getNonLocalElders(),
+          congregationService.getNonLocalDeacons(),
+        ]);
+        setElderSuggestions(elders);
+        setDeaconSuggestions(deacons);
+      } catch (error) {
+        console.error('Error loading suggestions:', error);
+      }
+    };
+
+    loadSuggestions();
+  }, []);
 
   useEffect(() => {
     const loadCongregation = async () => {
@@ -444,12 +466,21 @@ export default function CongregationForm() {
                     ))}
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      placeholder="Nome do ancião"
-                      value={newElderName}
-                      onChange={(e) => setNewElderName(e.target.value)}
-                      className="flex-1"
-                    />
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Nome do ancião"
+                        value={newElderName}
+                        onChange={(e) => setNewElderName(e.target.value)}
+                        list={!newElderIsLocal ? "elder-suggestions" : undefined}
+                      />
+                      {!newElderIsLocal && elderSuggestions.length > 0 && (
+                        <datalist id="elder-suggestions">
+                          {elderSuggestions.map((name, i) => (
+                            <option key={i} value={name} />
+                          ))}
+                        </datalist>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="elderLocal"
@@ -621,12 +652,21 @@ export default function CongregationForm() {
                     ))}
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      placeholder="Nome do diácono"
-                      value={newDeaconName}
-                      onChange={(e) => setNewDeaconName(e.target.value)}
-                      className="flex-1"
-                    />
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Nome do diácono"
+                        value={newDeaconName}
+                        onChange={(e) => setNewDeaconName(e.target.value)}
+                        list={!newDeaconIsLocal ? "deacon-suggestions" : undefined}
+                      />
+                      {!newDeaconIsLocal && deaconSuggestions.length > 0 && (
+                        <datalist id="deacon-suggestions">
+                          {deaconSuggestions.map((name, i) => (
+                            <option key={i} value={name} />
+                          ))}
+                        </datalist>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Checkbox
                         id="deaconLocal"
@@ -739,7 +779,7 @@ export default function CongregationForm() {
                       >
                         <Checkbox
                           checked={worshipDays.includes(day.id)}
-                          onCheckedChange={() => toggleDay(day.id, worshipDays, setWorshipDays)}
+                          readOnly
                         />
                         <span className="text-sm font-medium">{day.label}</span>
                       </div>
@@ -767,7 +807,7 @@ export default function CongregationForm() {
                       >
                         <Checkbox
                           checked={rjmDays.includes(day.id)}
-                          onCheckedChange={() => toggleDay(day.id, rjmDays, setRjmDays)}
+                          readOnly
                         />
                         <span className="text-sm font-medium">{day.label}</span>
                       </div>

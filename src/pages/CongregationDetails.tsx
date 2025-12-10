@@ -119,7 +119,9 @@ export default function CongregationDetails() {
           <CardContent className="space-y-4">
             {congregation.elders && congregation.elders.length > 0 && (
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">Anciões Locais</h3>
+                <h3 className="text-sm font-medium text-muted-foreground mb-2">
+                  {congregation.elders.length === 1 ? 'Ancião' : 'Anciães'}
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {congregation.elders.map((elder, i) => (
                     <Badge key={i} className="bg-primary/10 text-primary hover:bg-primary/20">

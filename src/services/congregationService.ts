@@ -138,4 +138,34 @@ export const congregationService = {
     const docRef = doc(db, COLLECTION_NAME, id);
     await deleteDoc(docRef);
   },
+
+  async getNonLocalElders(): Promise<string[]> {
+    const congregations = await this.getAll();
+    const eldersSet = new Set<string>();
+    
+    congregations.forEach(congregation => {
+      congregation.elders?.forEach(elder => {
+        if (!elder.isLocal && elder.name.trim()) {
+          eldersSet.add(elder.name.trim());
+        }
+      });
+    });
+    
+    return Array.from(eldersSet).sort();
+  },
+
+  async getNonLocalDeacons(): Promise<string[]> {
+    const congregations = await this.getAll();
+    const deaconsSet = new Set<string>();
+    
+    congregations.forEach(congregation => {
+      congregation.deacons?.forEach(deacon => {
+        if (!deacon.isLocal && deacon.name.trim()) {
+          deaconsSet.add(deacon.name.trim());
+        }
+      });
+    });
+    
+    return Array.from(deaconsSet).sort();
+  },
 };

@@ -166,7 +166,9 @@ export default function Congregations() {
                 )}
                 {congregation.elders && congregation.elders.length > 0 && (
                   <div className="text-sm">
-                    <span className="text-muted-foreground">Anciões:</span>
+                    <span className="text-muted-foreground">
+                      {congregation.elders.length === 1 ? 'Ancião:' : 'Anciães:'}
+                    </span>
                     <div className="flex flex-wrap gap-1.5 mt-1">
                       {congregation.elders.map((elder, i) => (
                         <span
