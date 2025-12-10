@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, MapPin, Clock } from 'lucide-react';
+import { Calendar, MapPin, Clock, User } from 'lucide-react';
 import { Event, eventTypeLabels } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -106,6 +106,15 @@ export function EventCard({ event, compact = false }: EventCardProps) {
               <div className="flex items-center gap-1.5">
                 <MapPin className="h-4 w-4" />
                 <span>{event.congregationName}</span>
+              </div>
+            )}
+            {event.elderName && (
+              <div className="flex items-center gap-1.5">
+                <User className="h-4 w-4" />
+                <span>
+                  {event.elderName}
+                  {event.elderFromOtherLocation && <span className="text-xs ml-1">(Visitante)</span>}
+                </span>
               </div>
             )}
           </div>

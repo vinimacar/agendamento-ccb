@@ -24,6 +24,8 @@ export default function EventForm() {
   const [loading, setLoading] = useState(false);
   const [congregations, setCongregations] = useState<CongregationData[]>([]);
   const [loadingCongregations, setLoadingCongregations] = useState(true);
+  const [allElders, setAllElders] = useState<string[]>([]);
+  const [loadingElders, setLoadingElders] = useState(true);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -31,23 +33,43 @@ export default function EventForm() {
     date: undefined as Date | undefined,
     time: '',
     congregationId: '',
+    elderName: '',
+    elderFromOtherLocation: false,
+    otherElderName: '',
     description: '',
     irmaos: '',
     irmas: '',
   });
 
   useEffect(() => {
-    const loadCongregations = async () => {
+    const loadData = async () => {
       try {
-        const data = await congregationService.getAll();
-        setCongregations(data);
+        const [congregationsData, eldersData] = await Promise.all([
+          congregationService.getAll(),
+          congregationService.getNonLocalElders(),
+        ]);
+        
+        setCongregations(congregationsData);
+        
+        // Buscar todos os anciães (locais e não-locais)
+        const eldersSet = new Set<string>();
+        congregationsData.forEach(congregation => {
+          congregation.elders?.forEach(elder => {
+            if (elder.name.trim()) {
+              eldersSet.add(elder.name.trim());
+            }
+          });
+        });
+        
+        setAllElders(Array.from(eldersSet).sort());
       } catch (error) {
-        console.error('Error loading congregations:', error);
+        console.error('Error loading data:', error);
       } finally {
         setLoadingCongregations(false);
+        setLoadingElders(false);
       }
     };
-    loadCongregations();
+    loadData();
   }, []);
 
   const selectedCongregation = congregations.find(c => c.id === formData.congregationId);
@@ -76,6 +98,15 @@ export default function EventForm() {
         congregationName: selectedCongregation?.name || undefined,
         description: formData.description || undefined,
       };
+
+      // Adicionar ancião oficiante
+      if (formData.elderFromOtherLocation && formData.otherElderName) {
+        eventData.elderName = formData.otherElderName;
+        eventData.elderFromOtherLocation = true;
+      } else if (formData.elderName) {
+        eventData.elderName = formData.elderName;
+        eventData.elderFromOtherLocation = false;
+      }
 
       // Adicionar campos de contagem para Santa Ceia e Batismo
       if (formData.type === 'santa-ceia' || formData.type === 'batismo') {
@@ -301,6 +332,67 @@ export default function EventForm() {
                   </SelectContent>
                 </Select>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Ancião Oficiante */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary" />
+                Ancião Oficiante (opcional)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Selecione o Ancião</Label>
+                <Select
+                  value={formData.elderName}
+                  onValueChange={(value) => setFormData({ ...formData, elderName: value })}
+                  disabled={loadingElders}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingElders ? 'Carregando anciães...' : 'Selecione um ancião'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {allElders.map((elder) => (
+                      <SelectItem key={elder} value={elder}>
+                        {elder}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="elderFromOther"
+                  checked={formData.elderFromOtherLocation}
+                  onChange={(e) => setFormData({ 
+                    ...formData, 
+                    elderFromOtherLocation: e.target.checked,
+                    elderName: e.target.checked ? '' : formData.elderName,
+                    otherElderName: e.target.checked ? formData.otherElderName : ''
+                  })}
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="elderFromOther" className="text-sm font-normal cursor-pointer">
+                  Ancião de outra localidade (não cadastrado)
+                </Label>
+              </div>
+
+              {formData.elderFromOtherLocation && (
+                <div className="space-y-2">
+                  <Label htmlFor="otherElderName">Nome do Ancião</Label>
+                  <Input
+                    id="otherElderName"
+                    placeholder="Digite o nome do ancião"
+                    value={formData.otherElderName}
+                    onChange={(e) => setFormData({ ...formData, otherElderName: e.target.value })}
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
 

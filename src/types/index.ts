@@ -37,6 +37,9 @@ export interface Event {
   time: string;
   congregationId?: string;
   congregationName?: string;
+  elderName?: string;
+  elderFromOtherLocation?: boolean;
+  otherElderName?: string;
   description?: string;
   irmaos?: number;
   irmas?: number;
