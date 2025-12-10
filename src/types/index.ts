@@ -29,6 +29,14 @@ export interface Rehearsal {
   repeats: boolean;
 }
 
+export interface EventSchedule {
+  day: string; // Dia da semana
+  time: string; // Horário
+  type: 'culto' | 'rjm'; // Tipo de reunião
+  hasSpecialRule: boolean; // Se tem regra especial
+  weekOfMonth?: '1' | '2' | '3' | '4'; // Semana do mês (1º, 2º, 3º, 4º)
+}
+
 export interface Event {
   id: string;
   title: string;
@@ -43,6 +51,7 @@ export interface Event {
   description?: string;
   irmaos?: number;
   irmas?: number;
+  schedules?: EventSchedule[]; // Horários de cultos e RJM
   createdAt: Date;
 }
 
