@@ -323,6 +323,26 @@ export default function Reports() {
       const wsCong = XLSX.utils.json_to_sheet(congExportData);
       XLSX.utils.book_append_sheet(wb, wsCong, 'Por Congregação');
     }
+
+    // Aba de Detalhamento (para importação/referência)
+    const detailedData = filteredEvents
+      .filter(e => e.type === 'batismo' || e.type === 'santa-ceia')
+      .map(event => ({
+        'Tipo': event.type === 'batismo' ? 'Batismo' : 'Santa-Ceia',
+        'Título': event.title,
+        'Data': new Date(event.date).toLocaleDateString('pt-BR'),
+        'Hora': event.time,
+        'Cidade': event.congregationName || '',
+        'Oficiante': event.elderName || '',
+        'Irmãos': event.irmaos || 0,
+        'Irmãs': event.irmas || 0,
+        'Observações': event.description || '',
+      }));
+    
+    if (detailedData.length > 0) {
+      const wsDetailed = XLSX.utils.json_to_sheet(detailedData);
+      XLSX.utils.book_append_sheet(wb, wsDetailed, 'Detalhamento');
+    }
     
     // Salvar arquivo
     const fileName = `relatorio-${selectedYear}-${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -335,12 +355,12 @@ export default function Reports() {
   };
 
   // Importar dados de Excel
-  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const bstr = evt.target?.result;
         const wb = XLSX.read(bstr, { type: 'binary' });
@@ -350,17 +370,109 @@ export default function Reports() {
         const ws = wb.Sheets[wsname];
         
         // Converter para JSON
-        const data = XLSX.utils.sheet_to_json(ws);
+        const data: any[] = XLSX.utils.sheet_to_json(ws);
         
-        console.log('Dados importados:', data);
-        
-        toast({
-          title: 'Arquivo importado!',
-          description: `${data.length} registros foram lidos do arquivo.`,
-        });
-        
-        // Aqui você pode processar os dados importados
-        // Por exemplo, adicionar eventos ao sistema
+        if (data.length === 0) {
+          toast({
+            title: 'Arquivo vazio',
+            description: 'O arquivo não contém dados para importar.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        // Processar e importar eventos
+        let importedCount = 0;
+        let errorCount = 0;
+
+        for (const row of data) {
+          try {
+            // Mapear colunas do Excel para campos do evento
+            // Esperado: Tipo, Título, Data, Hora, Cidade, Oficiante, Irmãos, Irmãs
+            const eventType = String(row['Tipo'] || '').toLowerCase().trim();
+            
+            // Validar tipo de evento (apenas batismo e santa-ceia)
+            if (eventType !== 'batismo' && eventType !== 'santa-ceia') {
+              continue; // Pular linhas que não são batismo ou santa ceia
+            }
+
+            // Validar campos obrigatórios
+            if (!row['Data'] || !row['Cidade']) {
+              errorCount++;
+              continue;
+            }
+
+            // Processar data
+            let eventDate: Date;
+            if (typeof row['Data'] === 'number') {
+              // Excel date format (número de dias desde 1900)
+              eventDate = XLSX.SSF.parse_date_code(row['Data']);
+              eventDate = new Date(eventDate.y, eventDate.m - 1, eventDate.d);
+            } else {
+              // Tentar parsear como string (DD/MM/YYYY ou similar)
+              const dateStr = String(row['Data']);
+              const parts = dateStr.split('/');
+              if (parts.length === 3) {
+                eventDate = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+              } else {
+                eventDate = new Date(dateStr);
+              }
+            }
+
+            if (isNaN(eventDate.getTime())) {
+              errorCount++;
+              continue;
+            }
+
+            // Encontrar congregação pela cidade
+            const city = String(row['Cidade']).trim();
+            const congregation = congregations.find(c => 
+              c.city.toLowerCase() === city.toLowerCase()
+            );
+
+            // Criar evento
+            const eventData: any = {
+              title: String(row['Título'] || `${eventType === 'batismo' ? 'Batismo' : 'Santa Ceia'} - ${city}`),
+              type: eventType === 'batismo' ? 'batismo' : 'santa-ceia',
+              date: eventDate,
+              time: String(row['Hora'] || '19:30'),
+              congregationId: congregation?.id,
+              congregationName: congregation?.name || city,
+              elderName: row['Oficiante'] ? String(row['Oficiante']).trim() : undefined,
+              elderFromOtherLocation: !congregation, // Se não encontrou congregação, assume que é de outra localidade
+              ministerRole: 'elder',
+              irmaos: row['Irmãos'] ? parseInt(String(row['Irmãos'])) : 0,
+              irmas: row['Irmãs'] ? parseInt(String(row['Irmãs'])) : 0,
+              description: row['Observações'] ? String(row['Observações']) : undefined,
+            };
+
+            // Criar evento no Firebase
+            await eventService.create(eventData);
+            importedCount++;
+
+          } catch (error) {
+            console.error('Erro ao importar linha:', row, error);
+            errorCount++;
+          }
+        }
+
+        // Recarregar eventos
+        const updatedEvents = await eventService.getAll();
+        setEvents(updatedEvents);
+
+        // Mostrar resultado
+        if (importedCount > 0) {
+          toast({
+            title: 'Importação concluída!',
+            description: `${importedCount} evento(s) importado(s) com sucesso.${errorCount > 0 ? ` ${errorCount} erro(s) encontrado(s).` : ''}`,
+          });
+        } else {
+          toast({
+            title: 'Nenhum evento importado',
+            description: errorCount > 0 ? `${errorCount} erro(s) encontrado(s). Verifique o formato do arquivo.` : 'Não foram encontrados eventos válidos para importar.',
+            variant: 'destructive',
+          });
+        }
         
       } catch (error) {
         console.error('Erro ao importar:', error);
