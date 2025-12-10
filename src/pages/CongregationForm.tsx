@@ -9,12 +9,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, 
   MapPin, 
   Users, 
-  Calendar, 
+  Calendar as CalendarIcon, 
   Music, 
   Plus, 
   X,
@@ -49,9 +54,10 @@ interface PersonEntry {
 
 interface RehearsalEntry {
   type: typeof REHEARSAL_TYPES[number];
-  day: string;
+  day?: string; // Dia da semana (para ensaios recorrentes)
+  date?: Date; // Data específica (para ensaios pontuais)
   time: string;
-  repeats: boolean;
+  repeats: boolean; // Se repete semanalmente
 }
 
 export default function CongregationForm() {
@@ -94,6 +100,7 @@ export default function CongregationForm() {
     hasSpecialRule: false,
     weekOfMonth: undefined,
   });
+  const [selectedDays, setSelectedDays] = useState<string[]>([]); // For multi-day selection
 
   // Rehearsals
   const [rehearsals, setRehearsals] = useState<RehearsalEntry[]>([]);
@@ -115,6 +122,7 @@ export default function CongregationForm() {
   // Rehearsal form
   const [newRehearsalType, setNewRehearsalType] = useState<typeof REHEARSAL_TYPES[number]>('Local');
   const [newRehearsalDay, setNewRehearsalDay] = useState('');
+  const [newRehearsalDate, setNewRehearsalDate] = useState<Date | undefined>(undefined);
   const [newRehearsalTime, setNewRehearsalTime] = useState('');
   const [newRehearsalRepeats, setNewRehearsalRepeats] = useState(false);
 
@@ -140,20 +148,39 @@ export default function CongregationForm() {
   };
 
   const addRehearsal = () => {
-    if (newRehearsalDay && newRehearsalTime) {
-      setRehearsals([
-        ...rehearsals,
-        {
-          type: newRehearsalType,
-          day: newRehearsalDay,
-          time: newRehearsalTime,
-          repeats: newRehearsalRepeats,
-        },
-      ]);
-      setNewRehearsalDay('');
-      setNewRehearsalTime('');
-      setNewRehearsalRepeats(false);
+    // Validar que tem horário e pelo menos dia ou data
+    if (!newRehearsalTime) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Por favor, preencha o horário do ensaio.",
+      });
+      return;
     }
+    
+    if (!newRehearsalDay && !newRehearsalDate) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Por favor, selecione um dia da semana ou uma data específica.",
+      });
+      return;
+    }
+
+    setRehearsals([
+      ...rehearsals,
+      {
+        type: newRehearsalType,
+        day: newRehearsalDay || undefined,
+        date: newRehearsalDate,
+        time: newRehearsalTime,
+        repeats: newRehearsalRepeats,
+      },
+    ]);
+    setNewRehearsalDay('');
+    setNewRehearsalDate(undefined);
+    setNewRehearsalTime('');
+    setNewRehearsalRepeats(false);
   };
 
   const removeRehearsal = (index: number) => {
@@ -844,31 +871,40 @@ export default function CongregationForm() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Dia da Semana *</Label>
-                        <Select
-                          value={newSchedule.day}
-                          onValueChange={(value) => setNewSchedule({ ...newSchedule, day: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o dia" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {DAYS_OF_WEEK.map((day) => (
-                              <SelectItem key={day.id} value={day.id}>
-                                {day.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
                         <Label>Horário *</Label>
                         <Input
                           type="time"
                           value={newSchedule.time}
                           onChange={(e) => setNewSchedule({ ...newSchedule, time: e.target.value })}
                         />
+                      </div>
+                    </div>
+
+                    {/* Multi-day selector */}
+                    <div className="space-y-2">
+                      <Label>Dias da Semana * (selecione um ou mais)</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-muted/30">
+                        {DAYS_OF_WEEK.map((day) => (
+                          <div key={day.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`day-${day.id}`}
+                              checked={selectedDays.includes(day.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedDays([...selectedDays, day.id]);
+                                } else {
+                                  setSelectedDays(selectedDays.filter((d) => d !== day.id));
+                                }
+                              }}
+                            />
+                            <Label 
+                              htmlFor={`day-${day.id}`} 
+                              className="text-sm font-normal cursor-pointer"
+                            >
+                              {day.label}
+                            </Label>
+                          </div>
+                        ))}
                       </div>
                     </div>
 
@@ -912,10 +948,10 @@ export default function CongregationForm() {
                             <SelectValue placeholder="Selecione a semana" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="1">1º {DAYS_OF_WEEK.find(d => d.id === newSchedule.day)?.label || 'dia'} do mês</SelectItem>
-                            <SelectItem value="2">2º {DAYS_OF_WEEK.find(d => d.id === newSchedule.day)?.label || 'dia'} do mês</SelectItem>
-                            <SelectItem value="3">3º {DAYS_OF_WEEK.find(d => d.id === newSchedule.day)?.label || 'dia'} do mês</SelectItem>
-                            <SelectItem value="4">4º {DAYS_OF_WEEK.find(d => d.id === newSchedule.day)?.label || 'dia'} do mês</SelectItem>
+                            <SelectItem value="1">1ª semana do mês</SelectItem>
+                            <SelectItem value="2">2ª semana do mês</SelectItem>
+                            <SelectItem value="3">3ª semana do mês</SelectItem>
+                            <SelectItem value="4">4ª semana do mês</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -926,10 +962,10 @@ export default function CongregationForm() {
                       variant="outline"
                       className="w-full"
                       onClick={() => {
-                        if (!newSchedule.day || !newSchedule.time) {
+                        if (selectedDays.length === 0 || !newSchedule.time) {
                           toast({
                             title: 'Campos obrigatórios',
-                            description: 'Preencha o dia e horário.',
+                            description: 'Selecione pelo menos um dia e preencha o horário.',
                             variant: 'destructive',
                           });
                           return;
@@ -942,7 +978,18 @@ export default function CongregationForm() {
                           });
                           return;
                         }
-                        setSchedules([...schedules, { ...newSchedule }]);
+                        
+                        // Create a schedule entry for each selected day
+                        const newSchedules = selectedDays.map((day) => ({
+                          day,
+                          time: newSchedule.time,
+                          type: newSchedule.type,
+                          hasSpecialRule: newSchedule.hasSpecialRule,
+                          weekOfMonth: newSchedule.weekOfMonth,
+                        }));
+                        
+                        setSchedules([...schedules, ...newSchedules]);
+                        setSelectedDays([]);
                         setNewSchedule({
                           day: '',
                           time: '',
@@ -969,48 +1016,71 @@ export default function CongregationForm() {
                 <CardDescription>Cadastre os ensaios da congregação (Local, Regional, GEM ou Geral)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Rehearsals List */}
+                {/* Rehearsals List - Organized by Type */}
                 {rehearsals.length > 0 && (
-                  <div className="space-y-3">
-                    {rehearsals.map((rehearsal, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border"
-                      >
-                        <div className="flex items-center gap-4">
-                          <Badge variant={rehearsal.type === 'Local' ? 'default' : 'secondary'}>
-                            {rehearsal.type}
-                          </Badge>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {DAYS_OF_WEEK.find((d) => d.id === rehearsal.day)?.label}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {rehearsal.time}
-                              {rehearsal.repeats && ' • Repete durante o ano'}
-                            </p>
+                  <div className="space-y-6">
+                    {REHEARSAL_TYPES.map((type) => {
+                      const typeRehearsals = rehearsals.filter((r) => r.type === type);
+                      if (typeRehearsals.length === 0) return null;
+                      
+                      return (
+                        <div key={type} className="space-y-3">
+                          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <Music className="h-4 w-4" />
+                            Ensaios {type}
+                          </h3>
+                          <div className="space-y-2 pl-6">
+                            {typeRehearsals.map((rehearsal, index) => {
+                              const globalIndex = rehearsals.indexOf(rehearsal);
+                              return (
+                                <div
+                                  key={globalIndex}
+                                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <Badge variant={rehearsal.type === 'Local' ? 'default' : 'secondary'}>
+                                      {rehearsal.type}
+                                    </Badge>
+                                    <div>
+                                      <p className="font-medium text-foreground">
+                                        {rehearsal.date 
+                                          ? format(rehearsal.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                                          : rehearsal.day ? DAYS_OF_WEEK.find((d) => d.id === rehearsal.day)?.label : 'Sem data'
+                                        }
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {rehearsal.time}
+                                        {rehearsal.repeats && ' • Repete semanalmente'}
+                                        {rehearsal.date && !rehearsal.repeats && ' • Data específica'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive hover:bg-destructive/10"
+                                    onClick={() => removeRehearsal(globalIndex)}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => removeRehearsal(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
 
                 {/* Add Rehearsal Form */}
                 <div className="p-4 rounded-lg border border-dashed border-border space-y-4">
                   <p className="text-sm font-medium text-foreground">Adicionar Ensaio</p>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  
+                  <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Tipo</Label>
+                      <Label>Tipo *</Label>
                       <Select value={newRehearsalType} onValueChange={(v) => setNewRehearsalType(v as typeof REHEARSAL_TYPES[number])}>
                         <SelectTrigger>
                           <SelectValue />
@@ -1024,43 +1094,90 @@ export default function CongregationForm() {
                         </SelectContent>
                       </Select>
                     </div>
+
                     <div className="space-y-2">
-                      <Label>Dia</Label>
-                      <Select value={newRehearsalDay} onValueChange={setNewRehearsalDay}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover">
-                          {DAYS_OF_WEEK.map((day) => (
-                            <SelectItem key={day.id} value={day.id}>
-                              {day.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Horário</Label>
+                      <Label>Horário *</Label>
                       <Input
                         type="time"
                         value={newRehearsalTime}
                         onChange={(e) => setNewRehearsalTime(e.target.value)}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="invisible">Ações</Label>
-                      <div className="flex items-center gap-2 h-10">
-                        <Checkbox
-                          id="repeats"
-                          checked={newRehearsalRepeats}
-                          onCheckedChange={(checked) => setNewRehearsalRepeats(checked as boolean)}
-                        />
-                        <Label htmlFor="repeats" className="text-sm">
-                          Repete
-                        </Label>
-                      </div>
-                    </div>
                   </div>
+
+                  {/* Scheduling Options */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="repeats-rehearsal"
+                        checked={newRehearsalRepeats}
+                        onCheckedChange={(checked) => {
+                          setNewRehearsalRepeats(checked as boolean);
+                          if (checked) {
+                            setNewRehearsalDate(undefined); // Clear specific date if repeating
+                          } else {
+                            setNewRehearsalDay(''); // Clear weekday if not repeating
+                          }
+                        }}
+                      />
+                      <Label htmlFor="repeats-rehearsal" className="text-sm font-normal cursor-pointer">
+                        Ensaio recorrente (repete toda semana)
+                      </Label>
+                    </div>
+
+                    {newRehearsalRepeats ? (
+                      // Weekday selector for recurring rehearsals
+                      <div className="space-y-2">
+                        <Label>Dia da Semana *</Label>
+                        <Select value={newRehearsalDay} onValueChange={setNewRehearsalDay}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o dia da semana" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover">
+                            {DAYS_OF_WEEK.map((day) => (
+                              <SelectItem key={day.id} value={day.id}>
+                                {day.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : (
+                      // Calendar for specific date
+                      <div className="space-y-2">
+                        <Label>Data Específica *</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !newRehearsalDate && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {newRehearsalDate ? (
+                                format(newRehearsalDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                              ) : (
+                                <span>Selecione a data do ensaio</span>
+                              )}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={newRehearsalDate}
+                              onSelect={setNewRehearsalDate}
+                              locale={ptBR}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    )}
+                  </div>
+
                   <Button type="button" variant="outline" onClick={addRehearsal}>
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar Ensaio

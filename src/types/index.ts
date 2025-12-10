@@ -25,9 +25,10 @@ export interface Congregation {
 
 export interface Rehearsal {
   type: 'Local' | 'Regional' | 'GEM' | 'Geral';
-  day: string;
+  day?: string; // Dia da semana (para ensaios recorrentes)
+  date?: Date; // Data específica (para ensaios pontuais)
   time: string;
-  repeats: boolean;
+  repeats: boolean; // Se repete semanalmente
 }
 
 export interface EventSchedule {
