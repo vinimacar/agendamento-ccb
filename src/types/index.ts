@@ -12,8 +12,9 @@ export interface Congregation {
   officeCooperators: string[];
   youthCooperators: string[];
   deacons: string[];
-  worshipDays: string[];
-  rjmDays: string[];
+  worshipDays: string[]; // Deprecated - manter para compatibilidade
+  rjmDays: string[]; // Deprecated - manter para compatibilidade
+  schedules?: EventSchedule[]; // Horários de cultos e RJM com regras especiais
   regionalSupervisor: string;
   localSupervisor: string;
   examiner: string;
@@ -52,7 +53,6 @@ export interface Event {
   description?: string;
   irmaos?: number;
   irmas?: number;
-  schedules?: EventSchedule[]; // Horários de cultos e RJM
   createdAt: Date;
 }
 

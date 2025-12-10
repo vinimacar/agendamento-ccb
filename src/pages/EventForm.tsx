@@ -11,24 +11,22 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { eventService } from '@/services/eventService';
 import { congregationService, CongregationData } from '@/services/congregationService';
 import { EventType, eventTypeLabels } from '@/types';
-import { ArrowLeft, CalendarIcon, Clock, Loader2, Save, FileText, MapPin, Users, Plus, X } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, Clock, Loader2, Save, FileText, MapPin, Users, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import type { EventSchedule } from '@/types';
-
-const DAYS_OF_WEEK = [
-  { id: 'domingo', label: 'Domingo' },
-  { id: 'segunda', label: 'Segunda' },
-  { id: 'terca', label: 'Terça' },
-  { id: 'quarta', label: 'Quarta' },
-  { id: 'quinta', label: 'Quinta' },
-  { id: 'sexta', label: 'Sexta' },
-  { id: 'sabado', label: 'Sábado' },
-];
 
 export default function EventForm() {
   const navigate = useNavigate();
@@ -36,6 +34,8 @@ export default function EventForm() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showSecondDeleteDialog, setShowSecondDeleteDialog] = useState(false);
   const [congregations, setCongregations] = useState<CongregationData[]>([]);
   const [loadingCongregations, setLoadingCongregations] = useState(true);
   const [allElders, setAllElders] = useState<string[]>([]);
@@ -58,16 +58,6 @@ export default function EventForm() {
     description: '',
     irmaos: '',
     irmas: '',
-  });
-
-  // Estados para horários de cultos e RJM
-  const [schedules, setSchedules] = useState<EventSchedule[]>([]);
-  const [newSchedule, setNewSchedule] = useState<EventSchedule>({
-    day: '',
-    time: '',
-    type: 'culto',
-    hasSpecialRule: false,
-    weekOfMonth: undefined,
   });
 
   useEffect(() => {
@@ -115,9 +105,6 @@ export default function EventForm() {
             irmaos: data.irmaos?.toString() || '',
             irmas: data.irmas?.toString() || '',
           });
-          if (data.schedules) {
-            setSchedules(data.schedules);
-          }
         } else {
           toast({
             title: 'Evento não encontrado',
@@ -142,52 +129,27 @@ export default function EventForm() {
 
   const selectedCongregation = congregations.find(c => c.id === formData.congregationId);
 
-  // Funções para gerenciar horários
-  const addSchedule = () => {
-    if (!newSchedule.day || !newSchedule.time) {
+  const handleDelete = async () => {
+    if (!id) return;
+    
+    setLoading(true);
+    try {
+      await eventService.delete(id);
       toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha o dia e horário.',
+        title: 'Evento excluído!',
+        description: 'O evento foi excluído com sucesso.',
+      });
+      navigate('/events');
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast({
+        title: 'Erro ao excluir',
+        description: 'Não foi possível excluir o evento.',
         variant: 'destructive',
       });
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    if (newSchedule.hasSpecialRule && !newSchedule.weekOfMonth) {
-      toast({
-        title: 'Regra especial incompleta',
-        description: 'Selecione a semana do mês.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setSchedules([...schedules, { ...newSchedule }]);
-    setNewSchedule({
-      day: '',
-      time: '',
-      type: 'culto',
-      hasSpecialRule: false,
-      weekOfMonth: undefined,
-    });
-  };
-
-  const removeSchedule = (index: number) => {
-    setSchedules(schedules.filter((_, i) => i !== index));
-  };
-
-  const getDayLabel = (dayId: string) => {
-    return DAYS_OF_WEEK.find(d => d.id === dayId)?.label || dayId;
-  };
-
-  const getWeekLabel = (week?: string) => {
-    const labels: Record<string, string> = {
-      '1': '1º',
-      '2': '2º',
-      '3': '3º',
-      '4': '4º',
-    };
-    return week ? labels[week] : '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -218,7 +180,6 @@ export default function EventForm() {
         ministerRole: undefined as 'elder' | 'cooperator' | 'deacon' | 'youth-cooperator' | undefined,
         irmaos: undefined as number | undefined,
         irmas: undefined as number | undefined,
-        schedules: schedules.length > 0 ? schedules : undefined,
       };
 
       // Adicionar oficiante (ancião, cooperador, diácono ou cooperador de jovens)
@@ -453,177 +414,6 @@ export default function EventForm() {
             </CardContent>
           </Card>
 
-          {/* Horários de Cultos e RJM */}
-          <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
-                Horários de Cultos e RJM (opcional)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Lista de horários cadastrados */}
-              {schedules.length > 0 && (
-                <div className="space-y-2">
-                  <Label>Horários Cadastrados</Label>
-                  <div className="space-y-2">
-                    {schedules.map((schedule, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "px-2.5 py-1 rounded-md text-xs font-medium",
-                            schedule.type === 'culto' 
-                              ? "bg-primary/10 text-primary border border-primary/20" 
-                              : "bg-accent/10 text-accent border border-accent/20"
-                          )}>
-                            {schedule.type === 'culto' ? 'Culto' : 'RJM'}
-                          </div>
-                          <div className="text-sm">
-                            <span className="font-medium text-foreground">{getDayLabel(schedule.day)}</span>
-                            <span className="text-muted-foreground"> às </span>
-                            <span className="font-medium text-foreground">{schedule.time}</span>
-                            {schedule.hasSpecialRule && schedule.weekOfMonth && (
-                              <>
-                                <span className="text-muted-foreground"> - </span>
-                                <span className="text-xs px-2 py-0.5 rounded bg-orange-500/10 text-orange-600 border border-orange-500/20">
-                                  {getWeekLabel(schedule.weekOfMonth)} {getDayLabel(schedule.day)} do mês
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 hover:bg-destructive/20"
-                          onClick={() => removeSchedule(index)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Formulário para adicionar novo horário */}
-              <div className="space-y-4 p-4 rounded-lg border border-dashed border-border">
-                <Label className="text-base font-semibold">Adicionar Novo Horário</Label>
-                
-                <div className="grid sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Tipo *</Label>
-                    <Select
-                      value={newSchedule.type}
-                      onValueChange={(value: 'culto' | 'rjm') => 
-                        setNewSchedule({ ...newSchedule, type: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o tipo" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="culto">Culto</SelectItem>
-                        <SelectItem value="rjm">RJM</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Dia da Semana *</Label>
-                    <Select
-                      value={newSchedule.day}
-                      onValueChange={(value) => setNewSchedule({ ...newSchedule, day: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o dia" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {DAYS_OF_WEEK.map((day) => (
-                          <SelectItem key={day.id} value={day.id}>
-                            {day.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Horário *</Label>
-                    <Input
-                      type="time"
-                      value={newSchedule.time}
-                      onChange={(e) => setNewSchedule({ ...newSchedule, time: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* Checkbox para regra especial */}
-                <div className="flex items-start space-x-2 pt-2">
-                  <Checkbox
-                    id="hasSpecialRule"
-                    checked={newSchedule.hasSpecialRule}
-                    onCheckedChange={(checked) => 
-                      setNewSchedule({ 
-                        ...newSchedule, 
-                        hasSpecialRule: checked as boolean,
-                        weekOfMonth: checked ? newSchedule.weekOfMonth : undefined,
-                      })
-                    }
-                  />
-                  <div className="space-y-1">
-                    <Label 
-                      htmlFor="hasSpecialRule" 
-                      className="text-sm font-normal cursor-pointer leading-none"
-                    >
-                      Tem regra especial de repetição mensal
-                    </Label>
-                    <p className="text-xs text-muted-foreground">
-                      Marque se o culto/RJM ocorre apenas em uma semana específica do mês
-                    </p>
-                  </div>
-                </div>
-
-                {/* Campo condicional para semana do mês */}
-                {newSchedule.hasSpecialRule && (
-                  <div className="space-y-2 pl-6">
-                    <Label>Semana do Mês *</Label>
-                    <Select
-                      value={newSchedule.weekOfMonth}
-                      onValueChange={(value: '1' | '2' | '3' | '4') => 
-                        setNewSchedule({ ...newSchedule, weekOfMonth: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a semana" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">1º {getDayLabel(newSchedule.day) || 'dia'} do mês</SelectItem>
-                        <SelectItem value="2">2º {getDayLabel(newSchedule.day) || 'dia'} do mês</SelectItem>
-                        <SelectItem value="3">3º {getDayLabel(newSchedule.day) || 'dia'} do mês</SelectItem>
-                        <SelectItem value="4">4º {getDayLabel(newSchedule.day) || 'dia'} do mês</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={addSchedule}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Horário
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Congregação */}
           <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
             <CardHeader>
@@ -787,6 +577,20 @@ export default function EventForm() {
             >
               Cancelar
             </Button>
+            
+            {isEditMode && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={loading}
+                className="flex-1"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </Button>
+            )}
+            
             <Button
               type="submit"
               disabled={loading}
@@ -800,12 +604,72 @@ export default function EventForm() {
               ) : (
                 <>
                   <Save className="h-4 w-4 mr-2" />
-                  Agendar Evento
+                  {isEditMode ? 'Salvar Alterações' : 'Agendar Evento'}
                 </>
               )}
             </Button>
           </div>
         </form>
+
+        {/* First Delete Confirmation Dialog */}
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Você está prestes a excluir o evento <strong>"{formData.title}"</strong>.
+                Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowDeleteDialog(false);
+                  setShowSecondDeleteDialog(true);
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Continuar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Second Delete Confirmation Dialog */}
+        <AlertDialog open={showSecondDeleteDialog} onOpenChange={setShowSecondDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-destructive">⚠️ Confirmação Final</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p className="font-semibold">Esta é sua última chance de cancelar!</p>
+                <p>
+                  O evento <strong>"{formData.title}"</strong> será excluído permanentemente.
+                  Todos os dados associados serão perdidos.
+                </p>
+                <p className="text-destructive font-medium">
+                  Esta ação é IRREVERSÍVEL.
+                </p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setShowSecondDeleteDialog(false)}>
+                Cancelar
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowSecondDeleteDialog(false);
+                  handleDelete();
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Sim, Excluir Definitivamente
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

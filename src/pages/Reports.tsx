@@ -66,13 +66,24 @@ export default function Reports() {
   }, []);
 
   // Filtrar eventos baseado nos filtros selecionados
+  // Considera apenas eventos que já foram realizados (data anterior à data atual)
   const filteredEvents = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to midnight for accurate date comparison
+    
     return events.filter(event => {
+      const eventDate = new Date(event.date);
+      eventDate.setHours(0, 0, 0, 0);
+      
+      // Filtro de data: apenas eventos já realizados
+      const isPastEvent = eventDate < today;
+      
       const eventYear = new Date(event.date).getFullYear().toString();
       const yearMatch = selectedYear === 'all' || eventYear === selectedYear;
       const typeMatch = selectedEventType === 'all' || event.type === selectedEventType;
       const congregationMatch = selectedCongregation === 'all' || event.congregationId === selectedCongregation;
-      return yearMatch && typeMatch && congregationMatch;
+      
+      return isPastEvent && yearMatch && typeMatch && congregationMatch;
     });
   }, [events, selectedYear, selectedEventType, selectedCongregation]);
 

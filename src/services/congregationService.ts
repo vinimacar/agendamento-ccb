@@ -11,6 +11,7 @@ import {
   getDoc
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import type { EventSchedule } from '@/types';
 
 export interface PersonEntry {
   name: string;
@@ -43,6 +44,7 @@ export interface CongregationData {
   examiner: PersonEntry;
   worshipDays: string[];
   rjmDays: string[];
+  schedules?: EventSchedule[];
   rehearsals: RehearsalEntry[];
   createdAt: Date;
   updatedAt: Date;

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { congregationService } from '@/services/congregationService';
+import type { EventSchedule } from '@/types';
 
 const STATES = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -83,6 +84,16 @@ export default function CongregationForm() {
   // Worship Days & RJM
   const [worshipDays, setWorshipDays] = useState<string[]>([]);
   const [rjmDays, setRjmDays] = useState<string[]>([]);
+  
+  // Schedules (new system)
+  const [schedules, setSchedules] = useState<EventSchedule[]>([]);
+  const [newSchedule, setNewSchedule] = useState<EventSchedule>({
+    day: '',
+    time: '',
+    type: 'culto',
+    hasSpecialRule: false,
+    weekOfMonth: undefined,
+  });
 
   // Rehearsals
   const [rehearsals, setRehearsals] = useState<RehearsalEntry[]>([]);
@@ -200,6 +211,7 @@ export default function CongregationForm() {
           setExaminer(data.examiner || { name: '', isLocal: true });
           setWorshipDays(data.worshipDays || []);
           setRjmDays(data.rjmDays || []);
+          setSchedules(data.schedules || []);
           setRehearsals(data.rehearsals || []);
         } else {
           toast({
@@ -257,6 +269,7 @@ export default function CongregationForm() {
         examiner,
         worshipDays,
         rjmDays,
+        schedules,
         rehearsals,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -762,54 +775,186 @@ export default function CongregationForm() {
             <div className="space-y-6">
               <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
                 <CardHeader>
-                  <CardTitle>Dias de Culto</CardTitle>
-                  <CardDescription>Selecione os dias de culto da congregação</CardDescription>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Horários de Cultos e RJM
+                  </CardTitle>
+                  <CardDescription>Cadastre os horários fixos de cultos e reuniões com regras especiais de repetição</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {DAYS_OF_WEEK.map((day) => (
-                      <div
-                        key={day.id}
-                        className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                          worshipDays.includes(day.id)
-                            ? 'bg-primary/10 border-primary'
-                            : 'bg-muted/50 border-border hover:bg-muted'
-                        }`}
-                        onClick={() => toggleDay(day.id, worshipDays, setWorshipDays)}
-                      >
-                        <Checkbox
-                          checked={worshipDays.includes(day.id)}
-                        />
-                        <span className="text-sm font-medium">{day.label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                <CardContent className="space-y-6">
+                  {/* Lista de horários cadastrados */}
+                  {schedules.length > 0 && (
+                    <div className="space-y-3">
+                      {schedules.map((schedule, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border"
+                        >
+                          <div className="flex items-center gap-4">
+                            <Badge variant={schedule.type === 'culto' ? 'default' : 'secondary'}>
+                              {schedule.type === 'culto' ? 'Culto' : 'RJM'}
+                            </Badge>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {DAYS_OF_WEEK.find(d => d.id === schedule.day)?.label}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {schedule.time}
+                                {schedule.hasSpecialRule && schedule.weekOfMonth && (
+                                  <> • {['1º', '2º', '3º', '4º'][parseInt(schedule.weekOfMonth) - 1]} {DAYS_OF_WEEK.find(d => d.id === schedule.day)?.label} do mês</>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSchedules(schedules.filter((_, i) => i !== index))}
+                            className="h-8 w-8 hover:bg-destructive/20"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
-                <CardHeader>
-                  <CardTitle>Dias de RJM</CardTitle>
-                  <CardDescription>Selecione os dias de RJM (Reunião de Jovens e Menores)</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {DAYS_OF_WEEK.map((day) => (
-                      <div
-                        key={day.id}
-                        className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
-                          rjmDays.includes(day.id)
-                            ? 'bg-accent/20 border-accent'
-                            : 'bg-muted/50 border-border hover:bg-muted'
-                        }`}
-                        onClick={() => toggleDay(day.id, rjmDays, setRjmDays)}
-                      >
-                        <Checkbox
-                          checked={rjmDays.includes(day.id)}
-                        />
-                        <span className="text-sm font-medium">{day.label}</span>
+                  {/* Formulário para adicionar novo horário */}
+                  <div className="space-y-4 p-4 rounded-lg border border-dashed border-border">
+                    <Label className="text-base font-semibold">Adicionar Novo Horário</Label>
+                    
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Tipo *</Label>
+                        <Select
+                          value={newSchedule.type}
+                          onValueChange={(value: 'culto' | 'rjm') => 
+                            setNewSchedule({ ...newSchedule, type: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="culto">Culto</SelectItem>
+                            <SelectItem value="rjm">RJM</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                    ))}
+
+                      <div className="space-y-2">
+                        <Label>Dia da Semana *</Label>
+                        <Select
+                          value={newSchedule.day}
+                          onValueChange={(value) => setNewSchedule({ ...newSchedule, day: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o dia" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DAYS_OF_WEEK.map((day) => (
+                              <SelectItem key={day.id} value={day.id}>
+                                {day.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Horário *</Label>
+                        <Input
+                          type="time"
+                          value={newSchedule.time}
+                          onChange={(e) => setNewSchedule({ ...newSchedule, time: e.target.value })}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Checkbox para regra especial */}
+                    <div className="flex items-start space-x-2 pt-2">
+                      <Checkbox
+                        id="hasSpecialRule-schedule"
+                        checked={newSchedule.hasSpecialRule}
+                        onCheckedChange={(checked) => 
+                          setNewSchedule({ 
+                            ...newSchedule, 
+                            hasSpecialRule: checked as boolean,
+                            weekOfMonth: checked ? newSchedule.weekOfMonth : undefined,
+                          })
+                        }
+                      />
+                      <div className="space-y-1">
+                        <Label 
+                          htmlFor="hasSpecialRule-schedule" 
+                          className="text-sm font-normal cursor-pointer leading-none"
+                        >
+                          Tem regra especial de repetição mensal
+                        </Label>
+                        <p className="text-xs text-muted-foreground">
+                          Marque se o culto/RJM ocorre apenas em uma semana específica do mês
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Campo condicional para semana do mês */}
+                    {newSchedule.hasSpecialRule && (
+                      <div className="space-y-2 pl-6">
+                        <Label>Semana do Mês *</Label>
+                        <Select
+                          value={newSchedule.weekOfMonth}
+                          onValueChange={(value: '1' | '2' | '3' | '4') => 
+                            setNewSchedule({ ...newSchedule, weekOfMonth: value })
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a semana" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">1º {DAYS_OF_WEEK.find(d => d.id === newSchedule.day)?.label || 'dia'} do mês</SelectItem>
+                            <SelectItem value="2">2º {DAYS_OF_WEEK.find(d => d.id === newSchedule.day)?.label || 'dia'} do mês</SelectItem>
+                            <SelectItem value="3">3º {DAYS_OF_WEEK.find(d => d.id === newSchedule.day)?.label || 'dia'} do mês</SelectItem>
+                            <SelectItem value="4">4º {DAYS_OF_WEEK.find(d => d.id === newSchedule.day)?.label || 'dia'} do mês</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        if (!newSchedule.day || !newSchedule.time) {
+                          toast({
+                            title: 'Campos obrigatórios',
+                            description: 'Preencha o dia e horário.',
+                            variant: 'destructive',
+                          });
+                          return;
+                        }
+                        if (newSchedule.hasSpecialRule && !newSchedule.weekOfMonth) {
+                          toast({
+                            title: 'Regra especial incompleta',
+                            description: 'Selecione a semana do mês.',
+                            variant: 'destructive',
+                          });
+                          return;
+                        }
+                        setSchedules([...schedules, { ...newSchedule }]);
+                        setNewSchedule({
+                          day: '',
+                          time: '',
+                          type: 'culto',
+                          hasSpecialRule: false,
+                          weekOfMonth: undefined,
+                        });
+                      }}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Adicionar Horário
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

@@ -19,7 +19,18 @@ export default function Events() {
     const loadEvents = async () => {
       try {
         const data = await eventService.getAll();
-        setEvents(data);
+        
+        // Filtrar apenas eventos futuros (a serem realizados)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const futureEvents = data.filter(event => {
+          const eventDate = new Date(event.date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate >= today;
+        });
+        
+        setEvents(futureEvents);
       } catch (error: any) {
         console.error('Error loading events:', error);
         
