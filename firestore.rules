@@ -1,0 +1,46 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Função auxiliar para verificar se o usuário está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Regras para a coleção de congregações
+    match /congregations/{congregationId} {
+      // Permitir leitura para usuários autenticados
+      allow read: if isAuthenticated();
+      
+      // Permitir escrita (create, update, delete) para usuários autenticados
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de eventos
+    match /events/{eventId} {
+      // Permitir leitura para usuários autenticados
+      allow read: if isAuthenticated();
+      
+      // Permitir escrita (create, update, delete) para usuários autenticados
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de usuários (se houver)
+    match /users/{userId} {
+      // Usuários podem ler seus próprios dados
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Usuários podem atualizar seus próprios dados
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Apenas administradores podem criar novos usuários (implementar lógica adicional se necessário)
+      allow create: if isAuthenticated();
+    }
+    
+    // Bloquear acesso a qualquer outra coleção não especificada
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

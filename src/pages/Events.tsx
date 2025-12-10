@@ -20,8 +20,14 @@ export default function Events() {
       try {
         const data = await eventService.getAll();
         setEvents(data);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading events:', error);
+        
+        // Verificar se é um erro de permissão do Firebase
+        if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+          console.error('Firebase permissions error. Please configure Firestore rules.');
+          console.error('See FIREBASE_SETUP.md for instructions.');
+        }
       } finally {
         setLoading(false);
       }

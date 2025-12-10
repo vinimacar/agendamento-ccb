@@ -23,8 +23,14 @@ export default function Dashboard() {
         ]);
         setEvents(eventsData.slice(0, 4)); // Mostrar apenas 4 eventos próximos
         setCongregationsCount(congregationsData.length);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading dashboard data:', error);
+        
+        // Verificar se é um erro de permissão do Firebase
+        if (error?.code === 'permission-denied' || error?.message?.includes('permission')) {
+          console.error('Firebase permissions error. Please configure Firestore rules.');
+          console.error('See FIREBASE_SETUP.md for instructions.');
+        }
       } finally {
         setLoading(false);
       }

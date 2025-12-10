@@ -48,6 +48,34 @@ npm run dev
 - Click on the "Code" button (green button) near the top right.
 - Select the "Codespaces" tab.
 - Click on "New codespace" to launch a new Codespace environment.
+
+## Firebase Setup
+
+This project uses Firebase for authentication and database. If you encounter permission errors, follow these steps:
+
+1. **Configure Firestore Security Rules**
+   - Access the [Firebase Console](https://console.firebase.google.com/)
+   - Select project: **directed-optics-460823-q5**
+   - Navigate to **Firestore Database** → **Rules**
+   - Copy the rules from `firestore.rules` file
+   - Click **Publish**
+
+2. **Enable Authentication**
+   - Go to **Authentication** → **Sign-in method**
+   - Enable **Email/Password** provider
+
+3. **Create a Test User**
+   - Go to **Authentication** → **Users**
+   - Click **Add user**
+   - Create user with email and password
+
+For detailed instructions, see [FIREBASE_SETUP.md](./FIREBASE_SETUP.md)
+
+## Troubleshooting
+
+### "Missing or insufficient permissions" error
+
+This error occurs when Firestore security rules are not configured. Follow the Firebase Setup instructions above to resolve this issue.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
 ## What technologies are used for this project?
