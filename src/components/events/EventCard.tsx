@@ -1,8 +1,10 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, MapPin, Clock, User } from 'lucide-react';
+import { Calendar, MapPin, Clock, User, Edit } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Event, eventTypeLabels } from '@/types';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 interface EventCardProps {
   event: Event;
@@ -63,12 +65,19 @@ export function EventCard({ event, compact = false }: EventCardProps) {
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <span className={cn(
-            "inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border mb-2",
-            eventTypeColors[event.type] || 'bg-muted text-muted-foreground'
-          )}>
-            {eventTypeLabels[event.type]}
-          </span>
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <span className={cn(
+              "inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border",
+              eventTypeColors[event.type] || 'bg-muted text-muted-foreground'
+            )}>
+              {eventTypeLabels[event.type]}
+            </span>
+            <Link to={`/events/${event.id}/edit`}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                <Edit className="h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
           <h3 className="font-semibold text-foreground">{event.title}</h3>
           {event.description && (
             <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{event.description}</p>

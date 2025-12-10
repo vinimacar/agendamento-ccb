@@ -7,7 +7,8 @@ import {
   deleteDoc,
   query,
   orderBy,
-  Timestamp
+  Timestamp,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Event } from '@/types';
@@ -38,6 +39,23 @@ export const eventService = {
       date: doc.data().date?.toDate() || new Date(),
       createdAt: doc.data().createdAt?.toDate() || new Date(),
     })) as Event[];
+  },
+
+  async getById(id: string): Promise<Event | null> {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return null;
+    }
+
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      ...data,
+      date: data.date?.toDate() || new Date(),
+      createdAt: data.createdAt?.toDate() || new Date(),
+    } as Event;
   },
 
   async update(id: string, event: Partial<Omit<Event, 'id' | 'createdAt'>>): Promise<void> {

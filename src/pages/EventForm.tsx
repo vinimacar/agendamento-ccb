@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
@@ -20,12 +20,15 @@ import { cn } from '@/lib/utils';
 
 export default function EventForm() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [loadingData, setLoadingData] = useState(false);
   const [congregations, setCongregations] = useState<CongregationData[]>([]);
   const [loadingCongregations, setLoadingCongregations] = useState(true);
   const [allElders, setAllElders] = useState<string[]>([]);
   const [loadingElders, setLoadingElders] = useState(true);
+  const isEditMode = !!id;
 
   const [formData, setFormData] = useState({
     title: '',
@@ -72,6 +75,49 @@ export default function EventForm() {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const loadEvent = async () => {
+      if (!isEditMode || !id) return;
+      
+      setLoadingData(true);
+      try {
+        const data = await eventService.getById(id);
+        if (data) {
+          setFormData({
+            title: data.title || '',
+            type: data.type || '',
+            date: data.date,
+            time: data.time || '',
+            congregationId: data.congregationId || '',
+            elderName: data.elderName || '',
+            elderFromOtherLocation: data.elderFromOtherLocation || false,
+            otherElderName: data.elderFromOtherLocation ? data.elderName || '' : '',
+            description: data.description || '',
+            irmaos: data.irmaos?.toString() || '',
+            irmas: data.irmas?.toString() || '',
+          });
+        } else {
+          toast({
+            title: 'Evento não encontrado',
+            variant: 'destructive',
+          });
+          navigate('/events');
+        }
+      } catch (error) {
+        console.error('Error loading event:', error);
+        toast({
+          title: 'Erro ao carregar',
+          description: 'Não foi possível carregar os dados do evento.',
+          variant: 'destructive',
+        });
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    loadEvent();
+  }, [id, isEditMode, navigate, toast]);
+
   const selectedCongregation = congregations.find(c => c.id === formData.congregationId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -114,12 +160,19 @@ export default function EventForm() {
         if (formData.irmas) eventData.irmas = parseInt(formData.irmas);
       }
 
-      await eventService.create(eventData);
-
-      toast({
-        title: 'Evento agendado!',
-        description: 'O evento foi salvo com sucesso.',
-      });
+      if (isEditMode && id) {
+        await eventService.update(id, eventData);
+        toast({
+          title: 'Evento atualizado!',
+          description: 'O evento foi atualizado com sucesso.',
+        });
+      } else {
+        await eventService.create(eventData);
+        toast({
+          title: 'Evento agendado!',
+          description: 'O evento foi salvo com sucesso.',
+        });
+      }
 
       navigate('/events');
     } catch (error) {
@@ -134,6 +187,19 @@ export default function EventForm() {
     }
   };
 
+  if (loadingData) {
+    return (
+      <DashboardLayout>
+        <div className="flex justify-center items-center h-64">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground">Carregando evento...</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-2xl">
@@ -143,8 +209,12 @@ export default function EventForm() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Novo Evento</h1>
-            <p className="text-muted-foreground mt-1">Agende um novo evento</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">
+              {isEditMode ? 'Editar Evento' : 'Novo Evento'}
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {isEditMode ? 'Atualize os dados do evento' : 'Agende um novo evento'}
+            </p>
           </div>
         </div>
 
