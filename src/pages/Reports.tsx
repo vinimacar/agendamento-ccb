@@ -1,10 +1,21 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Loader2, Users, Calendar, TrendingUp, Filter } from 'lucide-react';
+import { Download, Loader2, Users, Calendar, TrendingUp, Filter, FileSpreadsheet, Upload } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 import {
   BarChart,
   Bar,
@@ -37,6 +48,8 @@ const COLORS = {
 };
 
 export default function Reports() {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState<Event[]>([]);
   const [congregations, setCongregations] = useState<any[]>([]);
@@ -201,6 +214,171 @@ export default function Reports() {
     return ['all', ...Array.from(years).sort().reverse()];
   }, [events]);
 
+  // Exportar para PDF
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.text('Relatório de Batismos e Santa Ceia', 14, 20);
+    
+    // Filtros aplicados
+    doc.setFontSize(10);
+    const filterText = `Ano: ${selectedYear === 'all' ? 'Todos' : selectedYear} | Tipo: ${selectedEventType === 'all' ? 'Todos' : selectedEventType} | Congregação: ${selectedCongregation === 'all' ? 'Todas' : congregations.find(c => c.id === selectedCongregation)?.name || 'Todas'}`;
+    doc.text(filterText, 14, 28);
+    
+    // Estatísticas de Batismo
+    doc.setFontSize(14);
+    doc.text('Batismos', 14, 38);
+    autoTable(doc, {
+      startY: 42,
+      head: [['Métrica', 'Valor']],
+      body: [
+        ['Total de Eventos', batismoStats.total.toString()],
+        ['Total de Batizandos', batismoStats.totalBatizandos.toString()],
+        ['Homens', batismoStats.totalHomens.toString()],
+        ['Mulheres', batismoStats.totalMulheres.toString()],
+        ['Média por Evento', batismoStats.media],
+      ],
+    });
+    
+    // Estatísticas de Santa Ceia
+    const finalY = (doc as any).lastAutoTable.finalY || 42;
+    doc.setFontSize(14);
+    doc.text('Santa Ceia', 14, finalY + 10);
+    autoTable(doc, {
+      startY: finalY + 14,
+      head: [['Métrica', 'Valor']],
+      body: [
+        ['Total de Eventos', santaCeiaStats.total.toString()],
+        ['Total de Participantes', santaCeiaStats.totalParticipantes.toString()],
+        ['Irmãos', santaCeiaStats.totalIrmaos.toString()],
+        ['Irmãs', santaCeiaStats.totalIrmas.toString()],
+        ['Média por Evento', santaCeiaStats.media],
+      ],
+    });
+    
+    // Salvar PDF
+    const fileName = `relatorio-${selectedYear}-${new Date().toISOString().split('T')[0]}.pdf`;
+    doc.save(fileName);
+    
+    toast({
+      title: 'PDF exportado!',
+      description: 'O relatório foi baixado com sucesso.',
+    });
+  };
+
+  // Exportar para Excel
+  const exportToExcel = () => {
+    // Criar workbook
+    const wb = XLSX.utils.book_new();
+    
+    // Aba de Resumo
+    const summaryData = [
+      ['Relatório de Batismos e Santa Ceia'],
+      [''],
+      ['Filtros Aplicados:'],
+      ['Ano:', selectedYear === 'all' ? 'Todos' : selectedYear],
+      ['Tipo:', selectedEventType === 'all' ? 'Todos' : selectedEventType],
+      ['Congregação:', selectedCongregation === 'all' ? 'Todas' : congregations.find(c => c.id === selectedCongregation)?.name || 'Todas'],
+      [''],
+      ['BATISMOS'],
+      ['Métrica', 'Valor'],
+      ['Total de Eventos', batismoStats.total],
+      ['Total de Batizandos', batismoStats.totalBatizandos],
+      ['Homens', batismoStats.totalHomens],
+      ['Mulheres', batismoStats.totalMulheres],
+      ['Média por Evento', batismoStats.media],
+      [''],
+      ['SANTA CEIA'],
+      ['Métrica', 'Valor'],
+      ['Total de Eventos', santaCeiaStats.total],
+      ['Total de Participantes', santaCeiaStats.totalParticipantes],
+      ['Irmãos', santaCeiaStats.totalIrmaos],
+      ['Irmãs', santaCeiaStats.totalIrmas],
+      ['Média por Evento', santaCeiaStats.media],
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumo');
+    
+    // Aba de Dados Mensais
+    const monthlyExportData = monthlyData.map(item => ({
+      'Mês': item.month,
+      'Batizandos': item.batizandos,
+      'Participantes Ceia': item.participantesCeia,
+      'Eventos Batismo': item.batismos,
+      'Eventos Santa Ceia': item.santasCeias,
+    }));
+    const wsMonthly = XLSX.utils.json_to_sheet(monthlyExportData);
+    XLSX.utils.book_append_sheet(wb, wsMonthly, 'Dados Mensais');
+    
+    // Aba de Congregações
+    if (congregationData.length > 0) {
+      const congExportData = congregationData.map(item => ({
+        'Congregação': item.name,
+        'Batismos': item.batismos,
+        'Santa Ceia': item.santasCeias,
+        'Total': item.batismos + item.santasCeias,
+      }));
+      const wsCong = XLSX.utils.json_to_sheet(congExportData);
+      XLSX.utils.book_append_sheet(wb, wsCong, 'Por Congregação');
+    }
+    
+    // Salvar arquivo
+    const fileName = `relatorio-${selectedYear}-${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    
+    toast({
+      title: 'Excel exportado!',
+      description: 'O relatório foi baixado com sucesso.',
+    });
+  };
+
+  // Importar dados de Excel
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        
+        // Ler primeira aba
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        
+        // Converter para JSON
+        const data = XLSX.utils.sheet_to_json(ws);
+        
+        console.log('Dados importados:', data);
+        
+        toast({
+          title: 'Arquivo importado!',
+          description: `${data.length} registros foram lidos do arquivo.`,
+        });
+        
+        // Aqui você pode processar os dados importados
+        // Por exemplo, adicionar eventos ao sistema
+        
+      } catch (error) {
+        console.error('Erro ao importar:', error);
+        toast({
+          title: 'Erro na importação',
+          description: 'Não foi possível ler o arquivo. Verifique o formato.',
+          variant: 'destructive',
+        });
+      }
+    };
+    reader.readAsBinaryString(file);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -223,10 +401,45 @@ export default function Reports() {
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Relatórios e Estatísticas</h1>
             <p className="text-muted-foreground mt-1">Análise detalhada de Batismos e Santa Ceia</p>
           </div>
-          <Button variant="outline" className="gap-2 shadow-sm hover:shadow-md transition-all duration-200">
-            <Download className="h-4 w-4" />
-            Exportar PDF
-          </Button>
+          
+          <div className="flex gap-2">
+            {/* Botão de Importação */}
+            <Button 
+              variant="outline" 
+              className="gap-2 shadow-sm hover:shadow-md transition-all duration-200"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="h-4 w-4" />
+              Importar XLSX
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImportExcel}
+              style={{ display: 'none' }}
+            />
+            
+            {/* Menu de Exportação */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2 shadow-sm hover:shadow-md transition-all duration-200">
+                  <Download className="h-4 w-4" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={exportToPDF}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar como PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={exportToExcel}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Exportar como Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
         {/* Filters */}
