@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { eventService } from '@/services/eventService';
 import { congregationService, CongregationData } from '@/services/congregationService';
 import { EventType, eventTypeLabels } from '@/types';
-import { ArrowLeft, CalendarIcon, Clock, Loader2, Save, FileText, MapPin } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, Clock, Loader2, Save, FileText, MapPin, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function EventForm() {
@@ -135,14 +135,18 @@ export default function EventForm() {
     setLoading(true);
 
     try {
-      const eventData: any = {
+      const eventData = {
         title: formData.title,
         type: formData.type as EventType,
-        date: formData.date,
+        date: formData.date!,
         time: formData.time,
         congregationId: formData.congregationId || undefined,
         congregationName: selectedCongregation?.name || undefined,
         description: formData.description || undefined,
+        elderName: undefined as string | undefined,
+        elderFromOtherLocation: undefined as boolean | undefined,
+        irmaos: undefined as number | undefined,
+        irmas: undefined as number | undefined,
       };
 
       // Adicionar ancião oficiante
@@ -220,7 +224,7 @@ export default function EventForm() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Informações do Evento */}
-          <Card>
+          <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5 text-primary" />
@@ -316,7 +320,7 @@ export default function EventForm() {
           </Card>
 
           {/* Data e Hora */}
-          <Card>
+          <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CalendarIcon className="h-5 w-5 text-primary" />
@@ -376,7 +380,7 @@ export default function EventForm() {
           </Card>
 
           {/* Congregação */}
-          <Card>
+          <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-primary" />
@@ -406,7 +410,7 @@ export default function EventForm() {
           </Card>
 
           {/* Ancião Oficiante */}
-          <Card>
+          <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
@@ -479,7 +483,7 @@ export default function EventForm() {
             <Button
               type="submit"
               disabled={loading}
-              className="flex-1 gradient-primary text-primary-foreground hover:opacity-90"
+              className="flex-1 gradient-primary text-primary-foreground hover:opacity-90 shadow-lg hover:shadow-xl transition-all duration-300"
             >
               {loading ? (
                 <>

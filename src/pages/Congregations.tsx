@@ -120,7 +120,7 @@ export default function Congregations() {
           {filteredCongregations.map((congregation) => (
             <div
               key={congregation.id}
-              className="bg-card rounded-xl p-5 shadow-sm border border-border/50 hover:shadow-md transition-all duration-300"
+              className="group bg-card rounded-2xl p-6 shadow-sm border border-border/40 hover:shadow-xl hover:border-primary/20 transition-all duration-300 hover:-translate-y-1"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">

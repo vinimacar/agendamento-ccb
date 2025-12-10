@@ -85,7 +85,7 @@ export default function Schedule() {
                 <span className="text-sm font-medium">Filtrar:</span>
               </div>
               <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[200px] shadow-sm hover:shadow-md transition-shadow duration-200">
                   <SelectValue placeholder="Tipo de evento" />
                 </SelectTrigger>
                 <SelectContent>
@@ -104,18 +104,20 @@ export default function Schedule() {
               <Button
                 variant="outline"
                 size="icon"
+                className="shadow-sm hover:shadow-md transition-all duration-200"
                 onClick={() =>
                   setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))
                 }
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="min-w-[140px] text-center font-medium text-foreground">
+              <span className="min-w-[140px] text-center font-semibold text-foreground capitalize">
                 {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
               </span>
               <Button
                 variant="outline"
                 size="icon"
+                className="shadow-sm hover:shadow-md transition-all duration-200"
                 onClick={() =>
                   setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))
                 }
@@ -137,10 +139,10 @@ export default function Schedule() {
                 return (
                   <div
                     key={event.id}
-                    className="bg-card rounded-xl p-5 shadow-sm border border-border/50 hover:shadow-md transition-all duration-300 animate-fade-up"
+                    className="group bg-card rounded-2xl p-6 shadow-md border border-border/40 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 animate-fade-up"
                   >
                     <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-lg gradient-primary flex flex-col items-center justify-center text-primary-foreground shrink-0">
+                      <div className="w-16 h-16 rounded-xl gradient-primary flex flex-col items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-105 transition-transform duration-300">
                         <span className="text-xs font-medium">
                           {format(eventDate, 'MMM', { locale: ptBR }).toUpperCase()}
                         </span>
@@ -179,14 +181,16 @@ export default function Schedule() {
                 );
               })
             ) : (
-              <div className="text-center py-12">
-                <CalendarIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">
-                  Nenhum evento encontrado
-                </h3>
-                <p className="text-muted-foreground">
-                  Tente ajustar os filtros ou volte mais tarde.
-                </p>
+              <div className="text-center py-12 px-4">
+                <div className="bg-card rounded-2xl p-8 shadow-md border border-border/40 max-w-md mx-auto">
+                  <CalendarIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+                  <h3 className="text-xl font-semibold text-foreground mb-2">
+                    Nenhum evento encontrado
+                  </h3>
+                  <p className="text-muted-foreground">
+                    Tente ajustar os filtros ou volte mais tarde.
+                  </p>
+                </div>
               </div>
             )}
           </div>

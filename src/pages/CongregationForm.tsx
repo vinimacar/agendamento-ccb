@@ -331,7 +331,7 @@ export default function CongregationForm() {
 
           {/* Address Tab */}
           <TabsContent value="address">
-            <Card>
+            <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building className="h-5 w-5" />
@@ -440,7 +440,7 @@ export default function CongregationForm() {
           <TabsContent value="ministry">
             <div className="space-y-6">
               {/* Elders */}
-              <Card>
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
                 <CardHeader>
                   <CardTitle>Anciões Locais ou Responsáveis</CardTitle>
                   <CardDescription>Adicione os anciões da congregação</CardDescription>
@@ -567,7 +567,7 @@ export default function CongregationForm() {
               </Card>
 
               {/* Youth Cooperators */}
-              <Card>
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
                 <CardHeader>
                   <CardTitle>Cooperadores de Jovens e Menores</CardTitle>
                   <CardDescription>Adicione os cooperadores de jovens e menores</CardDescription>
@@ -626,7 +626,7 @@ export default function CongregationForm() {
               </Card>
 
               {/* Deacons */}
-              <Card>
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
                 <CardHeader>
                   <CardTitle>Diáconos</CardTitle>
                   <CardDescription>Adicione os diáconos da congregação</CardDescription>
@@ -760,7 +760,7 @@ export default function CongregationForm() {
           {/* Worship Tab */}
           <TabsContent value="worship">
             <div className="space-y-6">
-              <Card>
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
                 <CardHeader>
                   <CardTitle>Dias de Culto</CardTitle>
                   <CardDescription>Selecione os dias de culto da congregação</CardDescription>
@@ -779,7 +779,6 @@ export default function CongregationForm() {
                       >
                         <Checkbox
                           checked={worshipDays.includes(day.id)}
-                          readOnly
                         />
                         <span className="text-sm font-medium">{day.label}</span>
                       </div>
@@ -788,7 +787,7 @@ export default function CongregationForm() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
                 <CardHeader>
                   <CardTitle>Dias de RJM</CardTitle>
                   <CardDescription>Selecione os dias de RJM (Reunião de Jovens e Menores)</CardDescription>
@@ -807,7 +806,6 @@ export default function CongregationForm() {
                       >
                         <Checkbox
                           checked={rjmDays.includes(day.id)}
-                          readOnly
                         />
                         <span className="text-sm font-medium">{day.label}</span>
                       </div>
@@ -820,7 +818,7 @@ export default function CongregationForm() {
 
           {/* Rehearsals Tab */}
           <TabsContent value="rehearsals">
-            <Card>
+            <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
               <CardHeader>
                 <CardTitle>Ensaios</CardTitle>
                 <CardDescription>Cadastre os ensaios da congregação (Local, Regional, GEM ou Geral)</CardDescription>

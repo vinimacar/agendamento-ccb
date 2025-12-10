@@ -54,9 +54,9 @@ export function EventCard({ event, compact = false }: EventCardProps) {
   }
 
   return (
-    <div className="bg-card rounded-xl p-5 shadow-sm border border-border/50 hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
+    <div className="group bg-card rounded-2xl p-6 shadow-sm border border-border/40 hover:shadow-xl hover:border-primary/20 transition-all duration-300 hover:-translate-y-1">
       <div className="flex items-start gap-4">
-        <div className="w-14 h-14 rounded-lg gradient-primary flex flex-col items-center justify-center text-primary-foreground shrink-0">
+        <div className="w-16 h-16 rounded-xl gradient-primary flex flex-col items-center justify-center text-primary-foreground shrink-0 shadow-lg group-hover:scale-105 transition-transform duration-300">
           <span className="text-xs font-medium">
             {format(eventDate, 'MMM', { locale: ptBR }).toUpperCase()}
           </span>
@@ -65,15 +65,15 @@ export function EventCard({ event, compact = false }: EventCardProps) {
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-start justify-between gap-2 mb-3">
             <span className={cn(
-              "inline-block px-2.5 py-0.5 rounded-full text-xs font-medium border",
+              "inline-block px-3 py-1 rounded-full text-xs font-semibold border shadow-sm",
               eventTypeColors[event.type] || 'bg-muted text-muted-foreground'
             )}>
               {eventTypeLabels[event.type]}
             </span>
             <Link to={`/events/${event.id}/edit`}>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 hover:bg-primary/10 hover:text-primary transition-colors rounded-lg">
                 <Edit className="h-4 w-4" />
               </Button>
             </Link>

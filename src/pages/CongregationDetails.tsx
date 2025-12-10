@@ -76,7 +76,7 @@ export default function CongregationDetails() {
             </div>
           </div>
           <Link to={`/congregations/${id}/edit`}>
-            <Button className="gradient-primary text-primary-foreground hover:opacity-90 gap-2">
+            <Button className="gradient-primary text-primary-foreground hover:opacity-90 gap-2 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
               <Edit className="h-4 w-4" />
               Editar
             </Button>
@@ -84,9 +84,9 @@ export default function CongregationDetails() {
         </div>
 
         {/* Endereço */}
-        <Card>
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <MapPin className="h-5 w-5 text-primary" />
               Endereço
             </CardTitle>
@@ -108,10 +108,10 @@ export default function CongregationDetails() {
           </CardContent>
         </Card>
 
-        {/* Anciões e Cooperadores */}
-        <Card>
+        {/* Anciãos e Cooperadores */}
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Users className="h-5 w-5 text-primary" />
               Ministério
             </CardTitle>
@@ -124,7 +124,7 @@ export default function CongregationDetails() {
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {congregation.elders.map((elder, i) => (
-                    <Badge key={i} className="bg-primary/10 text-primary hover:bg-primary/20">
+                    <Badge key={i} className="bg-primary/10 text-primary hover:bg-primary/20 border-primary/20 px-3 py-1 transition-colors duration-200">
                       {elder.name} {elder.isLocal && '(Local)'}
                     </Badge>
                   ))}
@@ -201,9 +201,9 @@ export default function CongregationDetails() {
         </Card>
 
         {/* Cultos e RJM */}
-        <Card>
+        <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <Calendar className="h-5 w-5 text-primary" />
               Dias de Culto e RJM
             </CardTitle>
@@ -239,9 +239,9 @@ export default function CongregationDetails() {
 
         {/* Ensaios */}
         {congregation.rehearsals && congregation.rehearsals.length > 0 && (
-          <Card>
+          <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <Music className="h-5 w-5 text-primary" />
                 Ensaios
               </CardTitle>

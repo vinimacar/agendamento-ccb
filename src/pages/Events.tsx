@@ -86,25 +86,27 @@ export default function Events() {
           </div>
         ) : (
           <>
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-6">
               {filteredEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
             </div>
 
             {filteredEvents.length === 0 && (
-          <div className="text-center py-12">
-            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">Nenhum evento encontrado</h3>
-            <p className="text-muted-foreground mb-4">
-              {search || typeFilter !== 'all' ? 'Tente ajustar seus filtros' : 'Comece agendando o primeiro evento'}
-            </p>
-            <Link to="/events/new">
-              <Button className="gradient-primary text-primary-foreground hover:opacity-90">
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Evento
-              </Button>
-            </Link>
+          <div className="text-center py-12 px-4">
+            <div className="bg-card rounded-2xl p-8 shadow-md border border-border/40 max-w-md mx-auto">
+              <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <h3 className="text-xl font-semibold text-foreground mb-2">Nenhum evento encontrado</h3>
+              <p className="text-muted-foreground mb-6">
+                {search || typeFilter !== 'all' ? 'Tente ajustar seus filtros' : 'Comece agendando o primeiro evento'}
+              </p>
+              <Link to="/events/new">
+                <Button className="gradient-primary text-primary-foreground hover:opacity-90 shadow-lg hover:shadow-xl transition-all duration-300">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Novo Evento
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
           </>
