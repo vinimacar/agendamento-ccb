@@ -311,12 +311,12 @@ export default function EventForm() {
               {(formData.type === 'santa-ceia' || formData.type === 'batismo') && (
                 <div className="space-y-4 pt-4 border-t">
                   <h4 className="font-medium text-sm text-foreground">
-                    {formData.type === 'santa-ceia' ? 'Participantes da Santa Ceia' : 'Batizandos'}
+                    {formData.type === 'santa-ceia' ? 'Participantes da Santa Ceia' : 'Batizados'}
                   </h4>
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="irmaos">
-                        {formData.type === 'santa-ceia' ? 'Irmãos' : 'Homens'}
+                        Irmãos
                       </Label>
                       <Input
                         id="irmaos"
@@ -329,7 +329,7 @@ export default function EventForm() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="irmas">
-                        {formData.type === 'santa-ceia' ? 'Irmãs' : 'Mulheres'}
+                        Irmãs
                       </Label>
                       <Input
                         id="irmas"
