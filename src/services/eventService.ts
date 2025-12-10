@@ -16,8 +16,13 @@ const COLLECTION_NAME = 'events';
 
 export const eventService = {
   async create(event: Omit<Event, 'id' | 'createdAt'>): Promise<string> {
+    // Remove campos undefined (Firestore não aceita undefined)
+    const cleanedEvent = Object.fromEntries(
+      Object.entries(event).filter(([_, value]) => value !== undefined)
+    );
+    
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-      ...event,
+      ...cleanedEvent,
       date: Timestamp.fromDate(event.date instanceof Date ? event.date : new Date(event.date)),
       createdAt: Timestamp.now(),
     });
@@ -37,7 +42,13 @@ export const eventService = {
 
   async update(id: string, event: Partial<Omit<Event, 'id' | 'createdAt'>>): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
-    const updateData: any = { ...event };
+    
+    // Remove campos undefined (Firestore não aceita undefined)
+    const cleanedEvent = Object.fromEntries(
+      Object.entries(event).filter(([_, value]) => value !== undefined)
+    );
+    
+    const updateData: any = { ...cleanedEvent };
     if (event.date) {
       updateData.date = Timestamp.fromDate(event.date instanceof Date ? event.date : new Date(event.date));
     }
