@@ -48,6 +48,7 @@ export interface Event {
   elderName?: string;
   elderFromOtherLocation?: boolean;
   otherElderName?: string;
+  ministerRole?: 'elder' | 'cooperator' | 'deacon' | 'youth-cooperator'; // Tipo de ministro
   description?: string;
   irmaos?: number;
   irmas?: number;

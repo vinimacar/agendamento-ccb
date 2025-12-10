@@ -168,4 +168,42 @@ export const congregationService = {
     
     return Array.from(deaconsSet).sort();
   },
+
+  async getAllMinisters(): Promise<{ elders: string[], cooperators: string[], deacons: string[], youthCooperators: string[] }> {
+    const congregations = await this.getAll();
+    const eldersSet = new Set<string>();
+    const cooperatorsSet = new Set<string>();
+    const deaconsSet = new Set<string>();
+    const youthCooperatorsSet = new Set<string>();
+    
+    congregations.forEach(congregation => {
+      congregation.elders?.forEach(elder => {
+        if (elder.name.trim()) {
+          eldersSet.add(elder.name.trim());
+        }
+      });
+      congregation.officeCooperators?.forEach(cooperator => {
+        if (cooperator.name.trim()) {
+          cooperatorsSet.add(cooperator.name.trim());
+        }
+      });
+      congregation.deacons?.forEach(deacon => {
+        if (deacon.name.trim()) {
+          deaconsSet.add(deacon.name.trim());
+        }
+      });
+      congregation.youthCooperators?.forEach(youthCooperator => {
+        if (youthCooperator.name.trim()) {
+          youthCooperatorsSet.add(youthCooperator.name.trim());
+        }
+      });
+    });
+    
+    return {
+      elders: Array.from(eldersSet).sort(),
+      cooperators: Array.from(cooperatorsSet).sort(),
+      deacons: Array.from(deaconsSet).sort(),
+      youthCooperators: Array.from(youthCooperatorsSet).sort(),
+    };
+  },
 };

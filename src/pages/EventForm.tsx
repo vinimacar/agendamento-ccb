@@ -39,7 +39,10 @@ export default function EventForm() {
   const [congregations, setCongregations] = useState<CongregationData[]>([]);
   const [loadingCongregations, setLoadingCongregations] = useState(true);
   const [allElders, setAllElders] = useState<string[]>([]);
-  const [loadingElders, setLoadingElders] = useState(true);
+  const [allCooperators, setAllCooperators] = useState<string[]>([]);
+  const [allDeacons, setAllDeacons] = useState<string[]>([]);
+  const [allYouthCooperators, setAllYouthCooperators] = useState<string[]>([]);
+  const [loadingMinisters, setLoadingMinisters] = useState(true);
   const isEditMode = !!id;
 
   const [formData, setFormData] = useState({
@@ -51,6 +54,7 @@ export default function EventForm() {
     elderName: '',
     elderFromOtherLocation: false,
     otherElderName: '',
+    ministerRole: 'elder' as 'elder' | 'cooperator' | 'deacon' | 'youth-cooperator',
     description: '',
     irmaos: '',
     irmas: '',
@@ -69,29 +73,21 @@ export default function EventForm() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [congregationsData, eldersData] = await Promise.all([
+        const [congregationsData, ministersData] = await Promise.all([
           congregationService.getAll(),
-          congregationService.getNonLocalElders(),
+          congregationService.getAllMinisters(),
         ]);
         
         setCongregations(congregationsData);
-        
-        // Buscar todos os anciães (locais e não-locais)
-        const eldersSet = new Set<string>();
-        congregationsData.forEach(congregation => {
-          congregation.elders?.forEach(elder => {
-            if (elder.name.trim()) {
-              eldersSet.add(elder.name.trim());
-            }
-          });
-        });
-        
-        setAllElders(Array.from(eldersSet).sort());
+        setAllElders(ministersData.elders);
+        setAllCooperators(ministersData.cooperators);
+        setAllDeacons(ministersData.deacons);
+        setAllYouthCooperators(ministersData.youthCooperators);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
         setLoadingCongregations(false);
-        setLoadingElders(false);
+        setLoadingMinisters(false);
       }
     };
     loadData();
@@ -114,6 +110,7 @@ export default function EventForm() {
             elderName: data.elderName || '',
             elderFromOtherLocation: data.elderFromOtherLocation || false,
             otherElderName: data.elderFromOtherLocation ? data.elderName || '' : '',
+            ministerRole: data.ministerRole || 'elder',
             description: data.description || '',
             irmaos: data.irmaos?.toString() || '',
             irmas: data.irmas?.toString() || '',
@@ -218,18 +215,21 @@ export default function EventForm() {
         description: formData.description || undefined,
         elderName: undefined as string | undefined,
         elderFromOtherLocation: undefined as boolean | undefined,
+        ministerRole: undefined as 'elder' | 'cooperator' | 'deacon' | 'youth-cooperator' | undefined,
         irmaos: undefined as number | undefined,
         irmas: undefined as number | undefined,
         schedules: schedules.length > 0 ? schedules : undefined,
       };
 
-      // Adicionar ancião oficiante
+      // Adicionar oficiante (ancião, cooperador, diácono ou cooperador de jovens)
       if (formData.elderFromOtherLocation && formData.otherElderName) {
         eventData.elderName = formData.otherElderName;
         eventData.elderFromOtherLocation = true;
+        eventData.ministerRole = formData.ministerRole;
       } else if (formData.elderName) {
         eventData.elderName = formData.elderName;
         eventData.elderFromOtherLocation = false;
+        eventData.ministerRole = formData.ministerRole;
       }
 
       // Adicionar campos de contagem para Santa Ceia e Batismo
@@ -654,29 +654,78 @@ export default function EventForm() {
             </CardContent>
           </Card>
 
-          {/* Ancião Oficiante */}
+          {/* Oficiante */}
           <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
-                Ancião Oficiante (opcional)
+                Oficiante (opcional)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Seletor de tipo de ministro para eventos de reforço */}
+              {(formData.type === 'culto-oficial-reforco' || formData.type === 'rjm-reforco') && (
+                <div className="space-y-2">
+                  <Label>Tipo de Oficiante</Label>
+                  <Select
+                    value={formData.ministerRole}
+                    onValueChange={(value: 'elder' | 'cooperator' | 'deacon' | 'youth-cooperator') => 
+                      setFormData({ ...formData, ministerRole: value, elderName: '' })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="elder">Ancião</SelectItem>
+                      <SelectItem value="cooperator">Cooperador</SelectItem>
+                      <SelectItem value="deacon">Diácono</SelectItem>
+                      <SelectItem value="youth-cooperator">Cooperador de Jovens</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
               <div className="space-y-2">
-                <Label>Selecione o Ancião</Label>
+                <Label>
+                  {formData.ministerRole === 'elder' && 'Selecione o Ancião'}
+                  {formData.ministerRole === 'cooperator' && 'Selecione o Cooperador'}
+                  {formData.ministerRole === 'deacon' && 'Selecione o Diácono'}
+                  {formData.ministerRole === 'youth-cooperator' && 'Selecione o Cooperador de Jovens'}
+                </Label>
                 <Select
                   value={formData.elderName}
                   onValueChange={(value) => setFormData({ ...formData, elderName: value })}
-                  disabled={loadingElders}
+                  disabled={loadingMinisters}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={loadingElders ? 'Carregando anciães...' : 'Selecione um ancião'} />
+                    <SelectValue placeholder={
+                      loadingMinisters ? 'Carregando...' : 
+                      formData.ministerRole === 'elder' ? 'Selecione um ancião' :
+                      formData.ministerRole === 'cooperator' ? 'Selecione um cooperador' :
+                      formData.ministerRole === 'deacon' ? 'Selecione um diácono' :
+                      'Selecione um cooperador de jovens'
+                    } />
                   </SelectTrigger>
                   <SelectContent>
-                    {allElders.map((elder) => (
+                    {formData.ministerRole === 'elder' && allElders.map((elder) => (
                       <SelectItem key={elder} value={elder}>
                         {elder}
+                      </SelectItem>
+                    ))}
+                    {formData.ministerRole === 'cooperator' && allCooperators.map((cooperator) => (
+                      <SelectItem key={cooperator} value={cooperator}>
+                        {cooperator}
+                      </SelectItem>
+                    ))}
+                    {formData.ministerRole === 'deacon' && allDeacons.map((deacon) => (
+                      <SelectItem key={deacon} value={deacon}>
+                        {deacon}
+                      </SelectItem>
+                    ))}
+                    {formData.ministerRole === 'youth-cooperator' && allYouthCooperators.map((youthCoop) => (
+                      <SelectItem key={youthCoop} value={youthCoop}>
+                        {youthCoop}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -697,16 +746,29 @@ export default function EventForm() {
                   className="h-4 w-4 rounded border-gray-300"
                 />
                 <Label htmlFor="elderFromOther" className="text-sm font-normal cursor-pointer">
-                  Ancião de outra localidade (não cadastrado)
+                  {formData.ministerRole === 'elder' && 'Ancião de outra localidade (não cadastrado)'}
+                  {formData.ministerRole === 'cooperator' && 'Cooperador de outra localidade (não cadastrado)'}
+                  {formData.ministerRole === 'deacon' && 'Diácono de outra localidade (não cadastrado)'}
+                  {formData.ministerRole === 'youth-cooperator' && 'Cooperador de Jovens de outra localidade (não cadastrado)'}
                 </Label>
               </div>
 
               {formData.elderFromOtherLocation && (
                 <div className="space-y-2">
-                  <Label htmlFor="otherElderName">Nome do Ancião</Label>
+                  <Label htmlFor="otherElderName">
+                    {formData.ministerRole === 'elder' && 'Nome do Ancião'}
+                    {formData.ministerRole === 'cooperator' && 'Nome do Cooperador'}
+                    {formData.ministerRole === 'deacon' && 'Nome do Diácono'}
+                    {formData.ministerRole === 'youth-cooperator' && 'Nome do Cooperador de Jovens'}
+                  </Label>
                   <Input
                     id="otherElderName"
-                    placeholder="Digite o nome do ancião"
+                    placeholder={
+                      formData.ministerRole === 'elder' ? 'Digite o nome do ancião' :
+                      formData.ministerRole === 'cooperator' ? 'Digite o nome do cooperador' :
+                      formData.ministerRole === 'deacon' ? 'Digite o nome do diácono' :
+                      'Digite o nome do cooperador de jovens'
+                    }
                     value={formData.otherElderName}
                     onChange={(e) => setFormData({ ...formData, otherElderName: e.target.value })}
                   />
