@@ -36,7 +36,7 @@ export interface EventSchedule {
   time: string; // Horário
   type: 'culto' | 'rjm'; // Tipo de reunião
   hasSpecialRule: boolean; // Se tem regra especial
-  weekOfMonth?: '1' | '2' | '3' | '4'; // Semana do mês (1º, 2º, 3º, 4º)
+  weekOfMonth?: string[]; // Semanas do mês (pode ser múltiplas: ['1', '2'] para 1ª e 2ª semanas)
 }
 
 export interface Event {

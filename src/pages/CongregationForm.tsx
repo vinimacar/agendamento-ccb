@@ -102,6 +102,7 @@ export default function CongregationForm() {
     weekOfMonth: undefined,
   });
   const [selectedDays, setSelectedDays] = useState<string[]>([]); // For multi-day selection
+  const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]); // For multi-week selection
 
   // Rehearsals
   const [rehearsals, setRehearsals] = useState<RehearsalEntry[]>([]);
@@ -841,9 +842,9 @@ export default function CongregationForm() {
                                     </p>
                                     <p className="text-sm text-muted-foreground">
                                       {schedule.time}
-                                      {schedule.hasSpecialRule && schedule.weekOfMonth && (
+                                      {schedule.hasSpecialRule && schedule.weekOfMonth && schedule.weekOfMonth.length > 0 && (
                                         <span className="ml-2 text-primary font-medium">
-                                          • {['1ª', '2ª', '3ª', '4ª'][parseInt(schedule.weekOfMonth) - 1]} semana do mês
+                                          • {schedule.weekOfMonth.map(w => ['1ª', '2ª', '3ª', '4ª'][parseInt(w) - 1]).join(' e ')} semana{schedule.weekOfMonth.length > 1 ? 's' : ''} do mês
                                         </span>
                                       )}
                                     </p>
@@ -890,9 +891,9 @@ export default function CongregationForm() {
                                     </p>
                                     <p className="text-sm text-muted-foreground">
                                       {schedule.time}
-                                      {schedule.hasSpecialRule && schedule.weekOfMonth && (
+                                      {schedule.hasSpecialRule && schedule.weekOfMonth && schedule.weekOfMonth.length > 0 && (
                                         <span className="ml-2 text-secondary-foreground font-medium">
-                                          • {['1ª', '2ª', '3ª', '4ª'][parseInt(schedule.weekOfMonth) - 1]} semana do mês
+                                          • {schedule.weekOfMonth.map(w => ['1ª', '2ª', '3ª', '4ª'][parseInt(w) - 1]).join(' e ')} semana{schedule.weekOfMonth.length > 1 ? 's' : ''} do mês
                                         </span>
                                       )}
                                     </p>
@@ -1004,34 +1005,46 @@ export default function CongregationForm() {
                           Tem regra especial de repetição mensal
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          Marque se o culto/RJM ocorre apenas em uma semana específica do mês (ex: apenas no 1º domingo)
+                          Marque se o culto/RJM ocorre apenas em semanas específicas do mês (ex: 1º e 3º domingos)
                         </p>
                       </div>
                     </div>
 
-                    {/* Campo condicional para semana do mês */}
+                    {/* Campo condicional para semana do mês - Multi-select */}
                     {newSchedule.hasSpecialRule && (
-                      <div className="space-y-2 pl-6 p-4 rounded-lg bg-background border-l-4 border-primary">
+                      <div className="space-y-3 pl-6 p-4 rounded-lg bg-background border-l-4 border-primary">
                         <Label className="flex items-center gap-2">
                           <CalendarIcon className="h-4 w-4 text-primary" />
-                          Semana do Mês *
+                          Semanas do Mês * (selecione uma ou mais)
                         </Label>
-                        <Select
-                          value={newSchedule.weekOfMonth}
-                          onValueChange={(value: '1' | '2' | '3' | '4') => 
-                            setNewSchedule({ ...newSchedule, weekOfMonth: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a semana" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="1">1ª semana do mês</SelectItem>
-                            <SelectItem value="2">2ª semana do mês</SelectItem>
-                            <SelectItem value="3">3ª semana do mês</SelectItem>
-                            <SelectItem value="4">4ª semana do mês</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            { value: '1', label: '1ª semana do mês' },
+                            { value: '2', label: '2ª semana do mês' },
+                            { value: '3', label: '3ª semana do mês' },
+                            { value: '4', label: '4ª semana do mês' },
+                          ].map((week) => (
+                            <div key={week.value} className="flex items-center space-x-2 p-2 rounded border border-border hover:bg-muted/50">
+                              <Checkbox
+                                id={`week-${week.value}`}
+                                checked={selectedWeeks.includes(week.value)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedWeeks([...selectedWeeks, week.value]);
+                                  } else {
+                                    setSelectedWeeks(selectedWeeks.filter((w) => w !== week.value));
+                                  }
+                                }}
+                              />
+                              <Label 
+                                htmlFor={`week-${week.value}`} 
+                                className="text-sm font-normal cursor-pointer"
+                              >
+                                {week.label}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
@@ -1048,10 +1061,10 @@ export default function CongregationForm() {
                           });
                           return;
                         }
-                        if (newSchedule.hasSpecialRule && !newSchedule.weekOfMonth) {
+                        if (newSchedule.hasSpecialRule && selectedWeeks.length === 0) {
                           toast({
                             title: 'Regra especial incompleta',
-                            description: 'Selecione a semana do mês.',
+                            description: 'Selecione pelo menos uma semana do mês.',
                             variant: 'destructive',
                           });
                           return;
@@ -1063,11 +1076,12 @@ export default function CongregationForm() {
                           time: newSchedule.time,
                           type: newSchedule.type,
                           hasSpecialRule: newSchedule.hasSpecialRule,
-                          weekOfMonth: newSchedule.weekOfMonth,
+                          weekOfMonth: newSchedule.hasSpecialRule ? selectedWeeks : undefined,
                         }));
                         
                         setSchedules([...schedules, ...newSchedules]);
                         setSelectedDays([]);
+                        setSelectedWeeks([]);
                         setNewSchedule({
                           day: '',
                           time: '',
