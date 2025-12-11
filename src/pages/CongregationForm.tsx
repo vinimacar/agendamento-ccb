@@ -125,6 +125,7 @@ export default function CongregationForm() {
   const [newRehearsalDate, setNewRehearsalDate] = useState<Date | undefined>(undefined);
   const [newRehearsalTime, setNewRehearsalTime] = useState('');
   const [newRehearsalRepeats, setNewRehearsalRepeats] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const addPerson = (
     list: PersonEntry[],
@@ -1146,7 +1147,7 @@ export default function CongregationForm() {
                       // Calendar for specific date
                       <div className="space-y-2">
                         <Label>Data Específica *</Label>
-                        <Popover modal={true}>
+                        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                           <PopoverTrigger asChild>
                             <Button
                               type="button"
@@ -1168,7 +1169,10 @@ export default function CongregationForm() {
                             <Calendar
                               mode="single"
                               selected={newRehearsalDate}
-                              onSelect={setNewRehearsalDate}
+                              onSelect={(date) => {
+                                setNewRehearsalDate(date);
+                                setCalendarOpen(false);
+                              }}
                               locale={ptBR}
                               initialFocus
                             />
