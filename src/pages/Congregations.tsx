@@ -186,7 +186,7 @@ export default function Congregations() {
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-primary" />
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                        {congregation.elders.length === 1 ? 'Ancião Local' : 'Anciães Locais'}
+                        {congregation.elders.length === 1 ? 'Ancião' : 'Anciães'}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
@@ -196,7 +196,12 @@ export default function Congregations() {
                           variant="secondary"
                           className="text-xs font-normal"
                         >
-                          {elder.name}
+                          <span className={elder.isLocal ? 'uppercase font-bold' : ''}>
+                            {elder.name}
+                          </span>
+                          {!elder.isLocal && (
+                            <span className="ml-1 text-[10px] opacity-70">(Resp.)</span>
+                          )}
                         </Badge>
                       ))}
                       {congregation.elders.length > 3 && (

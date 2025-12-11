@@ -491,7 +491,9 @@ export default function CongregationForm() {
                   <div className="flex flex-wrap gap-2">
                     {elders.map((elder, index) => (
                       <Badge key={index} variant="secondary" className="gap-1 pr-1">
-                        {elder.name}
+                        <span className={elder.isLocal ? 'uppercase font-bold' : ''}>
+                          {elder.name}
+                        </span>
                         <span className="text-xs text-muted-foreground ml-1">
                           ({elder.isLocal ? 'Local' : 'Responsável'})
                         </span>
@@ -677,7 +679,9 @@ export default function CongregationForm() {
                   <div className="flex flex-wrap gap-2">
                     {deacons.map((deacon, index) => (
                       <Badge key={index} variant="secondary" className="gap-1 pr-1">
-                        {deacon.name}
+                        <span className={deacon.isLocal ? 'font-bold' : ''}>
+                          {deacon.name}
+                        </span>
                         <span className="text-xs text-muted-foreground ml-1">
                           ({deacon.isLocal ? 'Local' : 'Responsável'})
                         </span>
