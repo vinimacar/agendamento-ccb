@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, MapPin, Users, MoreVertical, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Search, MapPin, Users, MoreVertical, Edit, Trash2, Loader2, Calendar, Music, Building2, ChevronRight } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -116,85 +117,134 @@ export default function Congregations() {
         </div>
 
         {/* Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCongregations.map((congregation) => (
             <div
               key={congregation.id}
-              className="group bg-card rounded-2xl p-6 shadow-sm border border-border/40 hover:shadow-xl hover:border-primary/20 transition-all duration-300 hover:-translate-y-1"
+              className="group bg-card rounded-2xl shadow-md border border-border/40 hover:shadow-2xl hover:border-primary/30 transition-all duration-300 hover:-translate-y-1 overflow-hidden"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-foreground truncate">{congregation.name}</h3>
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1">
-                    <MapPin className="h-4 w-4 shrink-0" />
-                    <span className="truncate">
-                      {congregation.neighborhood ? `${congregation.neighborhood}, ` : ''}
-                      {congregation.city} - {congregation.state}
-                    </span>
+              {/* Header with gradient */}
+              <div className="bg-gradient-to-br from-primary/10 to-primary/5 p-6 border-b border-border/40">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="h-12 w-12 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                      <Building2 className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg text-foreground truncate">{congregation.name}</h3>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
+                        <MapPin className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">
+                          {congregation.city}/{congregation.state}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <Link to={`/congregations/${congregation.id}/edit`} className="cursor-pointer">
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="text-destructive cursor-pointer"
+                        onClick={() => setDeleteId(congregation.id!)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="shrink-0">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link to={`/congregations/${congregation.id}/edit`}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="text-destructive"
-                      onClick={() => setDeleteId(congregation.id!)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Excluir
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                
+                {congregation.neighborhood && (
+                  <p className="text-sm text-muted-foreground">{congregation.neighborhood}</p>
+                )}
               </div>
 
-              <div className="space-y-3">
+              {/* Content */}
+              <div className="p-6 space-y-4">
                 {congregation.admin && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Administração:</span>
-                    <span className="ml-2 text-foreground">{congregation.admin}</span>
-                  </div>
-                )}
-                {congregation.elders && congregation.elders.length > 0 && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">
-                      {congregation.elders.length === 1 ? 'Ancião:' : 'Anciães:'}
-                    </span>
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {congregation.elders.map((elder, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
-                        >
-                          {elder.name}
-                        </span>
-                      ))}
+                  <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                    <Users className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Administração</p>
+                      <p className="text-sm font-medium text-foreground mt-0.5">{congregation.admin}</p>
                     </div>
                   </div>
                 )}
-                {congregation.worshipDays && congregation.worshipDays.length > 0 && (
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Dias de culto:</span>
-                    <span className="ml-2 text-foreground">
-                      {congregation.worshipDays.length} dia(s)
-                    </span>
+
+                {congregation.elders && congregation.elders.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-primary" />
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        {congregation.elders.length === 1 ? 'Ancião Local' : 'Anciães Locais'}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {congregation.elders.slice(0, 3).map((elder, i) => (
+                        <Badge 
+                          key={i}
+                          variant="secondary"
+                          className="text-xs font-normal"
+                        >
+                          {elder.name}
+                        </Badge>
+                      ))}
+                      {congregation.elders.length > 3 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{congregation.elders.length - 3}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 )}
+
+                {/* Schedule info */}
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  {congregation.schedules && congregation.schedules.filter(s => s.type === 'culto').length > 0 && (
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-primary/5">
+                      <Calendar className="h-4 w-4 text-primary flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Cultos</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {congregation.schedules.filter(s => s.type === 'culto').length}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {congregation.rehearsals && congregation.rehearsals.length > 0 && (
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-secondary/5">
+                      <Music className="h-4 w-4 text-secondary-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">Ensaios</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {congregation.rehearsals.length}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="mt-4 pt-4 border-t border-border">
-                <Link to={`/congregations/${congregation.id}`}>
-                  <Button variant="outline" size="sm" className="w-full">
-                    Ver Detalhes
+              {/* Footer */}
+              <div className="px-6 pb-6">
+                <Link to={`/congregations/${congregation.id}/edit`}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full group-hover:bg-primary group-hover:text-primary-foreground group-hover:border-primary transition-colors"
+                  >
+                    <span>Editar Congregação</span>
+                    <ChevronRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
               </div>
