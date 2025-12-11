@@ -24,7 +24,8 @@ import {
   Plus, 
   X,
   Building,
-  Loader2
+  Loader2,
+  Clock
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { congregationService } from '@/services/congregationService';
@@ -807,50 +808,118 @@ export default function CongregationForm() {
                     <Calendar className="h-5 w-5" />
                     Horários de Cultos e RJM
                   </CardTitle>
-                  <CardDescription>Cadastre os horários fixos de cultos e reuniões com regras especiais de repetição</CardDescription>
+                  <CardDescription>Cadastre os horários fixos de cultos oficiais e reuniões de jovens com regras especiais de repetição</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Lista de horários cadastrados */}
+                  {/* Lista de horários cadastrados - Separados por tipo */}
                   {schedules.length > 0 && (
-                    <div className="space-y-3">
-                      {schedules.map((schedule, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border"
-                        >
-                          <div className="flex items-center gap-4">
-                            <Badge variant={schedule.type === 'culto' ? 'default' : 'secondary'}>
-                              {schedule.type === 'culto' ? 'Culto' : 'RJM'}
-                            </Badge>
-                            <div>
-                              <p className="font-medium text-foreground">
-                                {DAYS_OF_WEEK.find(d => d.id === schedule.day)?.label}
-                              </p>
-                              <p className="text-sm text-muted-foreground">
-                                {schedule.time}
-                                {schedule.hasSpecialRule && schedule.weekOfMonth && (
-                                  <> • {['1º', '2º', '3º', '4º'][parseInt(schedule.weekOfMonth) - 1]} {DAYS_OF_WEEK.find(d => d.id === schedule.day)?.label} do mês</>
-                                )}
-                              </p>
-                            </div>
+                    <div className="space-y-6">
+                      {/* Cultos Oficiais */}
+                      {schedules.filter(s => s.type === 'culto').length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 pb-2 border-b border-border">
+                            <Badge variant="default" className="text-sm">Cultos Oficiais</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              ({schedules.filter(s => s.type === 'culto').length})
+                            </span>
                           </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setSchedules(schedules.filter((_, i) => i !== index))}
-                            className="h-8 w-8 hover:bg-destructive/20"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                          {schedules
+                            .map((schedule, index) => ({ schedule, originalIndex: index }))
+                            .filter(({ schedule }) => schedule.type === 'culto')
+                            .map(({ schedule, originalIndex }) => (
+                              <div
+                                key={originalIndex}
+                                className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/20"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                    <Calendar className="h-5 w-5 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-foreground">
+                                      {DAYS_OF_WEEK.find(d => d.id === schedule.day)?.label}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {schedule.time}
+                                      {schedule.hasSpecialRule && schedule.weekOfMonth && (
+                                        <span className="ml-2 text-primary font-medium">
+                                          • {['1ª', '2ª', '3ª', '4ª'][parseInt(schedule.weekOfMonth) - 1]} semana do mês
+                                        </span>
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setSchedules(schedules.filter((_, i) => i !== originalIndex))}
+                                  className="h-8 w-8 hover:bg-destructive/20"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
                         </div>
-                      ))}
+                      )}
+
+                      {/* RJM */}
+                      {schedules.filter(s => s.type === 'rjm').length > 0 && (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 pb-2 border-b border-border">
+                            <Badge variant="secondary" className="text-sm">Reunião de Jovens e Menores (RJM)</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              ({schedules.filter(s => s.type === 'rjm').length})
+                            </span>
+                          </div>
+                          {schedules
+                            .map((schedule, index) => ({ schedule, originalIndex: index }))
+                            .filter(({ schedule }) => schedule.type === 'rjm')
+                            .map(({ schedule, originalIndex }) => (
+                              <div
+                                key={originalIndex}
+                                className="flex items-center justify-between p-4 rounded-lg bg-secondary/5 border border-secondary/20"
+                              >
+                                <div className="flex items-center gap-4">
+                                  <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
+                                    <Users className="h-5 w-5 text-secondary-foreground" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-foreground">
+                                      {DAYS_OF_WEEK.find(d => d.id === schedule.day)?.label}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {schedule.time}
+                                      {schedule.hasSpecialRule && schedule.weekOfMonth && (
+                                        <span className="ml-2 text-secondary-foreground font-medium">
+                                          • {['1ª', '2ª', '3ª', '4ª'][parseInt(schedule.weekOfMonth) - 1]} semana do mês
+                                        </span>
+                                      )}
+                                    </p>
+                                  </div>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setSchedules(schedules.filter((_, i) => i !== originalIndex))}
+                                  className="h-8 w-8 hover:bg-destructive/20"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {/* Formulário para adicionar novo horário */}
-                  <div className="space-y-4 p-4 rounded-lg border border-dashed border-border">
-                    <Label className="text-base font-semibold">Adicionar Novo Horário</Label>
+                  <div className="space-y-4 p-4 rounded-lg border-2 border-dashed border-border bg-muted/30">
+                    <div className="flex items-center gap-2">
+                      <Plus className="h-5 w-5 text-primary" />
+                      <Label className="text-base font-semibold">Adicionar Novo Horário</Label>
+                    </div>
                     
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
@@ -865,26 +934,30 @@ export default function CongregationForm() {
                             <SelectValue placeholder="Selecione o tipo" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="culto">Culto</SelectItem>
-                            <SelectItem value="rjm">RJM</SelectItem>
+                            <SelectItem value="culto">Culto Oficial</SelectItem>
+                            <SelectItem value="rjm">RJM (Reunião de Jovens)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
                       <div className="space-y-2">
                         <Label>Horário *</Label>
-                        <Input
-                          type="time"
-                          value={newSchedule.time}
-                          onChange={(e) => setNewSchedule({ ...newSchedule, time: e.target.value })}
-                        />
+                        <div className="relative">
+                          <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            type="time"
+                            value={newSchedule.time}
+                            onChange={(e) => setNewSchedule({ ...newSchedule, time: e.target.value })}
+                            className="pl-10"
+                          />
+                        </div>
                       </div>
                     </div>
 
                     {/* Multi-day selector */}
                     <div className="space-y-2">
                       <Label>Dias da Semana * (selecione um ou mais)</Label>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-lg bg-muted/30">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 rounded-lg bg-background border border-border">
                         {DAYS_OF_WEEK.map((day) => (
                           <div key={day.id} className="flex items-center space-x-2">
                             <Checkbox
@@ -910,7 +983,7 @@ export default function CongregationForm() {
                     </div>
 
                     {/* Checkbox para regra especial */}
-                    <div className="flex items-start space-x-2 pt-2">
+                    <div className="flex items-start space-x-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30">
                       <Checkbox
                         id="hasSpecialRule-schedule"
                         checked={newSchedule.hasSpecialRule}
@@ -922,23 +995,27 @@ export default function CongregationForm() {
                           })
                         }
                       />
-                      <div className="space-y-1">
+                      <div className="space-y-1 flex-1">
                         <Label 
                           htmlFor="hasSpecialRule-schedule" 
-                          className="text-sm font-normal cursor-pointer leading-none"
+                          className="text-sm font-medium cursor-pointer leading-none flex items-center gap-2"
                         >
+                          <CalendarIcon className="h-4 w-4" />
                           Tem regra especial de repetição mensal
                         </Label>
                         <p className="text-xs text-muted-foreground">
-                          Marque se o culto/RJM ocorre apenas em uma semana específica do mês
+                          Marque se o culto/RJM ocorre apenas em uma semana específica do mês (ex: apenas no 1º domingo)
                         </p>
                       </div>
                     </div>
 
                     {/* Campo condicional para semana do mês */}
                     {newSchedule.hasSpecialRule && (
-                      <div className="space-y-2 pl-6">
-                        <Label>Semana do Mês *</Label>
+                      <div className="space-y-2 pl-6 p-4 rounded-lg bg-background border-l-4 border-primary">
+                        <Label className="flex items-center gap-2">
+                          <CalendarIcon className="h-4 w-4 text-primary" />
+                          Semana do Mês *
+                        </Label>
                         <Select
                           value={newSchedule.weekOfMonth}
                           onValueChange={(value: '1' | '2' | '3' | '4') => 
