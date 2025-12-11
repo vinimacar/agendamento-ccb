@@ -366,9 +366,10 @@ export default function EventForm() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Data *</Label>
-                  <Popover>
+                  <Popover modal={true}>
                     <PopoverTrigger asChild>
                       <Button
+                        type="button"
                         variant="outline"
                         className={cn(
                           'w-full justify-start text-left font-normal',
@@ -390,7 +391,6 @@ export default function EventForm() {
                         onSelect={(date) => setFormData({ ...formData, date })}
                         initialFocus
                         locale={ptBR}
-                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>

@@ -1146,7 +1146,7 @@ export default function CongregationForm() {
                       // Calendar for specific date
                       <div className="space-y-2">
                         <Label>Data Específica *</Label>
-                        <Popover>
+                        <Popover modal={true}>
                           <PopoverTrigger asChild>
                             <Button
                               type="button"
