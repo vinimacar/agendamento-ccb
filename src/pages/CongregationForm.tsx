@@ -362,7 +362,7 @@ export default function CongregationForm() {
               Ministério
             </TabsTrigger>
             <TabsTrigger value="worship" className="gap-2">
-              <Calendar className="h-4 w-4 hidden sm:inline" />
+              <CalendarIcon className="h-4 w-4 hidden sm:inline" />
               Cultos
             </TabsTrigger>
             <TabsTrigger value="rehearsals" className="gap-2">
@@ -809,7 +809,7 @@ export default function CongregationForm() {
               <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
+                    <CalendarIcon className="h-5 w-5" />
                     Horários de Cultos e RJM
                   </CardTitle>
                   <CardDescription>Cadastre os horários fixos de cultos oficiais e reuniões de jovens com regras especiais de repetição</CardDescription>
@@ -837,7 +837,7 @@ export default function CongregationForm() {
                               >
                                 <div className="flex items-center gap-4">
                                   <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <Calendar className="h-5 w-5 text-primary" />
+                                    <CalendarIcon className="h-5 w-5 text-primary" />
                                   </div>
                                   <div>
                                     <p className="font-medium text-foreground">
