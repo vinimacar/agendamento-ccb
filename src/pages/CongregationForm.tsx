@@ -99,7 +99,6 @@ export default function CongregationForm() {
     time: '',
     type: 'culto',
     hasSpecialRule: false,
-    weekOfMonth: undefined,
   });
   const [selectedDays, setSelectedDays] = useState<string[]>([]); // For multi-day selection
   const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]); // For multi-week selection
@@ -169,16 +168,21 @@ export default function CongregationForm() {
       return;
     }
 
-    setRehearsals([
-      ...rehearsals,
-      {
-        type: newRehearsalType,
-        day: newRehearsalDay || undefined,
-        date: newRehearsalDate,
-        time: newRehearsalTime,
-        repeats: newRehearsalRepeats,
-      },
-    ]);
+    const newRehearsal: RehearsalEntry = {
+      type: newRehearsalType,
+      time: newRehearsalTime,
+      repeats: newRehearsalRepeats,
+    };
+    
+    // Only add day or date if they have values
+    if (newRehearsalDay) {
+      newRehearsal.day = newRehearsalDay;
+    }
+    if (newRehearsalDate) {
+      newRehearsal.date = newRehearsalDate;
+    }
+    
+    setRehearsals([...rehearsals, newRehearsal]);
     setNewRehearsalDay('');
     setNewRehearsalDate(undefined);
     setNewRehearsalTime('');
@@ -1074,13 +1078,21 @@ export default function CongregationForm() {
                         }
                         
                         // Create a schedule entry for each selected day
-                        const newSchedules = selectedDays.map((day) => ({
-                          day,
-                          time: newSchedule.time,
-                          type: newSchedule.type,
-                          hasSpecialRule: newSchedule.hasSpecialRule,
-                          weekOfMonth: newSchedule.hasSpecialRule ? selectedWeeks : undefined,
-                        }));
+                        const newSchedules = selectedDays.map((day) => {
+                          const schedule: EventSchedule = {
+                            day,
+                            time: newSchedule.time,
+                            type: newSchedule.type,
+                            hasSpecialRule: newSchedule.hasSpecialRule,
+                          };
+                          
+                          // Only add weekOfMonth if it has a value
+                          if (newSchedule.hasSpecialRule && selectedWeeks.length > 0) {
+                            schedule.weekOfMonth = selectedWeeks;
+                          }
+                          
+                          return schedule;
+                        });
                         
                         setSchedules([...schedules, ...newSchedules]);
                         setSelectedDays([]);
@@ -1090,7 +1102,6 @@ export default function CongregationForm() {
                           time: '',
                           type: 'culto',
                           hasSpecialRule: false,
-                          weekOfMonth: undefined,
                         });
                       }}
                     >
