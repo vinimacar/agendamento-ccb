@@ -55,8 +55,16 @@ const COLLECTION_NAME = 'congregations';
 
 export const congregationService = {
   async create(data: Omit<CongregationData, 'id'>): Promise<string> {
+    // Remove undefined values to avoid Firestore errors
+    const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as Record<string, any>);
+    
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
-      ...data,
+      ...cleanData,
       createdAt: Timestamp.fromDate(data.createdAt),
       updatedAt: Timestamp.fromDate(data.updatedAt),
     });
@@ -131,8 +139,17 @@ export const congregationService = {
 
   async update(id: string, data: Partial<CongregationData>): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
+    
+    // Remove undefined values to avoid Firestore errors
+    const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as Record<string, any>);
+    
     await updateDoc(docRef, {
-      ...data,
+      ...cleanData,
       updatedAt: Timestamp.fromDate(new Date()),
     });
   },
