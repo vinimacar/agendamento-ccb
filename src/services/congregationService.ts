@@ -26,6 +26,7 @@ export interface RehearsalEntry {
   repeats: boolean; // Se repete semanalmente
   months?: number[]; // Meses em que o ensaio ocorre (1-12)
   recurrenceType: 'Semanal' | 'Mensal' | 'Agendado'; // Tipo de recorrência
+  weekOfMonth?: number; // Semana do mês (1-5) - apenas para ensaios mensais
 }
 
 export interface CongregationData {

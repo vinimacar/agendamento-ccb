@@ -64,6 +64,7 @@ interface RehearsalEntry {
   repeats: boolean; // Se repete semanalmente
   months?: number[]; // Meses em que o ensaio ocorre (1-12)
   recurrenceType: typeof RECURRENCE_TYPES[number]; // Tipo de recorrência
+  weekOfMonth?: number; // Semana do mês (1-5) - apenas para ensaios mensais
 }
 
 export default function CongregationForm() {
@@ -142,6 +143,7 @@ export default function CongregationForm() {
   const [newRehearsalTime, setNewRehearsalTime] = useState('');
   const [newRehearsalRecurrenceType, setNewRehearsalRecurrenceType] = useState<typeof RECURRENCE_TYPES[number]>('Semanal');
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const [selectedWeekOfMonth, setSelectedWeekOfMonth] = useState<number>(1);
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
 
   // Função para gerar relatório PDF dos ensaios
@@ -225,7 +227,12 @@ export default function CongregationForm() {
           : rehearsal.day 
             ? DAYS_OF_WEEK.find(d => d.id === rehearsal.day)?.label 
             : '-';
-        doc.text(`${dayLabel} - ${rehearsal.time} (${rehearsal.recurrenceType})`, 25, yPos);
+        
+        const weekLabel = rehearsal.weekOfMonth 
+          ? ` - ${rehearsal.weekOfMonth}ª Semana`
+          : '';
+        
+        doc.text(`${dayLabel}${weekLabel} - ${rehearsal.time} (${rehearsal.recurrenceType})`, 25, yPos);
         yPos += 5;
 
         // Meses (para tipo Mensal)
@@ -342,10 +349,22 @@ export default function CongregationForm() {
         if (currentDate > lastDay) break;
       }
       
-      // Adicionar todas as ocorrências deste dia no mês
-      while (currentDate <= lastDay) {
-        dates.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 7);
+      // Se for ensaio mensal com semana específica, pegar apenas aquela semana
+      if (rehearsal.recurrenceType === 'Mensal' && rehearsal.weekOfMonth) {
+        // Avançar para a semana desejada (1ª, 2ª, 3ª, 4ª ou 5ª)
+        const weeksToAdvance = rehearsal.weekOfMonth - 1;
+        currentDate.setDate(currentDate.getDate() + (weeksToAdvance * 7));
+        
+        // Adicionar apenas se ainda estiver dentro do mês
+        if (currentDate <= lastDay) {
+          dates.push(new Date(currentDate));
+        }
+      } else {
+        // Adicionar todas as ocorrências deste dia no mês (ensaio semanal)
+        while (currentDate <= lastDay) {
+          dates.push(new Date(currentDate));
+          currentDate.setDate(currentDate.getDate() + 7);
+        }
       }
     });
     
@@ -429,6 +448,9 @@ export default function CongregationForm() {
     if (selectedMonths.length > 0) {
       newRehearsal.months = selectedMonths;
     }
+    if (newRehearsalRecurrenceType === 'Mensal') {
+      newRehearsal.weekOfMonth = selectedWeekOfMonth;
+    }
     
     setRehearsals([...rehearsals, newRehearsal]);
     setNewRehearsalDay('');
@@ -436,6 +458,7 @@ export default function CongregationForm() {
     setNewRehearsalTime('');
     setNewRehearsalRecurrenceType('Semanal');
     setSelectedMonths([]);
+    setSelectedWeekOfMonth(1);
   };
 
   const removeRehearsal = (index: number) => {
@@ -1645,7 +1668,7 @@ export default function CongregationForm() {
                       </Select>
                       <p className="text-xs text-muted-foreground">
                         {newRehearsalRecurrenceType === 'Semanal' && 'O ensaio ocorrerá toda semana no dia selecionado'}
-                        {newRehearsalRecurrenceType === 'Mensal' && 'O ensaio ocorrerá apenas nos meses selecionados'}
+                        {newRehearsalRecurrenceType === 'Mensal' && 'O ensaio ocorrerá em uma semana específica dos meses selecionados'}
                         {newRehearsalRecurrenceType === 'Agendado' && 'O ensaio ocorrerá apenas na data específica'}
                       </p>
                     </div>
@@ -1671,9 +1694,29 @@ export default function CongregationForm() {
                         
                         {/* Month selector - apenas para Mensal */}
                         {newRehearsalRecurrenceType === 'Mensal' && (
-                          <div className="space-y-2">
-                            <Label>Meses que ocorre o ensaio *</Label>
-                            <div className="grid grid-cols-4 gap-2">
+                          <>
+                            <div className="space-y-2">
+                              <Label>Semana do Mês *</Label>
+                              <Select 
+                                value={selectedWeekOfMonth.toString()} 
+                                onValueChange={(v) => setSelectedWeekOfMonth(parseInt(v))}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-popover">
+                                  <SelectItem value="1">1ª Semana</SelectItem>
+                                  <SelectItem value="2">2ª Semana</SelectItem>
+                                  <SelectItem value="3">3ª Semana</SelectItem>
+                                  <SelectItem value="4">4ª Semana</SelectItem>
+                                  <SelectItem value="5">5ª Semana (quando houver)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Meses que ocorre o ensaio *</Label>
+                              <div className="grid grid-cols-4 gap-2">
                             {[
                               { num: 1, name: 'Jan' },
                               { num: 2, name: 'Fev' },
@@ -1712,7 +1755,8 @@ export default function CongregationForm() {
                               : `Selecionados: ${selectedMonths.length} mês(es)`
                             }
                           </p>
-                        </div>
+                            </div>
+                          </>
                         )}
                       </>
                     ) : (
@@ -1817,6 +1861,7 @@ export default function CongregationForm() {
                                         : rehearsal.day 
                                           ? DAYS_OF_WEEK.find(d => d.id === rehearsal.day)?.label 
                                           : '-'}
+                                      {rehearsal.weekOfMonth && ` (${rehearsal.weekOfMonth}ª semana)`}
                                     </span>
                                     <span className="text-muted-foreground">{rehearsal.time}</span>
                                     {rehearsal.recurrenceType && (
