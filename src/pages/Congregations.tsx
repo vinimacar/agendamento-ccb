@@ -134,13 +134,13 @@ export default function Congregations() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-bold text-lg text-foreground truncate">{congregation.name}</h3>
                         {congregation.hasEBI && (
-                          <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-600 shrink-0">
-                            EBI
+                          <Badge variant="default" className="text-xs bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0 shrink-0 shadow-sm">
+                            ✓ EBI
                           </Badge>
                         )}
                         {congregation.hasRJM && (
-                          <Badge variant="default" className="text-xs bg-blue-500 hover:bg-blue-600 shrink-0">
-                            RJM
+                          <Badge variant="default" className="text-xs bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0 shrink-0 shadow-sm">
+                            ♪ RJM
                           </Badge>
                         )}
                       </div>
