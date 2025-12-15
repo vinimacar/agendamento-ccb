@@ -131,7 +131,14 @@ export default function Congregations() {
                       <Building2 className="h-6 w-6 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-lg text-foreground truncate">{congregation.name}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-bold text-lg text-foreground truncate">{congregation.name}</h3>
+                        {congregation.hasEBI && (
+                          <Badge variant="default" className="text-xs bg-green-500 hover:bg-green-600 shrink-0">
+                            EBI
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">
@@ -233,6 +240,17 @@ export default function Congregations() {
                         <p className="text-xs text-muted-foreground">Ensaios</p>
                         <p className="text-sm font-semibold text-foreground">
                           {congregation.rehearsals.length}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {congregation.hasEBI && congregation.ebiSchedules && congregation.ebiSchedules.length > 0 && (
+                    <div className="flex items-center gap-2 p-2 rounded-md bg-green-500/10">
+                      <Users className="h-4 w-4 text-green-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">EBI</p>
+                        <p className="text-sm font-semibold text-foreground">
+                          {congregation.ebiSchedules.length}
                         </p>
                       </div>
                     </div>
