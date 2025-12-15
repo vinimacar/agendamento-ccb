@@ -72,36 +72,37 @@ export default function ReforcoAgendamento() {
 
   const loadAvailablePeople = useCallback(async () => {
     try {
-      const congregation = congregations.find(c => c.id === selectedCongregationId);
-      if (!congregation) return;
-
       const people: string[] = [];
       
-      // Adicionar anciães
-      congregation.elders?.forEach(elder => {
-        if (elder.name) people.push(elder.name);
-      });
-      
-      // Adicionar cooperadores
-      congregation.officeCooperators?.forEach(coop => {
-        if (coop.name) people.push(coop.name);
-      });
-      
-      // Adicionar cooperadores de jovens
-      congregation.youthCooperators?.forEach(coop => {
-        if (coop.name) people.push(coop.name);
-      });
-      
-      // Adicionar diáconos
-      congregation.deacons?.forEach(deacon => {
-        if (deacon.name) people.push(deacon.name);
+      // Buscar todos os irmãos de TODAS as congregações
+      congregations.forEach(congregation => {
+        // Adicionar anciães
+        congregation.elders?.forEach(elder => {
+          if (elder.name) people.push(elder.name);
+        });
+        
+        // Adicionar cooperadores
+        congregation.officeCooperators?.forEach(coop => {
+          if (coop.name) people.push(coop.name);
+        });
+        
+        // Adicionar cooperadores de jovens
+        congregation.youthCooperators?.forEach(coop => {
+          if (coop.name) people.push(coop.name);
+        });
+        
+        // Adicionar diáconos
+        congregation.deacons?.forEach(deacon => {
+          if (deacon.name) people.push(deacon.name);
+        });
       });
 
+      // Remover duplicatas e ordenar
       setAvailablePeople([...new Set(people)].sort());
     } catch (error) {
       console.error('Error loading people:', error);
     }
-  }, [congregations, selectedCongregationId]);
+  }, [congregations]);
 
   const loadAvailableDays = useCallback(async () => {
     try {
@@ -128,16 +129,21 @@ export default function ReforcoAgendamento() {
     }
   }, [congregations, selectedCongregationId, type]);
 
-  // Carregar pessoas disponíveis quando selecionar congregação
+  // Carregar todas as pessoas disponíveis no início
+  useEffect(() => {
+    if (congregations.length > 0) {
+      loadAvailablePeople();
+    }
+  }, [congregations, loadAvailablePeople]);
+
+  // Carregar dias disponíveis quando selecionar congregação
   useEffect(() => {
     if (selectedCongregationId) {
-      loadAvailablePeople();
       loadAvailableDays();
     } else {
-      setAvailablePeople([]);
       setAvailableDays([]);
     }
-  }, [selectedCongregationId, loadAvailablePeople, loadAvailableDays]);
+  }, [selectedCongregationId, loadAvailableDays]);
 
   const checkIfCanSchedule = async (): Promise<{ canSchedule: boolean; message?: string }> => {
     if (!selectedCongregationId || !selectedDate) {
