@@ -7,6 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { reforcoService } from '@/services/reforcoService';
@@ -42,6 +52,8 @@ export default function ReforcoAgendamento() {
   const [schedules, setSchedules] = useState<ReforcoSchedule[]>([]);
   const [loadingSchedules, setLoadingSchedules] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [scheduleToDelete, setScheduleToDelete] = useState<{ id: string; name: string } | null>(null);
   
   const [availablePeople, setAvailablePeople] = useState<string[]>([]);
   const [availableDays, setAvailableDays] = useState<Array<{ day: string; time: string }>>([]);
@@ -270,13 +282,22 @@ export default function ReforcoAgendamento() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const openDeleteDialog = (id: string, congregationName: string) => {
+    setScheduleToDelete({ id, name: congregationName });
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!scheduleToDelete) return;
+    
     try {
-      await reforcoService.delete(id);
+      await reforcoService.delete(scheduleToDelete.id);
       toast({
         title: 'Agendamento excluído',
         description: 'O agendamento foi removido com sucesso.',
       });
+      setDeleteDialogOpen(false);
+      setScheduleToDelete(null);
       loadSchedules();
     } catch (error) {
       console.error('Error deleting schedule:', error);
@@ -555,7 +576,7 @@ export default function ReforcoAgendamento() {
                             size="icon"
                             variant="ghost"
                             className="h-8 w-8"
-                            onClick={() => schedule.id && handleDelete(schedule.id)}
+                            onClick={() => schedule.id && openDeleteDialog(schedule.id, schedule.congregationName)}
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -582,6 +603,26 @@ export default function ReforcoAgendamento() {
           </div>
         </div>
       </div>
+
+      {/* Diálogo de confirmação de exclusão */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o agendamento de reforço da congregação <strong>{scheduleToDelete?.name}</strong>?
+              <br /><br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
