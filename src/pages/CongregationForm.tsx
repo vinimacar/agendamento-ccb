@@ -25,11 +25,13 @@ import {
   X,
   Building,
   Loader2,
-  Clock
+  Clock,
+  Printer
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { congregationService } from '@/services/congregationService';
 import type { EventSchedule } from '@/types';
+import jsPDF from 'jspdf';
 
 const STATES = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -141,6 +143,214 @@ export default function CongregationForm() {
   const [newRehearsalRecurrenceType, setNewRehearsalRecurrenceType] = useState<typeof RECURRENCE_TYPES[number]>('Semanal');
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
+
+  // Função para gerar relatório PDF dos ensaios
+  const generateRehearsalReport = () => {
+    if (!name) {
+      toast({
+        title: "Erro",
+        description: "Salve a congregação antes de gerar o relatório.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Logo CCB
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 10;
+
+    // Nome da congregação
+    doc.setFontSize(14);
+    doc.text(name, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 7;
+
+    // Endereço
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const fullAddress = `${street}${number ? ', ' + number : ''}`;
+    const addressLine = `${fullAddress}${neighborhood ? ', ' + neighborhood : ''} - ${city}/${state}`;
+    doc.text(addressLine, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 15;
+
+    // Título do relatório
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`CALENDÁRIO DE ENSAIOS - ${viewYear}`, pageWidth / 2, yPos, { align: 'center' });
+    yPos += 10;
+
+    // Linha separadora
+    doc.setDrawColor(0, 0, 0);
+    doc.line(20, yPos, pageWidth - 20, yPos);
+    yPos += 10;
+
+    // Agrupar ensaios por tipo
+    const types = ['Local', 'Regional', 'GEM', 'Geral'];
+    
+    types.forEach((tipo) => {
+      const rehearsalsOfType = rehearsals.filter(r => r.type === tipo);
+      if (rehearsalsOfType.length === 0) return;
+
+      // Verificar se precisa de nova página
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      // Título do tipo
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`ENSAIOS ${tipo.toUpperCase()}`, 20, yPos);
+      yPos += 7;
+
+      rehearsalsOfType.forEach((rehearsal) => {
+        const dates = calculateRehearsalDates(rehearsal, viewYear);
+        
+        // Verificar se precisa de nova página
+        if (yPos > 240) {
+          doc.addPage();
+          yPos = 20;
+        }
+
+        // Informações do ensaio
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        const dayLabel = rehearsal.recurrenceType === 'Agendado' 
+          ? 'Agendado' 
+          : rehearsal.day 
+            ? DAYS_OF_WEEK.find(d => d.id === rehearsal.day)?.label 
+            : '-';
+        doc.text(`${dayLabel} - ${rehearsal.time} (${rehearsal.recurrenceType})`, 25, yPos);
+        yPos += 5;
+
+        // Meses (para tipo Mensal)
+        if (rehearsal.recurrenceType === 'Mensal' && rehearsal.months && rehearsal.months.length > 0) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          const monthNames = rehearsal.months.map(m => 
+            ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][m - 1]
+          ).join(', ');
+          doc.text(`Meses: ${monthNames}`, 25, yPos);
+          yPos += 5;
+        }
+
+        // Total de datas
+        doc.setFont('helvetica', 'italic');
+        doc.setFontSize(9);
+        doc.text(`${dates.length} data${dates.length !== 1 ? 's' : ''}`, 25, yPos);
+        yPos += 5;
+
+        // Listar datas (máximo 5 por linha)
+        if (dates.length > 0) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(8);
+          
+          const datesPerLine = 5;
+          for (let i = 0; i < dates.length; i += datesPerLine) {
+            if (yPos > 270) {
+              doc.addPage();
+              yPos = 20;
+            }
+            
+            const chunk = dates.slice(i, i + datesPerLine);
+            const dateStr = chunk.map(d => format(d, 'dd/MM/yyyy', { locale: ptBR })).join('  •  ');
+            doc.text(dateStr, 30, yPos);
+            yPos += 4;
+          }
+        }
+
+        yPos += 5; // Espaço entre ensaios
+      });
+
+      yPos += 5; // Espaço entre tipos
+    });
+
+    // Rodapé
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(
+        `Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+      doc.text(
+        `Página ${i} de ${totalPages}`,
+        pageWidth - 20,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'right' }
+      );
+    }
+
+    // Salvar PDF
+    const fileName = `Ensaios_${name.replace(/\s+/g, '_')}_${viewYear}.pdf`;
+    doc.save(fileName);
+
+    toast({
+      title: "Relatório gerado",
+      description: `O relatório foi baixado como ${fileName}`,
+    });
+  };
+
+  // Função para calcular todas as datas de ensaios no ano
+  const calculateRehearsalDates = (rehearsal: RehearsalEntry, year: number): Date[] => {
+    const dates: Date[] = [];
+    
+    if (rehearsal.recurrenceType === 'Agendado') {
+      if (rehearsal.date && rehearsal.date.getFullYear() === year) {
+        dates.push(rehearsal.date);
+      }
+      return dates;
+    }
+    
+    if (!rehearsal.day) return dates;
+    
+    // Mapear dia da semana para número (0 = domingo, 6 = sábado)
+    const dayMap: Record<string, number> = {
+      'domingo': 0,
+      'segunda': 1,
+      'terca': 2,
+      'quarta': 3,
+      'quinta': 4,
+      'sexta': 5,
+      'sabado': 6,
+    };
+    
+    const targetDay = dayMap[rehearsal.day];
+    if (targetDay === undefined) return dates;
+    
+    const monthsToProcess = rehearsal.recurrenceType === 'Mensal' && rehearsal.months && rehearsal.months.length > 0
+      ? rehearsal.months
+      : Array.from({ length: 12 }, (_, i) => i + 1);
+    
+    monthsToProcess.forEach(month => {
+      const firstDay = new Date(year, month - 1, 1);
+      const lastDay = new Date(year, month, 0);
+      
+      // Encontrar o primeiro dia da semana alvo no mês
+      let currentDate = new Date(firstDay);
+      while (currentDate.getDay() !== targetDay) {
+        currentDate.setDate(currentDate.getDate() + 1);
+        if (currentDate > lastDay) break;
+      }
+      
+      // Adicionar todas as ocorrências deste dia no mês
+      while (currentDate <= lastDay) {
+        dates.push(new Date(currentDate));
+        currentDate.setDate(currentDate.getDate() + 7);
+      }
+    });
+    
+    return dates.sort((a, b) => a.getTime() - b.getTime());
+  };
 
   const addPerson = (
     list: PersonEntry[],
@@ -1547,84 +1757,124 @@ export default function CongregationForm() {
                   </Button>
                 </div>
 
-                {/* Tabela anual de ensaios */}
-                {rehearsals.some(r => r.repeats) && (
+                {/* Calendário anual de ensaios com datas específicas */}
+                {rehearsals.length > 0 && (
                   <div className="space-y-4 pt-6 border-t border-border">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-foreground">Visualização Anual de Ensaios</h3>
-                      <Select value={viewYear.toString()} onValueChange={(v) => setViewYear(parseInt(v))}>
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover">
-                          {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((year) => (
-                            <SelectItem key={year} value={year.toString()}>
-                              {year}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="rounded-lg border border-border overflow-hidden">
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead className="bg-muted/50 border-b border-border">
-                            <tr>
-                              <th className="text-left p-3 font-medium">Tipo</th>
-                              <th className="text-left p-3 font-medium">Dia</th>
-                              <th className="text-left p-3 font-medium">Horário</th>
-                              <th className="text-left p-3 font-medium">Meses</th>
-                              <th className="text-center p-3 font-medium">Total/Ano</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-border">
-                            {rehearsals.filter(r => r.repeats).map((rehearsal, idx) => {
-                              // Calcular quantos ensaios por ano
-                              const monthsToShow = rehearsal.months && rehearsal.months.length > 0 
-                                ? rehearsal.months 
-                                : Array.from({ length: 12 }, (_, i) => i + 1);
-                              
-                              // Aproximadamente 4 ensaios por mês
-                              const totalPerYear = monthsToShow.length * 4;
-                              
-                              return (
-                                <tr key={idx} className="hover:bg-muted/30">
-                                  <td className="p-3">
-                                    <Badge variant={rehearsal.type === 'Local' ? 'default' : 'secondary'}>
-                                      {rehearsal.type}
-                                    </Badge>
-                                  </td>
-                                  <td className="p-3">
-                                    {rehearsal.day ? DAYS_OF_WEEK.find(d => d.id === rehearsal.day)?.label : '-'}
-                                  </td>
-                                  <td className="p-3">{rehearsal.time}</td>
-                                  <td className="p-3">
-                                    {rehearsal.months && rehearsal.months.length > 0 ? (
-                                      <div className="flex flex-wrap gap-1">
-                                        {rehearsal.months.map(m => (
-                                          <Badge key={m} variant="outline" className="text-xs">
-                                            {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][m - 1]}
-                                          </Badge>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <span className="text-muted-foreground">Todos os meses</span>
-                                    )}
-                                  </td>
-                                  <td className="p-3 text-center font-medium">
-                                    ~{totalPerYear} ensaios
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
+                      <h3 className="text-sm font-semibold text-foreground">Calendário Anual de Ensaios</h3>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={generateRehearsalReport}
+                          disabled={rehearsals.length === 0}
+                        >
+                          <Printer className="h-4 w-4 mr-2" />
+                          Imprimir Relatório
+                        </Button>
+                        <Select value={viewYear.toString()} onValueChange={(v) => setViewYear(parseInt(v))}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover">
+                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((year) => (
+                              <SelectItem key={year} value={year.toString()}>
+                                {year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
+
+                    {/* Agrupar ensaios por tipo */}
+                    {['Local', 'Regional', 'GEM', 'Geral'].map((tipo) => {
+                      const rehearsalsOfType = rehearsals.filter(r => r.type === tipo);
+                      if (rehearsalsOfType.length === 0) return null;
+
+                      return (
+                        <div key={tipo} className="space-y-3">
+                          <h4 className="text-sm font-medium flex items-center gap-2">
+                            <Badge variant={tipo === 'Local' ? 'default' : 'secondary'}>
+                              {tipo}
+                            </Badge>
+                            <span className="text-muted-foreground text-xs">
+                              ({rehearsalsOfType.length} configuração{rehearsalsOfType.length > 1 ? 'ões' : ''})
+                            </span>
+                          </h4>
+
+                          {rehearsalsOfType.map((rehearsal, idx) => {
+                            const dates = calculateRehearsalDates(rehearsal, viewYear);
+                            
+                            return (
+                              <div key={idx} className="rounded-lg border border-border p-4 space-y-3 bg-muted/20">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3 text-sm">
+                                    <span className="font-medium">
+                                      {rehearsal.recurrenceType === 'Agendado' 
+                                        ? 'Agendado' 
+                                        : rehearsal.day 
+                                          ? DAYS_OF_WEEK.find(d => d.id === rehearsal.day)?.label 
+                                          : '-'}
+                                    </span>
+                                    <span className="text-muted-foreground">{rehearsal.time}</span>
+                                    {rehearsal.recurrenceType && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {rehearsal.recurrenceType}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-sm font-semibold text-primary">
+                                    {dates.length} data{dates.length !== 1 ? 's' : ''}
+                                  </span>
+                                </div>
+
+                                {/* Mostrar meses selecionados para tipo Mensal */}
+                                {rehearsal.recurrenceType === 'Mensal' && rehearsal.months && rehearsal.months.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {rehearsal.months.map(m => (
+                                      <Badge key={m} variant="outline" className="text-xs">
+                                        {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][m - 1]}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Lista de datas */}
+                                {dates.length > 0 && (
+                                  <div className="flex flex-wrap gap-2 text-xs">
+                                    {dates.map((date, dateIdx) => (
+                                      <span 
+                                        key={dateIdx} 
+                                        className="px-2 py-1 bg-background rounded border border-border/50 text-foreground"
+                                      >
+                                        {format(date, 'dd/MM/yyyy', { locale: ptBR })}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {dates.length === 0 && (
+                                  <p className="text-xs text-muted-foreground italic">
+                                    Nenhuma data encontrada para {viewYear}
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+
+                    {rehearsals.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        Nenhum ensaio cadastrado
+                      </p>
+                    )}
                     
                     <p className="text-xs text-muted-foreground">
-                      * Estimativa baseada em 4 ensaios por mês. O total real pode variar.
+                      * Todas as datas são calculadas automaticamente com base nas regras de recorrência.
                     </p>
                   </div>
                 )}
