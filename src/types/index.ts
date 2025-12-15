@@ -15,6 +15,8 @@ export interface Congregation {
   worshipDays: string[]; // Deprecated - manter para compatibilidade
   rjmDays: string[]; // Deprecated - manter para compatibilidade
   schedules?: EventSchedule[]; // Horários de cultos e RJM com regras especiais
+  hasEBI?: boolean; // Se a congregação tem EBI (Espaço Bíblico Infantil)
+  ebiSchedules?: EBISchedule[]; // Horários do EBI
   regionalSupervisor: string;
   localSupervisor: string;
   examiner: string;
@@ -37,6 +39,11 @@ export interface EventSchedule {
   type: 'culto' | 'rjm'; // Tipo de reunião
   hasSpecialRule: boolean; // Se tem regra especial
   weekOfMonth?: string[]; // Semanas do mês (pode ser múltiplas: ['1', '2'] para 1ª e 2ª semanas)
+}
+
+export interface EBISchedule {
+  day: string; // Dia da semana
+  time: string; // Horário
 }
 
 export interface Event {

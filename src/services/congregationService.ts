@@ -46,6 +46,8 @@ export interface CongregationData {
   worshipDays: string[];
   rjmDays: string[];
   schedules?: EventSchedule[];
+  hasEBI?: boolean;
+  ebiSchedules?: Array<{ day: string; time: string }>;
   rehearsals: RehearsalEntry[];
   createdAt: Date;
   updatedAt: Date;
@@ -97,6 +99,8 @@ export const congregationService = {
         worshipDays: data.worshipDays || [],
         rjmDays: data.rjmDays || [],
         schedules: data.schedules || [],
+        hasEBI: data.hasEBI || false,
+        ebiSchedules: data.ebiSchedules || [],
         rehearsals: data.rehearsals || [],
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
@@ -133,6 +137,8 @@ export const congregationService = {
       worshipDays: data.worshipDays || [],
       rjmDays: data.rjmDays || [],
       schedules: data.schedules || [],
+      hasEBI: data.hasEBI || false,
+      ebiSchedules: data.ebiSchedules || [],
       rehearsals: data.rehearsals || [],
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),

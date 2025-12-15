@@ -103,6 +103,12 @@ export default function CongregationForm() {
   const [selectedDays, setSelectedDays] = useState<string[]>([]); // For multi-day selection
   const [selectedWeeks, setSelectedWeeks] = useState<string[]>([]); // For multi-week selection
 
+  // EBI (Espaço Bíblico Infantil)
+  const [hasEBI, setHasEBI] = useState(false);
+  const [ebiSchedules, setEbiSchedules] = useState<Array<{ day: string; time: string }>>([]);
+  const [newEbiDay, setNewEbiDay] = useState('');
+  const [newEbiTime, setNewEbiTime] = useState('');
+
   // Rehearsals
   const [rehearsals, setRehearsals] = useState<RehearsalEntry[]>([]);
 
@@ -193,6 +199,25 @@ export default function CongregationForm() {
     setRehearsals(rehearsals.filter((_, i) => i !== index));
   };
 
+  const addEbiSchedule = () => {
+    if (!newEbiDay || !newEbiTime) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Por favor, preencha o dia e horário do EBI.",
+      });
+      return;
+    }
+
+    setEbiSchedules([...ebiSchedules, { day: newEbiDay, time: newEbiTime }]);
+    setNewEbiDay('');
+    setNewEbiTime('');
+  };
+
+  const removeEbiSchedule = (index: number) => {
+    setEbiSchedules(ebiSchedules.filter((_, i) => i !== index));
+  };
+
   const toggleDay = (dayId: string, list: string[], setList: React.Dispatch<React.SetStateAction<string[]>>) => {
     if (list.includes(dayId)) {
       setList(list.filter((d) => d !== dayId));
@@ -245,6 +270,8 @@ export default function CongregationForm() {
           setWorshipDays(data.worshipDays || []);
           setRjmDays(data.rjmDays || []);
           setSchedules(data.schedules || []);
+          setHasEBI(data.hasEBI || false);
+          setEbiSchedules(data.ebiSchedules || []);
           setRehearsals(data.rehearsals || []);
         } else {
           toast({
@@ -303,6 +330,8 @@ export default function CongregationForm() {
         worshipDays,
         rjmDays,
         schedules,
+        hasEBI,
+        ebiSchedules: hasEBI ? ebiSchedules : [],
         rehearsals,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1109,6 +1138,121 @@ export default function CongregationForm() {
                       Adicionar Horário
                     </Button>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* EBI Card */}
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    EBI - Espaço Bíblico Infantil
+                  </CardTitle>
+                  <CardDescription>Configure se a congregação possui EBI e seus horários</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Checkbox para EBI */}
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="has-ebi"
+                      checked={hasEBI}
+                      onCheckedChange={(checked) => {
+                        setHasEBI(checked as boolean);
+                        if (!checked) {
+                          setEbiSchedules([]);
+                        }
+                      }}
+                    />
+                    <Label htmlFor="has-ebi" className="text-sm font-medium cursor-pointer">
+                      Esta congregação possui EBI (Espaço Bíblico Infantil)
+                    </Label>
+                  </div>
+
+                  {/* Lista de horários do EBI */}
+                  {hasEBI && ebiSchedules.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 pb-2 border-b border-border">
+                        <Badge variant="default" className="text-sm">Horários do EBI</Badge>
+                        <span className="text-xs text-muted-foreground">
+                          ({ebiSchedules.length})
+                        </span>
+                      </div>
+                      {ebiSchedules.map((ebi, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-4 rounded-lg bg-primary/5 border border-primary/20"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Users className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {DAYS_OF_WEEK.find(d => d.id === ebi.day)?.label}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {ebi.time}
+                              </p>
+                            </div>
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeEbiSchedule(index)}
+                            className="h-8 w-8 hover:bg-destructive/20"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Formulário para adicionar horário do EBI */}
+                  {hasEBI && (
+                    <div className="space-y-4 p-4 rounded-lg bg-muted/30 border border-border">
+                      <h4 className="font-medium text-sm">Adicionar Horário do EBI</h4>
+                      
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label>Dia da Semana *</Label>
+                          <Select value={newEbiDay} onValueChange={setNewEbiDay}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o dia" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover">
+                              {DAYS_OF_WEEK.map((day) => (
+                                <SelectItem key={day.id} value={day.id}>
+                                  {day.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="ebi-time">Horário *</Label>
+                          <Input
+                            id="ebi-time"
+                            type="time"
+                            value={newEbiTime}
+                            onChange={(e) => setNewEbiTime(e.target.value)}
+                            placeholder="00:00"
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addEbiSchedule}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Horário do EBI
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
