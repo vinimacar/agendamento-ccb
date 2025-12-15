@@ -108,3 +108,61 @@ export interface User {
   role: 'admin' | 'user';
   createdAt: Date;
 }
+
+// Tipos para lançamento de dados
+
+export interface BatismoData {
+  id?: string;
+  congregationId: string;
+  congregationName: string;
+  date: Date;
+  irmaos: number;
+  irmas: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SantaCeiaData {
+  id?: string;
+  congregationId: string;
+  congregationName: string;
+  date: Date;
+  irmaos: number;
+  irmas: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface InstrumentCounts {
+  // Madeiras
+  clarinete: number;
+  clarone: number;
+  saxSoprano: number;
+  saxAlto: number;
+  saxTenor: number;
+  saxBaritono: number;
+  // Metais
+  trompete: number;
+  flugelhorn: number;
+  euphonio: number;
+  trombone: number;
+  trombonito: number;
+  tuba: number;
+  // Cordas
+  viola: number;
+  violino: number;
+  cello: number;
+  // Organistas
+  organista: number;
+}
+
+export interface EnsaioData {
+  id?: string;
+  congregationId: string;
+  congregationName: string;
+  date: Date;
+  type: 'regional' | 'local';
+  instruments: InstrumentCounts;
+  createdAt: Date;
+  updatedAt: Date;
+}

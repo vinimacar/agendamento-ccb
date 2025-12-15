@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, Loader2, Users, Calendar, TrendingUp, Filter, FileSpreadsheet, Upload } from 'lucide-react';
+import { Download, Loader2, Users, Calendar, TrendingUp, Filter, FileSpreadsheet, Upload, Plus, Music } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import {
@@ -36,7 +36,9 @@ import {
 } from 'recharts';
 import { eventService } from '@/services/eventService';
 import { congregationService } from '@/services/congregationService';
-import { Event } from '@/types';
+import { batismoDataService, santaCeiaDataService, ensaioDataService } from '@/services/dataLancamentoService';
+import { DataLancamentoDialog } from '@/components/data/DataLancamentoDialog';
+import { Event, BatismoData, SantaCeiaData, EnsaioData } from '@/types';
 
 const COLORS = {
   primary: 'hsl(217, 91%, 40%)',
@@ -54,29 +56,42 @@ export default function Reports() {
   const [events, setEvents] = useState<Event[]>([]);
   const [congregations, setCongregations] = useState<any[]>([]);
   
+  // Novos estados para dados lançados
+  const [batismoData, setBatismoData] = useState<BatismoData[]>([]);
+  const [santaCeiaData, setSantaCeiaData] = useState<SantaCeiaData[]>([]);
+  const [ensaioData, setEnsaioData] = useState<EnsaioData[]>([]);
+  const [showDataDialog, setShowDataDialog] = useState(false);
+  
   // Filtros
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
   const [selectedEventType, setSelectedEventType] = useState<string>('all');
   const [selectedCongregation, setSelectedCongregation] = useState<string>('all');
 
   useEffect(() => {
-    const loadReportsData = async () => {
-      try {
-        const [eventsData, congregationsData] = await Promise.all([
-          eventService.getAll(),
-          congregationService.getAll(),
-        ]);
-        setEvents(eventsData);
-        setCongregations(congregationsData);
-      } catch (error) {
-        console.error('Error loading reports data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadReportsData();
   }, []);
+
+  const loadReportsData = async () => {
+    setLoading(true);
+    try {
+      const [eventsData, congregationsData, batismoD, ceiaD, ensaioD] = await Promise.all([
+        eventService.getAll(),
+        congregationService.getAll(),
+        batismoDataService.getAll(),
+        santaCeiaDataService.getAll(),
+        ensaioDataService.getAll(),
+      ]);
+      setEvents(eventsData);
+      setCongregations(congregationsData);
+      setBatismoData(batismoD);
+      setSantaCeiaData(ceiaD);
+      setEnsaioData(ensaioD);
+    } catch (error) {
+      console.error('Error loading reports data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrar eventos baseado nos filtros selecionados
   // Considera apenas eventos que já foram realizados (data anterior à data atual)
@@ -99,6 +114,97 @@ export default function Reports() {
       return isPastEvent && yearMatch && typeMatch && congregationMatch;
     });
   }, [events, selectedYear, selectedEventType, selectedCongregation]);
+
+  // Filtrar dados lançados
+  const filteredBatismoData = useMemo(() => {
+    return batismoData.filter(data => {
+      const dataYear = new Date(data.date).getFullYear().toString();
+      const yearMatch = selectedYear === 'all' || dataYear === selectedYear;
+      const congregationMatch = selectedCongregation === 'all' || data.congregationId === selectedCongregation;
+      return yearMatch && congregationMatch;
+    });
+  }, [batismoData, selectedYear, selectedCongregation]);
+
+  const filteredSantaCeiaData = useMemo(() => {
+    return santaCeiaData.filter(data => {
+      const dataYear = new Date(data.date).getFullYear().toString();
+      const yearMatch = selectedYear === 'all' || dataYear === selectedYear;
+      const congregationMatch = selectedCongregation === 'all' || data.congregationId === selectedCongregation;
+      return yearMatch && congregationMatch;
+    });
+  }, [santaCeiaData, selectedYear, selectedCongregation]);
+
+  const filteredEnsaioData = useMemo(() => {
+    return ensaioData.filter(data => {
+      const dataYear = new Date(data.date).getFullYear().toString();
+      const yearMatch = selectedYear === 'all' || dataYear === selectedYear;
+      const congregationMatch = selectedCongregation === 'all' || data.congregationId === selectedCongregation;
+      return yearMatch && congregationMatch;
+    });
+  }, [ensaioData, selectedYear, selectedCongregation]);
+
+  // Estatísticas de dados lançados
+  const batismoDataStats = useMemo(() => {
+    const totalBatizados = filteredBatismoData.reduce((sum, d) => sum + d.irmaos + d.irmas, 0);
+    const totalHomens = filteredBatismoData.reduce((sum, d) => sum + d.irmaos, 0);
+    const totalMulheres = filteredBatismoData.reduce((sum, d) => sum + d.irmas, 0);
+    return {
+      total: filteredBatismoData.length,
+      totalBatizados,
+      totalHomens,
+      totalMulheres,
+    };
+  }, [filteredBatismoData]);
+
+  const santaCeiaDataStats = useMemo(() => {
+    const totalParticipantes = filteredSantaCeiaData.reduce((sum, d) => sum + d.irmaos + d.irmas, 0);
+    const totalIrmaos = filteredSantaCeiaData.reduce((sum, d) => sum + d.irmaos, 0);
+    const totalIrmas = filteredSantaCeiaData.reduce((sum, d) => sum + d.irmas, 0);
+    return {
+      total: filteredSantaCeiaData.length,
+      totalParticipantes,
+      totalIrmaos,
+      totalIrmas,
+    };
+  }, [filteredSantaCeiaData]);
+
+  const ensaioDataStats = useMemo(() => {
+    const totalRegionais = filteredEnsaioData.filter(e => e.type === 'regional').length;
+    const totalLocais = filteredEnsaioData.filter(e => e.type === 'local').length;
+    
+    const totalMadeiras = filteredEnsaioData.reduce((sum, e) => {
+      const inst = e.instruments;
+      return sum + (inst.clarinete || 0) + (inst.clarone || 0) + 
+             (inst.saxSoprano || 0) + (inst.saxAlto || 0) + 
+             (inst.saxTenor || 0) + (inst.saxBaritono || 0);
+    }, 0);
+    
+    const totalMetais = filteredEnsaioData.reduce((sum, e) => {
+      const inst = e.instruments;
+      return sum + (inst.trompete || 0) + (inst.flugelhorn || 0) + 
+             (inst.euphonio || 0) + (inst.trombone || 0) + 
+             (inst.trombonito || 0) + (inst.tuba || 0);
+    }, 0);
+    
+    const totalCordas = filteredEnsaioData.reduce((sum, e) => {
+      const inst = e.instruments;
+      return sum + (inst.violino || 0) + (inst.viola || 0) + (inst.cello || 0);
+    }, 0);
+    
+    const totalOrganistas = filteredEnsaioData.reduce((sum, e) => sum + (e.instruments.organista || 0), 0);
+    const totalMusicos = totalMadeiras + totalMetais + totalCordas + totalOrganistas;
+    
+    return {
+      total: filteredEnsaioData.length,
+      totalRegionais,
+      totalLocais,
+      totalMadeiras,
+      totalMetais,
+      totalCordas,
+      totalOrganistas,
+      totalMusicos,
+    };
+  }, [filteredEnsaioData]);
 
   // Estatísticas de Batismo
   const batismoStats = useMemo(() => {
@@ -532,6 +638,15 @@ export default function Reports() {
               style={{ display: 'none' }}
             />
             
+            {/* Botão Lançar Dados */}
+            <Button
+              onClick={() => setShowDataDialog(true)}
+              className="gap-2 shadow-sm hover:shadow-md transition-all duration-200 gradient-primary text-primary-foreground"
+            >
+              <Plus className="h-4 w-4" />
+              Lançar Dados
+            </Button>
+
             {/* Menu de Exportação */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -553,6 +668,13 @@ export default function Reports() {
             </DropdownMenu>
           </div>
         </div>
+        
+        {/* Dialog de Lançamento de Dados */}
+        <DataLancamentoDialog 
+          open={showDataDialog} 
+          onOpenChange={setShowDataDialog}
+          onDataSaved={loadReportsData}
+        />
 
         {/* Filters */}
         <Card className="shadow-md border-border/40">
@@ -959,6 +1081,183 @@ export default function Reports() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Seção de Ensaios - Dados Lançados */}
+        {filteredEnsaioData.length > 0 && (
+          <>
+            <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-xl">
+                  <Music className="h-5 w-5 text-primary" />
+                  Estatísticas de Ensaios
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-4 gap-4 mb-6">
+                  <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                    <p className="text-sm text-muted-foreground mb-1">Total de Ensaios</p>
+                    <p className="text-3xl font-bold text-foreground">{ensaioDataStats.total}</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                    <p className="text-sm text-muted-foreground mb-1">Ensaios Regionais</p>
+                    <p className="text-3xl font-bold text-foreground">{ensaioDataStats.totalRegionais}</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20">
+                    <p className="text-sm text-muted-foreground mb-1">Ensaios Locais</p>
+                    <p className="text-3xl font-bold text-foreground">{ensaioDataStats.totalLocais}</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                    <p className="text-sm text-muted-foreground mb-1">Total de Músicos</p>
+                    <p className="text-3xl font-bold text-foreground">{ensaioDataStats.totalMusicos}</p>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Gráfico de Instrumentos por Categoria */}
+                  <div className="h-80">
+                    <h3 className="text-sm font-semibold mb-4">Distribuição por Categoria</h3>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: 'Madeiras', value: ensaioDataStats.totalMadeiras, fill: COLORS.primary },
+                            { name: 'Metais', value: ensaioDataStats.totalMetais, fill: COLORS.secondary },
+                            { name: 'Cordas', value: ensaioDataStats.totalCordas, fill: COLORS.success },
+                            { name: 'Organistas', value: ensaioDataStats.totalOrganistas, fill: COLORS.accent },
+                          ]}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={90}
+                          paddingAngle={5}
+                          dataKey="value"
+                          label={({ name, value, percent }) => 
+                            value > 0 ? `${name}: ${value} (${(percent * 100).toFixed(0)}%)` : null
+                          }
+                        >
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px',
+                            color: 'hsl(var(--foreground))',
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Detalhamento por Categoria */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-semibold mb-4">Detalhamento por Categoria</h3>
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Madeiras</span>
+                        <span className="text-lg font-bold text-primary">{ensaioDataStats.totalMadeiras}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Clarinete, Clarone, Sax Soprano, Sax Alto, Sax Tenor, Sax Barítono
+                      </p>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Metais</span>
+                        <span className="text-lg font-bold text-secondary">{ensaioDataStats.totalMetais}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Trompete, Flugelhorn, Euphonio, Trombone, Trombonito, Tuba
+                      </p>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Cordas</span>
+                        <span className="text-lg font-bold text-success">{ensaioDataStats.totalCordas}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Violino, Viola, Cello
+                      </p>
+                    </div>
+                    
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Organistas</span>
+                        <span className="text-lg font-bold text-accent">{ensaioDataStats.totalOrganistas}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {/* Cards de Dados Lançados - Batismo e Santa Ceia */}
+        {(filteredBatismoData.length > 0 || filteredSantaCeiaData.length > 0) && (
+          <div className="grid md:grid-cols-2 gap-6">
+            {filteredBatismoData.length > 0 && (
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
+                <CardHeader>
+                  <CardTitle className="text-lg">Dados Lançados - Batismo</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <span className="text-sm font-medium text-foreground">Total Registrados</span>
+                      <span className="text-xl font-bold text-primary">{batismoDataStats.total}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <span className="text-sm font-medium text-foreground">Total de Batizados</span>
+                      <span className="text-xl font-bold text-primary">{batismoDataStats.totalBatizados}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                        <p className="text-xs text-muted-foreground mb-1">Irmãos</p>
+                        <p className="text-2xl font-bold text-foreground">{batismoDataStats.totalHomens}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                        <p className="text-xs text-muted-foreground mb-1">Irmãs</p>
+                        <p className="text-2xl font-bold text-foreground">{batismoDataStats.totalMulheres}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {filteredSantaCeiaData.length > 0 && (
+              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
+                <CardHeader>
+                  <CardTitle className="text-lg">Dados Lançados - Santa Ceia</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <span className="text-sm font-medium text-foreground">Total Registrados</span>
+                      <span className="text-xl font-bold text-primary">{santaCeiaDataStats.total}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <span className="text-sm font-medium text-foreground">Total de Participantes</span>
+                      <span className="text-xl font-bold text-primary">{santaCeiaDataStats.totalParticipantes}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+                        <p className="text-xs text-muted-foreground mb-1">Irmãos</p>
+                        <p className="text-2xl font-bold text-foreground">{santaCeiaDataStats.totalIrmaos}</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                        <p className="text-xs text-muted-foreground mb-1">Irmãs</p>
+                        <p className="text-2xl font-bold text-foreground">{santaCeiaDataStats.totalIrmas}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
