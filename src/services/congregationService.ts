@@ -24,6 +24,8 @@ export interface RehearsalEntry {
   date?: Date; // Data específica (para ensaios pontuais)
   time: string;
   repeats: boolean; // Se repete semanalmente
+  months?: number[]; // Meses em que o ensaio ocorre (1-12)
+  recurrenceType: 'Semanal' | 'Mensal' | 'Agendado'; // Tipo de recorrência
 }
 
 export interface CongregationData {

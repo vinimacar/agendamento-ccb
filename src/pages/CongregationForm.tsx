@@ -47,6 +47,7 @@ const DAYS_OF_WEEK = [
 ];
 
 const REHEARSAL_TYPES = ['Local', 'Regional', 'GEM', 'Geral'] as const;
+const RECURRENCE_TYPES = ['Semanal', 'Mensal', 'Agendado'] as const;
 
 interface PersonEntry {
   name: string;
@@ -60,6 +61,7 @@ interface RehearsalEntry {
   time: string;
   repeats: boolean; // Se repete semanalmente
   months?: number[]; // Meses em que o ensaio ocorre (1-12)
+  recurrenceType: typeof RECURRENCE_TYPES[number]; // Tipo de recorrência
 }
 
 export default function CongregationForm() {
@@ -136,7 +138,7 @@ export default function CongregationForm() {
   const [newRehearsalDay, setNewRehearsalDay] = useState('');
   const [newRehearsalDate, setNewRehearsalDate] = useState<Date | undefined>(undefined);
   const [newRehearsalTime, setNewRehearsalTime] = useState('');
-  const [newRehearsalRepeats, setNewRehearsalRepeats] = useState(false);
+  const [newRehearsalRecurrenceType, setNewRehearsalRecurrenceType] = useState<typeof RECURRENCE_TYPES[number]>('Semanal');
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
 
@@ -162,7 +164,7 @@ export default function CongregationForm() {
   };
 
   const addRehearsal = () => {
-    // Validar que tem horário e pelo menos dia ou data
+    // Validar que tem horário
     if (!newRehearsalTime) {
       toast({
         variant: "destructive",
@@ -172,11 +174,30 @@ export default function CongregationForm() {
       return;
     }
     
-    if (!newRehearsalDay && !newRehearsalDate) {
+    // Validar baseado no tipo de recorrência
+    if (newRehearsalRecurrenceType === 'Semanal' && !newRehearsalDay) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Por favor, selecione um dia da semana ou uma data específica.",
+        description: "Por favor, selecione o dia da semana para ensaio semanal.",
+      });
+      return;
+    }
+    
+    if (newRehearsalRecurrenceType === 'Mensal' && !newRehearsalDay) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Por favor, selecione o dia da semana para ensaio mensal.",
+      });
+      return;
+    }
+    
+    if (newRehearsalRecurrenceType === 'Agendado' && !newRehearsalDate) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Por favor, selecione a data específica para ensaio agendado.",
       });
       return;
     }
@@ -184,7 +205,8 @@ export default function CongregationForm() {
     const newRehearsal: RehearsalEntry = {
       type: newRehearsalType,
       time: newRehearsalTime,
-      repeats: newRehearsalRepeats,
+      repeats: newRehearsalRecurrenceType !== 'Agendado',
+      recurrenceType: newRehearsalRecurrenceType,
     };
     
     // Only add day or date if they have values
@@ -202,7 +224,7 @@ export default function CongregationForm() {
     setNewRehearsalDay('');
     setNewRehearsalDate(undefined);
     setNewRehearsalTime('');
-    setNewRehearsalRepeats(false);
+    setNewRehearsalRecurrenceType('Semanal');
     setSelectedMonths([]);
   };
 
@@ -285,7 +307,12 @@ export default function CongregationForm() {
           setEbiSchedules(data.ebiSchedules || []);
           setHasRJM(data.hasRJM || false);
           setDiaconName(data.diaconName || '');
-          setRehearsals(data.rehearsals || []);
+          // Migrar dados antigos de rehearsals para incluir recurrenceType
+          const migratedRehearsals = (data.rehearsals || []).map(r => ({
+            ...r,
+            recurrenceType: r.recurrenceType || (r.date && !r.repeats ? 'Agendado' : r.months && r.months.length > 0 ? 'Mensal' : 'Semanal') as 'Semanal' | 'Mensal' | 'Agendado'
+          }));
+          setRehearsals(migratedRehearsals);
         } else {
           toast({
             title: 'Congregação não encontrada',
@@ -1316,8 +1343,7 @@ export default function CongregationForm() {
                                       </p>
                                       <p className="text-sm text-muted-foreground">
                                         {rehearsal.time}
-                                        {rehearsal.repeats && ' • Repete semanalmente'}
-                                        {rehearsal.date && !rehearsal.repeats && ' • Data específica'}
+                                        {rehearsal.recurrenceType && ` • ${rehearsal.recurrenceType}`}
                                         {rehearsal.months && rehearsal.months.length > 0 && (
                                           <span> • {rehearsal.months.length} mês(es)</span>
                                         )}
@@ -1385,25 +1411,36 @@ export default function CongregationForm() {
 
                   {/* Scheduling Options */}
                   <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="repeats-rehearsal"
-                        checked={newRehearsalRepeats}
-                        onCheckedChange={(checked) => {
-                          setNewRehearsalRepeats(checked as boolean);
-                          if (checked) {
-                            setNewRehearsalDate(undefined); // Clear specific date if repeating
-                          } else {
-                            setNewRehearsalDay(''); // Clear weekday if not repeating
-                          }
-                        }}
-                      />
-                      <Label htmlFor="repeats-rehearsal" className="text-sm font-normal cursor-pointer">
-                        Ensaio recorrente (repete toda semana)
-                      </Label>
+                    {/* Tipo de Recorrência */}
+                    <div className="space-y-2">
+                      <Label>Tipo de Recorrência *</Label>
+                      <Select value={newRehearsalRecurrenceType} onValueChange={(v) => {
+                        setNewRehearsalRecurrenceType(v as typeof RECURRENCE_TYPES[number]);
+                        // Limpar campos ao trocar o tipo
+                        if (v === 'Agendado') {
+                          setNewRehearsalDay('');
+                          setSelectedMonths([]);
+                        } else {
+                          setNewRehearsalDate(undefined);
+                        }
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          <SelectItem value="Semanal">Semanal (todas as semanas)</SelectItem>
+                          <SelectItem value="Mensal">Mensal (meses específicos)</SelectItem>
+                          <SelectItem value="Agendado">Agendado (data única)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        {newRehearsalRecurrenceType === 'Semanal' && 'O ensaio ocorrerá toda semana no dia selecionado'}
+                        {newRehearsalRecurrenceType === 'Mensal' && 'O ensaio ocorrerá apenas nos meses selecionados'}
+                        {newRehearsalRecurrenceType === 'Agendado' && 'O ensaio ocorrerá apenas na data específica'}
+                      </p>
                     </div>
 
-                    {newRehearsalRepeats ? (
+                    {newRehearsalRecurrenceType !== 'Agendado' ? (
                       // Weekday selector for recurring rehearsals
                       <>
                         <div className="space-y-2">
@@ -1422,10 +1459,11 @@ export default function CongregationForm() {
                           </Select>
                         </div>
                         
-                        {/* Month selector */}
-                        <div className="space-y-2">
-                          <Label>Meses que ocorre o ensaio</Label>
-                          <div className="grid grid-cols-4 gap-2">
+                        {/* Month selector - apenas para Mensal */}
+                        {newRehearsalRecurrenceType === 'Mensal' && (
+                          <div className="space-y-2">
+                            <Label>Meses que ocorre o ensaio *</Label>
+                            <div className="grid grid-cols-4 gap-2">
                             {[
                               { num: 1, name: 'Jan' },
                               { num: 2, name: 'Fev' },
@@ -1460,11 +1498,12 @@ export default function CongregationForm() {
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {selectedMonths.length === 0 
-                              ? 'Nenhum mês selecionado (ensaio ocorre todos os meses)'
+                              ? 'Selecione pelo menos um mês'
                               : `Selecionados: ${selectedMonths.length} mês(es)`
                             }
                           </p>
                         </div>
+                        )}
                       </>
                     ) : (
                       // Calendar for specific date
