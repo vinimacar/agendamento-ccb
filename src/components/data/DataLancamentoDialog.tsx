@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +10,10 @@ import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { batismoDataService, santaCeiaDataService, ensaioDataService } from '@/services/dataLancamentoService';
 import { eventService } from '@/services/eventService';
-import type { InstrumentCounts, Event } from '@/types';
-import { Loader2, Plus, Music, Users2, Droplet } from 'lucide-react';
+import type { InstrumentCounts, Event, Congregation } from '@/types';
+import { Loader2, Plus, Music, Users2, Droplet, Printer } from 'lucide-react';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
 
 interface DataLancamentoDialogProps {
   open: boolean;
@@ -72,6 +73,16 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
     organista: 0,
   });
 
+  // Estados para lista de anciãos
+  const [availableElders, setAvailableElders] = useState<string[]>([]);
+  
+  // Estados para dados salvos (para impressão)
+  const [lastSavedData, setLastSavedData] = useState<{
+    type: 'batismo' | 'santa-ceia' | null;
+    congregation: Congregation | undefined;
+    data: Record<string, unknown> | null;
+  }>({ type: null, congregation: undefined, data: null });
+
   const resetForms = () => {
     setBatismoCongregationId('');
     setBatismoDate('');
@@ -115,12 +126,24 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
       organista: 0,
     });
   };
-  // Buscar batismos agendados ao abrir o diálogo
-  useEffect(() => {
-    if (open) {
-      loadScheduledBatismos();
-    }
-  }, [open]);
+
+  const loadAvailableElders = useCallback(() => {
+    const eldersSet = new Set<string>();
+    congregations.forEach(cong => {
+      // Buscar ancionãos locais (elders pode ser string[] ou PersonEntry[])
+      if (cong.elders && Array.isArray(cong.elders)) {
+        cong.elders.forEach((elder: unknown) => {
+          if (typeof elder === 'string') {
+            eldersSet.add(elder);
+          } else if (elder && typeof elder === 'object' && 'name' in elder) {
+            const elderObj = elder as { name: string };
+            eldersSet.add(elderObj.name);
+          }
+        });
+      }
+    });
+    setAvailableElders(Array.from(eldersSet).sort());
+  }, [congregations]);
 
   const loadScheduledBatismos = async () => {
     try {
@@ -131,6 +154,99 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
       console.error('Error loading scheduled batismos:', error);
     }
   };
+  
+  // Buscar batismos agendados ao abrir o diálogo
+  useEffect(() => {
+    if (open) {
+      loadScheduledBatismos();
+      loadAvailableElders();
+    }
+  }, [open, loadAvailableElders]);
+
+  const generatePDF = (type: 'batismo' | 'santa-ceia', congregation: Congregation | undefined, data: Record<string, unknown>) => {
+    const doc = new jsPDF();
+    
+    // Header com logo CCB (texto por enquanto, pode adicionar imagem depois)
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 20, { align: 'center' });
+    
+    // Endereço da congregação
+    if (congregation) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const address = `${congregation.street}, ${congregation.number} - ${congregation.neighborhood}`;
+      const cityState = `${congregation.city}/${congregation.state}`;
+      doc.text(address, 105, 28, { align: 'center' });
+      doc.text(cityState, 105, 34, { align: 'center' });
+    }
+    
+    // Linha separadora
+    doc.setLineWidth(0.5);
+    doc.line(20, 40, 190, 40);
+    
+    // Título do documento
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    const title = type === 'batismo' ? 'REGISTRO DE BATISMO' : 'REGISTRO DE SANTA CEIA';
+    doc.text(title, 105, 50, { align: 'center' });
+    
+    // Dados
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    let yPos = 65;
+    
+    // Validação de tipo para data.date
+    const dataDate = data.date;
+    const dateString = typeof dataDate === 'string' || typeof dataDate === 'number' || dataDate instanceof Date
+      ? format(dataDate, 'dd/MM/yyyy')
+      : 'Data não informada';
+    
+    doc.text(`Data: ${dateString}`, 20, yPos);
+    yPos += 10;
+    
+    if (type === 'batismo' && data.tipoBatismo) {
+      const tipoLabel = data.tipoBatismo === 'extra' ? 'Extra' : data.tipoBatismo === 'darpe' ? 'DARPE' : 'Agendado';
+      doc.text(`Tipo: ${tipoLabel}`, 20, yPos);
+      yPos += 10;
+    }
+    
+    if (data.elderName || data.otherElderName) {
+      const elderName = data.otherElderName || data.elderName;
+      const elderType = data.elderFromOtherLocation ? ' (Visitante)' : '';
+      doc.text(`Ancião: ${elderName}${elderType}`, 20, yPos);
+      yPos += 10;
+    }
+    
+    yPos += 5;
+    doc.setFont('helvetica', 'bold');
+    const participantesLabel = type === 'batismo' ? 'Batizados' : 'Participantes';
+    doc.text(participantesLabel, 20, yPos);
+    yPos += 8;
+    
+    doc.setFont('helvetica', 'normal');
+    const irmaos = typeof data.irmaos === 'number' ? data.irmaos : 0;
+    const irmas = typeof data.irmas === 'number' ? data.irmas : 0;
+    doc.text(`Irmãos: ${irmaos}`, 30, yPos);
+    yPos += 7;
+    doc.text(`Irmãs: ${irmas}`, 30, yPos);
+    yPos += 7;
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Total: ${irmaos + irmas}`, 30, yPos);
+    
+    // Rodapé
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 105, 280, { align: 'center' });
+    
+    // Salvar PDF
+    const fileDate = typeof dataDate === 'string' || typeof dataDate === 'number' || dataDate instanceof Date
+      ? format(dataDate, 'yyyyMMdd')
+      : format(new Date(), 'yyyyMMdd');
+    const fileName = `${type}_${congregation?.name || 'congregacao'}_${fileDate}.pdf`;
+    doc.save(fileName);
+  };
+  
   const handleSaveBatismo = async () => {
     if (batismoTipo === 'agendado' && !selectedBatismoEvent) {
       toast({
@@ -168,7 +284,7 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
         }
       }
 
-      await batismoDataService.create({
+      const savedData = {
         congregationId,
         congregationName,
         date: eventDate,
@@ -181,16 +297,23 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
         eventId,
         createdAt: new Date(),
         updatedAt: new Date(),
+      };
+
+      await batismoDataService.create(savedData);
+
+      const congregation = congregations.find(c => c.id === congregationId) as unknown as Congregation | undefined;
+      setLastSavedData({
+        type: 'batismo',
+        congregation,
+        data: savedData as Record<string, unknown>
       });
 
       toast({
         title: 'Dados salvos!',
-        description: 'Dados de batismo registrados com sucesso.',
+        description: 'Dados de batismo registrados com sucesso. Você pode imprimir o documento agora.',
       });
       
       resetForms();
-      onDataSaved();
-      onOpenChange(false);
     } catch (error) {
       console.error('Error saving batismo:', error);
       toast({
@@ -216,7 +339,7 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
     setSaving(true);
     try {
       const congregation = congregations.find(c => c.id === ceiaCongregationId);
-      await santaCeiaDataService.create({
+      const savedData = {
         congregationId: ceiaCongregationId,
         congregationName: congregation?.name || '',
         date: new Date(ceiaDate),
@@ -227,16 +350,22 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
         otherElderName: ceiaElderFromOther ? ceiaOtherElderName || undefined : undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
+      };
+
+      await santaCeiaDataService.create(savedData);
+
+      setLastSavedData({
+        type: 'santa-ceia',
+        congregation: congregation as unknown as Congregation | undefined,
+        data: savedData as Record<string, unknown>
       });
 
       toast({
         title: 'Dados salvos!',
-        description: 'Dados de Santa Ceia registrados com sucesso.',
+        description: 'Dados de Santa Ceia registrados com sucesso. Você pode imprimir o documento agora.',
       });
       
       resetForms();
-      onDataSaved();
-      onOpenChange(false);
     } catch (error) {
       console.error('Error saving ceia:', error);
       toast({
@@ -453,13 +582,18 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
                 ) : (
                   <div className="space-y-2">
                     <Label htmlFor="batismo-elder">Ancião que Atendeu</Label>
-                    <Input
-                      id="batismo-elder"
-                      type="text"
-                      placeholder="Digite o nome do ancião"
-                      value={batismoElderName}
-                      onChange={(e) => setBatismoElderName(e.target.value)}
-                    />
+                    <Select value={batismoElderName} onValueChange={setBatismoElderName}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o ancião" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover max-h-[300px]">
+                        {availableElders.map((elder) => (
+                          <SelectItem key={elder} value={elder}>
+                            {elder}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
               </div>
@@ -571,13 +705,18 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
                 ) : (
                   <div className="space-y-2">
                     <Label htmlFor="ceia-elder">Ancião que Atendeu</Label>
-                    <Input
-                      id="ceia-elder"
-                      type="text"
-                      placeholder="Digite o nome do ancião"
-                      value={ceiaElderName}
-                      onChange={(e) => setCeiaElderName(e.target.value)}
-                    />
+                    <Select value={ceiaElderName} onValueChange={setCeiaElderName}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o ancião" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover max-h-[300px]">
+                        {availableElders.map((elder) => (
+                          <SelectItem key={elder} value={elder}>
+                            {elder}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
               </div>
@@ -809,6 +948,41 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Botão de Imprimir PDF */}
+        {lastSavedData.type && lastSavedData.data && (
+          <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-green-900 dark:text-green-100">Dados salvos com sucesso!</p>
+                <p className="text-sm text-green-700 dark:text-green-300">Você pode imprimir o documento agora.</p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    if (lastSavedData.type && lastSavedData.data) {
+                      generatePDF(lastSavedData.type, lastSavedData.congregation, lastSavedData.data);
+                    }
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimir PDF
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setLastSavedData({ type: null, congregation: undefined, data: null });
+                    onDataSaved();
+                    onOpenChange(false);
+                  }}
+                >
+                  Fechar
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
