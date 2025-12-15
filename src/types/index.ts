@@ -123,7 +123,7 @@ export interface BatismoData {
   elderName?: string; // Nome do ancião que atendeu
   elderFromOtherLocation?: boolean; // Se o ancião é de outra localidade
   otherElderName?: string; // Nome do ancião se for de outra localidade
-  tipoBatismo?: 'extra' | 'darpe'; // Tipo do batismo
+  tipoBatismo?: 'extra' | 'darpe' | 'agendado'; // Tipo do batismo
   eventId?: string; // ID do evento agendado (se houver)
   createdAt: Date;
   updatedAt: Date;

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { batismoDataService, santaCeiaDataService, ensaioDataService } from '@/services/dataLancamentoService';
-import type { InstrumentCounts } from '@/types';
+import { eventService } from '@/services/eventService';
+import type { InstrumentCounts, Event } from '@/types';
 import { Loader2, Plus, Music, Users2, Droplet } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -33,7 +34,9 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
   const [batismoElderName, setBatismoElderName] = useState('');
   const [batismoElderFromOther, setBatismoElderFromOther] = useState(false);
   const [batismoOtherElderName, setBatismoOtherElderName] = useState('');
-  const [batismoTipo, setBatismoTipo] = useState<'extra' | 'darpe'>('extra');
+  const [batismoTipo, setBatismoTipo] = useState<'extra' | 'darpe' | 'agendado'>('extra');
+  const [scheduledBatismos, setScheduledBatismos] = useState<Event[]>([]);
+  const [selectedBatismoEvent, setSelectedBatismoEvent] = useState<string>('');
 
   // Estados para Santa Ceia
   const [ceiaCongregationId, setCeiaCongregationId] = useState('');
@@ -78,6 +81,7 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
     setBatismoElderFromOther(false);
     setBatismoOtherElderName('');
     setBatismoTipo('extra');
+    setSelectedBatismoEvent('');
     
     setCeiaCongregationId('');
     setCeiaDate('');
@@ -111,9 +115,33 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
       organista: 0,
     });
   };
+  // Buscar batismos agendados ao abrir o diálogo
+  useEffect(() => {
+    if (open) {
+      loadScheduledBatismos();
+    }
+  }, [open]);
 
+  const loadScheduledBatismos = async () => {
+    try {
+      const events = await eventService.getAll();
+      const batismos = events.filter(event => event.type === 'batismo');
+      setScheduledBatismos(batismos);
+    } catch (error) {
+      console.error('Error loading scheduled batismos:', error);
+    }
+  };
   const handleSaveBatismo = async () => {
-    if (!batismoCongregationId || !batismoDate) {
+    if (batismoTipo === 'agendado' && !selectedBatismoEvent) {
+      toast({
+        title: 'Campos obrigatórios',
+        description: 'Selecione um batismo agendado.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (batismoTipo !== 'agendado' && (!batismoCongregationId || !batismoDate)) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Preencha congregação e data.',
@@ -124,17 +152,33 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
 
     setSaving(true);
     try {
-      const congregation = congregations.find(c => c.id === batismoCongregationId);
+      let congregationId = batismoCongregationId;
+      let congregationName = congregations.find(c => c.id === batismoCongregationId)?.name || '';
+      let eventDate = new Date(batismoDate);
+      let eventId = undefined;
+
+      // Se for batismo agendado, buscar dados do evento
+      if (batismoTipo === 'agendado' && selectedBatismoEvent) {
+        const event = scheduledBatismos.find(e => e.id === selectedBatismoEvent);
+        if (event) {
+          congregationId = event.congregationId;
+          congregationName = event.congregationName;
+          eventDate = event.date;
+          eventId = event.id;
+        }
+      }
+
       await batismoDataService.create({
-        congregationId: batismoCongregationId,
-        congregationName: congregation?.name || '',
-        date: new Date(batismoDate),
+        congregationId,
+        congregationName,
+        date: eventDate,
         irmaos: parseInt(batismoIrmaos) || 0,
         irmas: parseInt(batismoIrmas) || 0,
         elderName: batismoElderFromOther ? undefined : batismoElderName || undefined,
         elderFromOtherLocation: batismoElderFromOther,
         otherElderName: batismoElderFromOther ? batismoOtherElderName || undefined : undefined,
         tipoBatismo: batismoTipo,
+        eventId,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -289,30 +333,74 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
           <TabsContent value="batismo" className="space-y-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Congregação *</Label>
-                <Select value={batismoCongregationId} onValueChange={setBatismoCongregationId}>
+                <Label>Tipo de Batismo *</Label>
+                <Select value={batismoTipo} onValueChange={(val: 'extra' | 'darpe' | 'agendado') => {
+                  setBatismoTipo(val);
+                  if (val === 'agendado') {
+                    setBatismoCongregationId('');
+                    setBatismoDate('');
+                  } else {
+                    setSelectedBatismoEvent('');
+                  }
+                }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione a congregação" />
+                    <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-popover max-h-[300px]">
-                    {congregations.map((cong) => (
-                      <SelectItem key={cong.id} value={cong.id!}>
-                        {cong.name} - {cong.city}/{cong.state}
-                      </SelectItem>
-                    ))}
+                  <SelectContent className="bg-popover">
+                    <SelectItem value="extra">Extra</SelectItem>
+                    <SelectItem value="darpe">DARPE</SelectItem>
+                    <SelectItem value="agendado">Agendado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="batismo-date">Data *</Label>
-                <Input
-                  id="batismo-date"
-                  type="date"
-                  value={batismoDate}
-                  onChange={(e) => setBatismoDate(e.target.value)}
-                />
-              </div>
+              {batismoTipo === 'agendado' ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>Batismo Agendado *</Label>
+                    <Select value={selectedBatismoEvent} onValueChange={setSelectedBatismoEvent}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um batismo agendado" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover max-h-[300px]">
+                        {scheduledBatismos.map((event) => (
+                          <SelectItem key={event.id} value={event.id!}>
+                            {event.congregationName} - {format(event.date, 'dd/MM/yyyy')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Congregação *</Label>
+                    <Select value={batismoCongregationId} onValueChange={setBatismoCongregationId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione a congregação" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover max-h-[300px]">
+                        {congregations.map((cong) => (
+                          <SelectItem key={cong.id} value={cong.id!}>
+                            {cong.name} - {cong.city}/{cong.state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="batismo-date">Data *</Label>
+                    <Input
+                      id="batismo-date"
+                      type="date"
+                      value={batismoDate}
+                      onChange={(e) => setBatismoDate(e.target.value)}
+                    />
+                  </div>
+                </>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -335,19 +423,6 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
                     onChange={(e) => setBatismoIrmas(e.target.value)}
                   />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tipo de Batismo</Label>
-                <Select value={batismoTipo} onValueChange={(val: 'extra' | 'darpe') => setBatismoTipo(val)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover">
-                    <SelectItem value="extra">Extra</SelectItem>
-                    <SelectItem value="darpe">DARPE</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-3">
