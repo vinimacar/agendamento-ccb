@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,22 +47,7 @@ export default function ReforcoAgendamento() {
   const [availableDays, setAvailableDays] = useState<Array<{ day: string; time: string }>>([]);
 
   // Carregar agendamentos do mês atual
-  useEffect(() => {
-    loadSchedules();
-  }, [currentMonth]);
-
-  // Carregar pessoas disponíveis quando selecionar congregação
-  useEffect(() => {
-    if (selectedCongregationId) {
-      loadAvailablePeople();
-      loadAvailableDays();
-    } else {
-      setAvailablePeople([]);
-      setAvailableDays([]);
-    }
-  }, [selectedCongregationId, type]);
-
-  const loadSchedules = async () => {
+  const loadSchedules = useCallback(async () => {
     setLoadingSchedules(true);
     try {
       const year = currentMonth.getFullYear();
@@ -79,9 +64,13 @@ export default function ReforcoAgendamento() {
     } finally {
       setLoadingSchedules(false);
     }
-  };
+  }, [currentMonth, toast]);
 
-  const loadAvailablePeople = async () => {
+  useEffect(() => {
+    loadSchedules();
+  }, [loadSchedules]);
+
+  const loadAvailablePeople = useCallback(async () => {
     try {
       const congregation = congregations.find(c => c.id === selectedCongregationId);
       if (!congregation) return;
@@ -112,9 +101,9 @@ export default function ReforcoAgendamento() {
     } catch (error) {
       console.error('Error loading people:', error);
     }
-  };
+  }, [congregations, selectedCongregationId]);
 
-  const loadAvailableDays = async () => {
+  const loadAvailableDays = useCallback(async () => {
     try {
       const congregation = congregations.find(c => c.id === selectedCongregationId);
       if (!congregation) return;
@@ -137,7 +126,18 @@ export default function ReforcoAgendamento() {
     } catch (error) {
       console.error('Error loading days:', error);
     }
-  };
+  }, [congregations, selectedCongregationId, type]);
+
+  // Carregar pessoas disponíveis quando selecionar congregação
+  useEffect(() => {
+    if (selectedCongregationId) {
+      loadAvailablePeople();
+      loadAvailableDays();
+    } else {
+      setAvailablePeople([]);
+      setAvailableDays([]);
+    }
+  }, [selectedCongregationId, loadAvailablePeople, loadAvailableDays]);
 
   const checkIfCanSchedule = async (): Promise<{ canSchedule: boolean; message?: string }> => {
     if (!selectedCongregationId || !selectedDate) {

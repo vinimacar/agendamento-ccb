@@ -24,7 +24,7 @@ export const reforcoService = {
         acc[key] = value;
       }
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
     
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...cleanData,
@@ -152,7 +152,7 @@ export const reforcoService = {
         acc[key] = value;
       }
       return acc;
-    }, {} as Record<string, any>);
+    }, {} as Record<string, unknown>);
     
     await updateDoc(docRef, {
       ...cleanData,
