@@ -87,6 +87,20 @@ export const eventTypeLabels: Record<EventType, string> = {
   'rjm-reforco': 'RJM para Reforço de Coletas',
 };
 
+export interface ReforcoSchedule {
+  id?: string;
+  congregationId: string;
+  congregationName: string;
+  type: 'culto-oficial' | 'rjm'; // Tipo de reforço
+  date: Date;
+  time: string;
+  responsibleName: string; // Nome do responsável
+  isFromOutside: boolean; // Se é de fora
+  outsideLocation?: string; // Localidade (se for de fora)
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface User {
   id: string;
   email: string;

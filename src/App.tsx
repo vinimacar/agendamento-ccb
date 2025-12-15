@@ -17,6 +17,7 @@ import EventForm from "./pages/EventForm";
 import Schedule from "./pages/Schedule";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
+import ReforcoAgendamento from "./pages/ReforcoAgendamento";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -102,6 +103,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Reports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/reforco-agendamento"
+              element={
+                <ProtectedRoute>
+                  <ReforcoAgendamento />
                 </ProtectedRoute>
               }
             />
