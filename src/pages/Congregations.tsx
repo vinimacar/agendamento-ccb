@@ -138,6 +138,11 @@ export default function Congregations() {
                             EBI
                           </Badge>
                         )}
+                        {congregation.hasRJM && (
+                          <Badge variant="default" className="text-xs bg-blue-500 hover:bg-blue-600 shrink-0">
+                            RJM
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
                         <MapPin className="h-3.5 w-3.5 shrink-0" />
@@ -145,6 +150,12 @@ export default function Congregations() {
                           {congregation.city}/{congregation.state}
                         </span>
                       </div>
+                      {congregation.diaconName && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                          <Users className="h-3 w-3 shrink-0" />
+                          <span className="truncate">Dc. {congregation.diaconName}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <DropdownMenu>

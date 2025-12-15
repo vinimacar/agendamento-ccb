@@ -17,6 +17,8 @@ export interface Congregation {
   schedules?: EventSchedule[]; // Horários de cultos e RJM com regras especiais
   hasEBI?: boolean; // Se a congregação tem EBI (Espaço Bíblico Infantil)
   ebiSchedules?: EBISchedule[]; // Horários do EBI
+  hasRJM?: boolean; // Se a congregação tem RJM (Reunião da Juventude Mocidade)
+  diaconName?: string; // Nome reduzido do diácono que atende a congregação
   regionalSupervisor: string;
   localSupervisor: string;
   examiner: string;

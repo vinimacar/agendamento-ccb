@@ -48,6 +48,8 @@ export interface CongregationData {
   schedules?: EventSchedule[];
   hasEBI?: boolean;
   ebiSchedules?: Array<{ day: string; time: string }>;
+  hasRJM?: boolean;
+  diaconName?: string;
   rehearsals: RehearsalEntry[];
   createdAt: Date;
   updatedAt: Date;
