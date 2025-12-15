@@ -46,14 +46,31 @@ export default function ReforcoAgendamento() {
   const [availablePeople, setAvailablePeople] = useState<string[]>([]);
   const [availableDays, setAvailableDays] = useState<Array<{ day: string; time: string }>>([]);
 
-  // Carregar agendamentos do mês atual
+  // Carregar agendamentos do mês atual e próximo mês
   const loadSchedules = useCallback(async () => {
     setLoadingSchedules(true);
     try {
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth();
-      const data = await reforcoService.getByMonth(year, month);
-      setSchedules(data);
+      
+      // Calcular próximo mês
+      const nextMonth = new Date(currentMonth);
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+      const nextYear = nextMonth.getFullYear();
+      const nextMonthNumber = nextMonth.getMonth();
+      
+      // Buscar agendamentos dos dois meses
+      const [currentData, nextData] = await Promise.all([
+        reforcoService.getByMonth(year, month),
+        reforcoService.getByMonth(nextYear, nextMonthNumber)
+      ]);
+      
+      // Combinar e ordenar por data
+      const allSchedules = [...currentData, ...nextData].sort((a, b) => 
+        new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
+      
+      setSchedules(allSchedules);
     } catch (error) {
       console.error('Error loading schedules:', error);
       toast({
