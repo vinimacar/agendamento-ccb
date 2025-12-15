@@ -343,7 +343,7 @@ export default function CongregationForm() {
       const lastDay = new Date(year, month, 0);
       
       // Encontrar o primeiro dia da semana alvo no mês
-      let currentDate = new Date(firstDay);
+      const currentDate = new Date(firstDay);
       while (currentDate.getDay() !== targetDay) {
         currentDate.setDate(currentDate.getDate() + 1);
         if (currentDate > lastDay) break;
