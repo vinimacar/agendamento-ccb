@@ -59,6 +59,7 @@ interface RehearsalEntry {
   date?: Date; // Data específica (para ensaios pontuais)
   time: string;
   repeats: boolean; // Se repete semanalmente
+  months?: number[]; // Meses em que o ensaio ocorre (1-12)
 }
 
 export default function CongregationForm() {
@@ -136,6 +137,8 @@ export default function CongregationForm() {
   const [newRehearsalDate, setNewRehearsalDate] = useState<Date | undefined>(undefined);
   const [newRehearsalTime, setNewRehearsalTime] = useState('');
   const [newRehearsalRepeats, setNewRehearsalRepeats] = useState(false);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+  const [viewYear, setViewYear] = useState(new Date().getFullYear());
 
   const addPerson = (
     list: PersonEntry[],
@@ -191,12 +194,16 @@ export default function CongregationForm() {
     if (newRehearsalDate) {
       newRehearsal.date = newRehearsalDate;
     }
+    if (selectedMonths.length > 0) {
+      newRehearsal.months = selectedMonths;
+    }
     
     setRehearsals([...rehearsals, newRehearsal]);
     setNewRehearsalDay('');
     setNewRehearsalDate(undefined);
     setNewRehearsalTime('');
     setNewRehearsalRepeats(false);
+    setSelectedMonths([]);
   };
 
   const removeRehearsal = (index: number) => {
@@ -1351,7 +1358,19 @@ export default function CongregationForm() {
                                         {rehearsal.time}
                                         {rehearsal.repeats && ' • Repete semanalmente'}
                                         {rehearsal.date && !rehearsal.repeats && ' • Data específica'}
+                                        {rehearsal.months && rehearsal.months.length > 0 && (
+                                          <span> • {rehearsal.months.length} mês(es)</span>
+                                        )}
                                       </p>
+                                      {rehearsal.months && rehearsal.months.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                          {rehearsal.months.map(m => (
+                                            <Badge key={m} variant="outline" className="text-xs">
+                                              {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][m - 1]}
+                                            </Badge>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
                                   <Button
@@ -1426,21 +1445,67 @@ export default function CongregationForm() {
 
                     {newRehearsalRepeats ? (
                       // Weekday selector for recurring rehearsals
-                      <div className="space-y-2">
-                        <Label>Dia da Semana *</Label>
-                        <Select value={newRehearsalDay} onValueChange={setNewRehearsalDay}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o dia da semana" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover">
-                            {DAYS_OF_WEEK.map((day) => (
-                              <SelectItem key={day.id} value={day.id}>
-                                {day.label}
-                              </SelectItem>
+                      <>
+                        <div className="space-y-2">
+                          <Label>Dia da Semana *</Label>
+                          <Select value={newRehearsalDay} onValueChange={setNewRehearsalDay}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o dia da semana" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover">
+                              {DAYS_OF_WEEK.map((day) => (
+                                <SelectItem key={day.id} value={day.id}>
+                                  {day.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        
+                        {/* Month selector */}
+                        <div className="space-y-2">
+                          <Label>Meses que ocorre o ensaio</Label>
+                          <div className="grid grid-cols-4 gap-2">
+                            {[
+                              { num: 1, name: 'Jan' },
+                              { num: 2, name: 'Fev' },
+                              { num: 3, name: 'Mar' },
+                              { num: 4, name: 'Abr' },
+                              { num: 5, name: 'Mai' },
+                              { num: 6, name: 'Jun' },
+                              { num: 7, name: 'Jul' },
+                              { num: 8, name: 'Ago' },
+                              { num: 9, name: 'Set' },
+                              { num: 10, name: 'Out' },
+                              { num: 11, name: 'Nov' },
+                              { num: 12, name: 'Dez' },
+                            ].map((month) => (
+                              <Button
+                                key={month.num}
+                                type="button"
+                                variant={selectedMonths.includes(month.num) ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedMonths(
+                                    selectedMonths.includes(month.num)
+                                      ? selectedMonths.filter((m) => m !== month.num)
+                                      : [...selectedMonths, month.num].sort((a, b) => a - b)
+                                  );
+                                }}
+                                className="h-8"
+                              >
+                                {month.name}
+                              </Button>
                             ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedMonths.length === 0 
+                              ? 'Nenhum mês selecionado (ensaio ocorre todos os meses)'
+                              : `Selecionados: ${selectedMonths.length} mês(es)`
+                            }
+                          </p>
+                        </div>
+                      </>
                     ) : (
                       // Calendar for specific date
                       <div className="space-y-2">
@@ -1482,6 +1547,88 @@ export default function CongregationForm() {
                     Adicionar Ensaio
                   </Button>
                 </div>
+
+                {/* Tabela anual de ensaios */}
+                {rehearsals.some(r => r.repeats) && (
+                  <div className="space-y-4 pt-6 border-t border-border">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-foreground">Visualização Anual de Ensaios</h3>
+                      <Select value={viewYear.toString()} onValueChange={(v) => setViewYear(parseInt(v))}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="rounded-lg border border-border overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-muted/50 border-b border-border">
+                            <tr>
+                              <th className="text-left p-3 font-medium">Tipo</th>
+                              <th className="text-left p-3 font-medium">Dia</th>
+                              <th className="text-left p-3 font-medium">Horário</th>
+                              <th className="text-left p-3 font-medium">Meses</th>
+                              <th className="text-center p-3 font-medium">Total/Ano</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border">
+                            {rehearsals.filter(r => r.repeats).map((rehearsal, idx) => {
+                              // Calcular quantos ensaios por ano
+                              const monthsToShow = rehearsal.months && rehearsal.months.length > 0 
+                                ? rehearsal.months 
+                                : Array.from({ length: 12 }, (_, i) => i + 1);
+                              
+                              // Aproximadamente 4 ensaios por mês
+                              const totalPerYear = monthsToShow.length * 4;
+                              
+                              return (
+                                <tr key={idx} className="hover:bg-muted/30">
+                                  <td className="p-3">
+                                    <Badge variant={rehearsal.type === 'Local' ? 'default' : 'secondary'}>
+                                      {rehearsal.type}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-3">
+                                    {rehearsal.day ? DAYS_OF_WEEK.find(d => d.id === rehearsal.day)?.label : '-'}
+                                  </td>
+                                  <td className="p-3">{rehearsal.time}</td>
+                                  <td className="p-3">
+                                    {rehearsal.months && rehearsal.months.length > 0 ? (
+                                      <div className="flex flex-wrap gap-1">
+                                        {rehearsal.months.map(m => (
+                                          <Badge key={m} variant="outline" className="text-xs">
+                                            {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][m - 1]}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span className="text-muted-foreground">Todos os meses</span>
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-center font-medium">
+                                    ~{totalPerYear} ensaios
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground">
+                      * Estimativa baseada em 4 ensaios por mês. O total real pode variar.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
