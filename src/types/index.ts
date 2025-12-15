@@ -118,6 +118,11 @@ export interface BatismoData {
   date: Date;
   irmaos: number;
   irmas: number;
+  elderName?: string; // Nome do ancião que atendeu
+  elderFromOtherLocation?: boolean; // Se o ancião é de outra localidade
+  otherElderName?: string; // Nome do ancião se for de outra localidade
+  tipoBatismo?: 'extra' | 'darpe'; // Tipo do batismo
+  eventId?: string; // ID do evento agendado (se houver)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -129,6 +134,10 @@ export interface SantaCeiaData {
   date: Date;
   irmaos: number;
   irmas: number;
+  elderName?: string; // Nome do ancião que atendeu
+  elderFromOtherLocation?: boolean; // Se o ancião é de outra localidade
+  otherElderName?: string; // Nome do ancião se for de outra localidade
+  eventId?: string; // ID do evento agendado (se houver)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -163,6 +172,8 @@ export interface EnsaioData {
   date: Date;
   type: 'regional' | 'local';
   instruments: InstrumentCounts;
+  anciao?: string; // Nome do ancião (para ensaio regional)
+  encarregadoRegional?: string; // Nome do encarregado regional (para ensaio regional)
   createdAt: Date;
   updatedAt: Date;
 }

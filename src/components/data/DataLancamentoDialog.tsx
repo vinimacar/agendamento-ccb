@@ -30,17 +30,26 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
   const [batismoDate, setBatismoDate] = useState('');
   const [batismoIrmaos, setBatismoIrmaos] = useState('0');
   const [batismoIrmas, setBatismoIrmas] = useState('0');
+  const [batismoElderName, setBatismoElderName] = useState('');
+  const [batismoElderFromOther, setBatismoElderFromOther] = useState(false);
+  const [batismoOtherElderName, setBatismoOtherElderName] = useState('');
+  const [batismoTipo, setBatismoTipo] = useState<'extra' | 'darpe'>('extra');
 
   // Estados para Santa Ceia
   const [ceiaCongregationId, setCeiaCongregationId] = useState('');
   const [ceiaDate, setCeiaDate] = useState('');
   const [ceiaIrmaos, setCeiaIrmaos] = useState('0');
   const [ceiaIrmas, setCeiaIrmas] = useState('0');
+  const [ceiaElderName, setCeiaElderName] = useState('');
+  const [ceiaElderFromOther, setCeiaElderFromOther] = useState(false);
+  const [ceiaOtherElderName, setCeiaOtherElderName] = useState('');
 
   // Estados para Ensaio
   const [ensaioCongregationId, setEnsaioCongregationId] = useState('');
   const [ensaioDate, setEnsaioDate] = useState('');
   const [ensaioType, setEnsaioType] = useState<'regional' | 'local'>('local');
+  const [ensaioAnciao, setEnsaioAnciao] = useState('');
+  const [ensaioEncarregadoRegional, setEnsaioEncarregadoRegional] = useState('');
   const [instruments, setInstruments] = useState<InstrumentCounts>({
     clarinete: 0,
     clarone: 0,
@@ -65,15 +74,24 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
     setBatismoDate('');
     setBatismoIrmaos('0');
     setBatismoIrmas('0');
+    setBatismoElderName('');
+    setBatismoElderFromOther(false);
+    setBatismoOtherElderName('');
+    setBatismoTipo('extra');
     
     setCeiaCongregationId('');
     setCeiaDate('');
     setCeiaIrmaos('0');
     setCeiaIrmas('0');
+    setCeiaElderName('');
+    setCeiaElderFromOther(false);
+    setCeiaOtherElderName('');
     
     setEnsaioCongregationId('');
     setEnsaioDate('');
     setEnsaioType('local');
+    setEnsaioAnciao('');
+    setEnsaioEncarregadoRegional('');
     setInstruments({
       clarinete: 0,
       clarone: 0,
@@ -113,6 +131,10 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
         date: new Date(batismoDate),
         irmaos: parseInt(batismoIrmaos) || 0,
         irmas: parseInt(batismoIrmas) || 0,
+        elderName: batismoElderFromOther ? undefined : batismoElderName || undefined,
+        elderFromOtherLocation: batismoElderFromOther,
+        otherElderName: batismoElderFromOther ? batismoOtherElderName || undefined : undefined,
+        tipoBatismo: batismoTipo,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -156,6 +178,9 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
         date: new Date(ceiaDate),
         irmaos: parseInt(ceiaIrmaos) || 0,
         irmas: parseInt(ceiaIrmas) || 0,
+        elderName: ceiaElderFromOther ? undefined : ceiaElderName || undefined,
+        elderFromOtherLocation: ceiaElderFromOther,
+        otherElderName: ceiaElderFromOther ? ceiaOtherElderName || undefined : undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -199,6 +224,8 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
         date: new Date(ensaioDate),
         type: ensaioType,
         instruments,
+        anciao: ensaioAnciao || undefined,
+        encarregadoRegional: ensaioType === 'regional' ? (ensaioEncarregadoRegional || undefined) : undefined,
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -310,6 +337,58 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
                 </div>
               </div>
 
+              <div className="space-y-2">
+                <Label>Tipo de Batismo</Label>
+                <Select value={batismoTipo} onValueChange={(val: 'extra' | 'darpe') => setBatismoTipo(val)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    <SelectItem value="extra">Extra</SelectItem>
+                    <SelectItem value="darpe">DARPE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="batismo-elder-from-other"
+                    checked={batismoElderFromOther}
+                    onChange={(e) => setBatismoElderFromOther(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="batismo-elder-from-other" className="text-sm">
+                    Ancião de Fora da Regional
+                  </Label>
+                </div>
+
+                {batismoElderFromOther ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="batismo-other-elder">Nome do Ancião</Label>
+                    <Input
+                      id="batismo-other-elder"
+                      type="text"
+                      placeholder="Digite o nome do ancião"
+                      value={batismoOtherElderName}
+                      onChange={(e) => setBatismoOtherElderName(e.target.value)}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="batismo-elder">Ancião que Atendeu</Label>
+                    <Input
+                      id="batismo-elder"
+                      type="text"
+                      placeholder="Digite o nome do ancião"
+                      value={batismoElderName}
+                      onChange={(e) => setBatismoElderName(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-sm font-medium">Total de Batizados</p>
                 <p className="text-2xl font-bold text-primary">
@@ -389,6 +468,45 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
                 </div>
               </div>
 
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="ceia-elder-from-other"
+                    checked={ceiaElderFromOther}
+                    onChange={(e) => setCeiaElderFromOther(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <Label htmlFor="ceia-elder-from-other" className="text-sm">
+                    Ancião de Fora da Regional
+                  </Label>
+                </div>
+
+                {ceiaElderFromOther ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="ceia-other-elder">Nome do Ancião</Label>
+                    <Input
+                      id="ceia-other-elder"
+                      type="text"
+                      placeholder="Digite o nome do ancião"
+                      value={ceiaOtherElderName}
+                      onChange={(e) => setCeiaOtherElderName(e.target.value)}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="ceia-elder">Ancião que Atendeu</Label>
+                    <Input
+                      id="ceia-elder"
+                      type="text"
+                      placeholder="Digite o nome do ancião"
+                      value={ceiaElderName}
+                      onChange={(e) => setCeiaElderName(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-sm font-medium">Total de Participantes</p>
                 <p className="text-2xl font-bold text-primary">
@@ -459,6 +577,30 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
                   onChange={(e) => setEnsaioDate(e.target.value)}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ensaio-anciao">Ancião</Label>
+                <Input
+                  id="ensaio-anciao"
+                  type="text"
+                  placeholder="Nome do ancião"
+                  value={ensaioAnciao}
+                  onChange={(e) => setEnsaioAnciao(e.target.value)}
+                />
+              </div>
+
+              {ensaioType === 'regional' && (
+                <div className="space-y-2">
+                  <Label htmlFor="ensaio-encarregado">Encarregado Regional</Label>
+                  <Input
+                    id="ensaio-encarregado"
+                    type="text"
+                    placeholder="Nome do encarregado regional"
+                    value={ensaioEncarregadoRegional}
+                    onChange={(e) => setEnsaioEncarregadoRegional(e.target.value)}
+                  />
+                </div>
+              )}
 
               {/* Instrumentos */}
               <div className="space-y-4">
