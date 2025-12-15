@@ -14,23 +14,13 @@ export default function Events() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showPastEvents, setShowPastEvents] = useState(false);
 
   useEffect(() => {
     const loadEvents = async () => {
       try {
         const data = await eventService.getAll();
-        
-        // Filtrar apenas eventos futuros (a serem realizados)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const futureEvents = data.filter(event => {
-          const eventDate = new Date(event.date);
-          eventDate.setHours(0, 0, 0, 0);
-          return eventDate >= today;
-        });
-        
-        setEvents(futureEvents);
+        setEvents(data);
       } catch (error: any) {
         console.error('Error loading events:', error);
         
@@ -50,7 +40,16 @@ export default function Events() {
     const matchesSearch = event.title.toLowerCase().includes(search.toLowerCase()) ||
       event.congregationName?.toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === 'all' || event.type === typeFilter;
-    return matchesSearch && matchesType;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const eventDate = new Date(event.date);
+    eventDate.setHours(0, 0, 0, 0);
+    const isPastEvent = eventDate < today;
+    
+    const matchesTimeFilter = showPastEvents ? isPastEvent : !isPastEvent;
+    
+    return matchesSearch && matchesType && matchesTimeFilter;
   });
 
   return (
@@ -60,14 +59,26 @@ export default function Events() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Eventos</h1>
-            <p className="text-muted-foreground mt-1">Gerencie todos os eventos agendados</p>
+            <p className="text-muted-foreground mt-1">
+              {showPastEvents ? 'Eventos já realizados' : 'Gerencie todos os eventos agendados'}
+            </p>
           </div>
-          <Link to="/events/new">
-            <Button className="gradient-primary text-primary-foreground hover:opacity-90 gap-2">
-              <Plus className="h-4 w-4" />
-              Novo Evento
+          <div className="flex gap-2">
+            <Button 
+              variant={showPastEvents ? 'default' : 'outline'}
+              onClick={() => setShowPastEvents(!showPastEvents)}
+              className="gap-2"
+            >
+              <Calendar className="h-4 w-4" />
+              {showPastEvents ? 'Ver Futuros' : 'Ver Realizados'}
             </Button>
-          </Link>
+            <Link to="/events/new">
+              <Button className="gradient-primary text-primary-foreground hover:opacity-90 gap-2">
+                <Plus className="h-4 w-4" />
+                Novo Evento
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Filters */}
@@ -105,7 +116,7 @@ export default function Events() {
           <>
             <div className="grid md:grid-cols-2 gap-6">
               {filteredEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
+                <EventCard key={event.id} event={event} showDataEntry={showPastEvents} />
               ))}
             </div>
 

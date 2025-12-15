@@ -1,14 +1,17 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar, MapPin, Clock, User, Edit } from 'lucide-react';
+import { Calendar, MapPin, Clock, User, Edit, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Event, eventTypeLabels } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { DataLancamentoDialog } from '@/components/data/DataLancamentoDialog';
 
 interface EventCardProps {
   event: Event;
   compact?: boolean;
+  showDataEntry?: boolean;
 }
 
 const eventTypeColors: Record<string, string> = {
@@ -23,8 +26,9 @@ const eventTypeColors: Record<string, string> = {
   'rjm-reforco': 'bg-accent/10 text-accent border-accent/20',
 };
 
-export function EventCard({ event, compact = false }: EventCardProps) {
+export function EventCard({ event, compact = false, showDataEntry = false }: EventCardProps) {
   const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
+  const [dataDialogOpen, setDataDialogOpen] = useState(false);
   
   if (compact) {
     return (
@@ -72,11 +76,24 @@ export function EventCard({ event, compact = false }: EventCardProps) {
             )}>
               {eventTypeLabels[event.type]}
             </span>
-            <Link to={`/events/${event.id}/edit`}>
-              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 hover:bg-primary/10 hover:text-primary transition-colors rounded-lg">
-                <Edit className="h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="flex gap-1">
+              {showDataEntry && (event.type === 'batismo' || event.type === 'santa-ceia') && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 shrink-0 hover:bg-green-500/10 hover:text-green-600 transition-colors rounded-lg"
+                  onClick={() => setDataDialogOpen(true)}
+                  title="Lançar dados"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              )}
+              <Link to={`/events/${event.id}/edit`}>
+                <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 hover:bg-primary/10 hover:text-primary transition-colors rounded-lg">
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
           </div>
           <h3 className="font-semibold text-foreground">{event.title}</h3>
           {event.description && (
@@ -129,6 +146,17 @@ export function EventCard({ event, compact = false }: EventCardProps) {
           </div>
         </div>
       </div>
+
+      {/* Dialog para lançar dados */}
+      {showDataEntry && (
+        <DataLancamentoDialog 
+          open={dataDialogOpen} 
+          onOpenChange={setDataDialogOpen}
+          onDataSaved={() => {
+            setDataDialogOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }
