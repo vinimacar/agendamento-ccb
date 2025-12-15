@@ -1271,46 +1271,6 @@ export default function CongregationForm() {
                 </CardContent>
               </Card>
 
-              {/* RJM e Diácono Card */}
-              <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    RJM e Diácono
-                  </CardTitle>
-                  <CardDescription>Configure se a congregação possui RJM e o diácono responsável</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Checkbox para RJM */}
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="has-rjm"
-                      checked={hasRJM}
-                      onCheckedChange={(checked) => {
-                        setHasRJM(checked as boolean);
-                      }}
-                    />
-                    <Label htmlFor="has-rjm" className="text-sm font-medium cursor-pointer">
-                      Esta congregação possui RJM (Reunião da Juventude Mocidade)
-                    </Label>
-                  </div>
-
-                  {/* Campo para nome do diácono */}
-                  <div className="space-y-2">
-                    <Label htmlFor="diacon-name">Nome Reduzido do Diácono</Label>
-                    <Input
-                      id="diacon-name"
-                      type="text"
-                      placeholder="Ex: João Silva"
-                      value={diaconName}
-                      onChange={(e) => setDiaconName(e.target.value)}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Nome do diácono que atende esta congregação
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 
