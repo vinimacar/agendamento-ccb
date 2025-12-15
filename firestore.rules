@@ -38,6 +38,34 @@ service cloud.firestore {
       allow create: if isAuthenticated();
     }
     
+    // Regras para a coleção de agendamentos de reforços
+    match /reforco-schedules/{scheduleId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de dados de batismos
+    match /batismo-data/{batismoId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de dados de santa ceia
+    match /santa-ceia-data/{ceiaId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de dados de ensaios
+    match /ensaio-data/{ensaioId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
     // Bloquear acesso a qualquer outra coleção não especificada
     match /{document=**} {
       allow read, write: if false;
