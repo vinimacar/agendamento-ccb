@@ -674,7 +674,7 @@ export default function ReforcoAgendamento() {
                               <div className="space-y-1 text-xs text-muted-foreground">
                                 <p className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {format(schedule.date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  {format(schedule.date, 'dd/MM/yyyy', { locale: ptBR })} às {schedule.time}
                                 </p>
                                 <p className="flex items-center gap-1">
                                   <Users className="h-3 w-3" />
@@ -729,7 +729,7 @@ export default function ReforcoAgendamento() {
                               <div className="space-y-1 text-xs text-muted-foreground">
                                 <p className="flex items-center gap-1">
                                   <Calendar className="h-3 w-3" />
-                                  {format(schedule.date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                  {format(schedule.date, 'dd/MM/yyyy', { locale: ptBR })} às {schedule.time}
                                 </p>
                                 <p className="flex items-center gap-1">
                                   <Users className="h-3 w-3" />
