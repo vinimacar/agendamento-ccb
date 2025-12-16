@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -340,11 +341,13 @@ export default function EBIManagement() {
   const ebiCongregations = congregations.filter(c => c.hasEBI);
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">EBI - Espaço Bíblico Infantil</h1>
-        <p className="text-muted-foreground">Gerenciamento do EBI</p>
-      </div>
+    <DashboardLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">EBI - Espaço Bíblico Infantil</h1>
+          <p className="text-muted-foreground mt-1">Gerenciamento do EBI</p>
+        </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {congregationsLoading ? (
@@ -1042,6 +1045,7 @@ export default function EBIManagement() {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
