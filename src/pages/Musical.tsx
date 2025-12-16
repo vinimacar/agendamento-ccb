@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,12 +26,13 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { musicianService } from '@/services/musicianService';
-import type { Musician } from '@/types';
-import { Music, Plus, Trash2, Loader2, Search, Calendar, FileDown } from 'lucide-react';
+import { ensaioDataService } from '@/services/dataLancamentoService';
+import type { Musician, EnsaioData } from '@/types';
+import { Music, Plus, Trash2, Loader2, Search, Calendar, FileDown, Filter, FileSpreadsheet, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, startOfYear, endOfYear, getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const INSTRUMENTS = [
@@ -80,6 +82,15 @@ export default function Musical() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [musicianToDelete, setMusicianToDelete] = useState<{ id: string; name: string } | null>(null);
 
+  // Calendário e filtros
+  const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
+  const [ensaios, setEnsaios] = useState<EnsaioData[]>([]);
+  const [loadingEnsaios, setLoadingEnsaios] = useState(false);
+  const [filterCalendarCongregation, setFilterCalendarCongregation] = useState('');
+  const [filterCalendarCity, setFilterCalendarCity] = useState('');
+  const [filterCalendarMonth, setFilterCalendarMonth] = useState('');
+  const [filterCalendarYear, setFilterCalendarYear] = useState(new Date().getFullYear().toString());
+
   const loadMusicians = useCallback(async () => {
     setLoadingMusicians(true);
     try {
@@ -97,9 +108,32 @@ export default function Musical() {
     }
   }, [toast]);
 
+  const loadEnsaios = useCallback(async () => {
+    setLoadingEnsaios(true);
+    try {
+      const year = parseInt(filterCalendarYear || String(new Date().getFullYear()));
+      const data = await ensaioDataService.getByYear(year);
+      setEnsaios(data);
+    } catch (error) {
+      console.error('Error loading ensaios:', error);
+      toast({
+        title: 'Erro ao carregar ensaios',
+        description: 'Não foi possível carregar os ensaios cadastrados.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingEnsaios(false);
+    }
+  }, [filterCalendarYear, toast]);
+
   useEffect(() => {
     loadMusicians();
   }, [loadMusicians]);
+
+  // Carregar ensaios do Firebase
+  useEffect(() => {
+    loadEnsaios();
+  }, [loadEnsaios]);
 
   // Atualizar cidade quando congregação é selecionada
   useEffect(() => {
@@ -215,133 +249,111 @@ export default function Musical() {
     }
   };
 
-  // Função para coletar todos os ensaios de todas as congregações
-  const getAllRehearsals = () => {
-    const allRehearsals: Array<{
-      congregation: string;
-      type: string;
-      day?: string;
-      date?: Date;
-      time: string;
-      repeats: boolean;
-    }> = [];
+  // Função para carregar ensaios do Firebase
+  // Função para filtrar ensaios
+  const getFilteredEnsaios = () => {
+    let filtered = [...ensaios];
 
-    congregations.forEach(congregation => {
-      if (congregation.rehearsals && congregation.rehearsals.length > 0) {
-        congregation.rehearsals.forEach(rehearsal => {
-          allRehearsals.push({
-            congregation: congregation.name,
-            type: rehearsal.type,
-            day: rehearsal.day,
-            date: rehearsal.date,
-            time: rehearsal.time,
-            repeats: rehearsal.repeats,
-          });
+    // Filtro por congregação
+    if (filterCalendarCongregation) {
+      filtered = filtered.filter(e => e.congregationId === filterCalendarCongregation);
+    }
+
+    // Filtro por cidade
+    if (filterCalendarCity) {
+      const congregation = congregations.find(c => c.id === filterCalendarCongregation);
+      if (congregation) {
+        filtered = filtered.filter(e => {
+          const cong = congregations.find(c => c.id === e.congregationId);
+          return cong?.city === filterCalendarCity;
         });
       }
-    });
+    }
 
-    return allRehearsals;
+    // Filtro por mês
+    if (filterCalendarMonth) {
+      const monthIndex = parseInt(filterCalendarMonth);
+      filtered = filtered.filter(e => getMonth(e.date) === monthIndex);
+    }
+
+    return filtered;
   };
 
   // Função para gerar calendário em Excel
-  const exportToExcel = () => {
-    const rehearsals = getAllRehearsals();
+  const exportToExcel = async () => {
+    await loadEnsaios();
+    const filteredEnsaios = getFilteredEnsaios();
     
-    if (rehearsals.length === 0) {
+    if (filteredEnsaios.length === 0) {
       toast({
-        title: 'Nenhum ensaio cadastrado',
-        description: 'Cadastre ensaios nas congregações primeiro.',
+        title: 'Nenhum ensaio encontrado',
+        description: 'Não há ensaios cadastrados com os filtros selecionados.',
         variant: 'destructive',
       });
       return;
     }
 
-    // Criar dados para próximos 3 meses
-    const months = [0, 1, 2].map(offset => addMonths(new Date(), offset));
     const worksheetData: (string | number)[][] = [];
 
-    months.forEach(monthDate => {
-      const monthName = format(monthDate, 'MMMM yyyy', { locale: ptBR });
-      worksheetData.push([monthName.toUpperCase()]);
-      worksheetData.push(['Data', 'Dia', 'Congregação', 'Tipo', 'Horário']);
+    // Título e filtros aplicados
+    worksheetData.push(['CALENDÁRIO DE ENSAIOS MUSICAIS']);
+    worksheetData.push([]);
+    
+    const filters = [];
+    if (filterCalendarCongregation) {
+      const cong = congregations.find(c => c.id === filterCalendarCongregation);
+      filters.push(`Congregação: ${cong?.name}`);
+    }
+    if (filterCalendarCity) {
+      filters.push(`Cidade: ${filterCalendarCity}`);
+    }
+    if (filterCalendarMonth) {
+      const monthName = format(new Date(2000, parseInt(filterCalendarMonth), 1), 'MMMM', { locale: ptBR });
+      filters.push(`Mês: ${monthName}`);
+    }
+    filters.push(`Ano: ${filterCalendarYear}`);
+    
+    filters.forEach(f => worksheetData.push([f]));
+    worksheetData.push([]);
+    worksheetData.push(['Data', 'Congregação', 'Tipo', 'Cidade']);
 
-      const days = eachDayOfInterval({
-        start: startOfMonth(monthDate),
-        end: endOfMonth(monthDate),
-      });
+    // Ordenar por data
+    const sortedEnsaios = filteredEnsaios.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-
-      days.forEach(day => {
-        const dayName = dayNames[getDay(day)];
-        
-        rehearsals.forEach(rehearsal => {
-          let shouldShow = false;
-
-          if (rehearsal.repeats && rehearsal.day === dayName) {
-            shouldShow = true;
-          } else if (rehearsal.date) {
-            const rehearsalDate = new Date(rehearsal.date);
-            if (
-              rehearsalDate.getDate() === day.getDate() &&
-              rehearsalDate.getMonth() === day.getMonth() &&
-              rehearsalDate.getFullYear() === day.getFullYear()
-            ) {
-              shouldShow = true;
-            }
-          }
-
-          if (shouldShow) {
-            worksheetData.push([
-              format(day, 'dd/MM/yyyy'),
-              dayName,
-              rehearsal.congregation,
-              rehearsal.type,
-              rehearsal.time,
-            ]);
-          }
-        });
-      });
-
-      worksheetData.push([]);
+    sortedEnsaios.forEach(ensaio => {
+      const congregation = congregations.find(c => c.id === ensaio.congregationId);
+      worksheetData.push([
+        format(ensaio.date, 'dd/MM/yyyy'),
+        ensaio.congregationName,
+        ensaio.type === 'regional' ? 'Regional' : 'Local',
+        congregation?.city || '-',
+      ]);
     });
 
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Calendário de Ensaios');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Ensaios');
 
-    // Aplicar estilos
-    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
-    for (let R = range.s.r; R <= range.e.r; ++R) {
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-        if (!worksheet[cellAddress]) continue;
-        
-        if (worksheet[cellAddress].v && typeof worksheet[cellAddress].v === 'string') {
-          if (worksheet[cellAddress].v.match(/^\w+ \d{4}$/)) {
-            worksheet[cellAddress].s = { font: { bold: true, sz: 14 } };
-          }
-        }
-      }
-    }
-
-    XLSX.writeFile(workbook, `calendario-ensaios-${format(new Date(), 'yyyy-MM')}.xlsx`);
+    const fileName = `calendario-ensaios-${filterCalendarYear}${filterCalendarMonth ? `-${filterCalendarMonth.padStart(2, '0')}` : ''}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
 
     toast({
       title: 'Calendário exportado!',
       description: 'O arquivo Excel foi gerado com sucesso.',
     });
+    
+    setCalendarDialogOpen(false);
   };
 
   // Função para gerar calendário em PDF
-  const exportToPDF = () => {
-    const rehearsals = getAllRehearsals();
+  const exportToPDF = async () => {
+    await loadEnsaios();
+    const filteredEnsaios = getFilteredEnsaios();
     
-    if (rehearsals.length === 0) {
+    if (filteredEnsaios.length === 0) {
       toast({
-        title: 'Nenhum ensaio cadastrado',
-        description: 'Cadastre ensaios nas congregações primeiro.',
+        title: 'Nenhum ensaio encontrado',
+        description: 'Não há ensaios cadastrados com os filtros selecionados.',
         variant: 'destructive',
       });
       return;
@@ -357,107 +369,77 @@ export default function Musical() {
     doc.setTextColor(31, 41, 55);
     doc.text('Calendário de Ensaios Musicais', 105, 20, { align: 'center' });
     
-    doc.setFontSize(10);
+    // Filtros aplicados
+    doc.setFontSize(9);
     doc.setTextColor(107, 114, 128);
-    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 105, 28, { align: 'center' });
+    let yPos = 28;
+    
+    if (filterCalendarCongregation) {
+      const cong = congregations.find(c => c.id === filterCalendarCongregation);
+      doc.text(`Congregação: ${cong?.name}`, 105, yPos, { align: 'center' });
+      yPos += 5;
+    }
+    if (filterCalendarCity) {
+      doc.text(`Cidade: ${filterCalendarCity}`, 105, yPos, { align: 'center' });
+      yPos += 5;
+    }
+    if (filterCalendarMonth) {
+      const monthName = format(new Date(2000, parseInt(filterCalendarMonth), 1), 'MMMM', { locale: ptBR });
+      doc.text(`Mês: ${monthName}`, 105, yPos, { align: 'center' });
+      yPos += 5;
+    }
+    doc.text(`Ano: ${filterCalendarYear}`, 105, yPos, { align: 'center' });
+    yPos += 5;
+    
+    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 105, yPos, { align: 'center' });
 
-    let yPosition = 40;
+    // Ordenar por data
+    const sortedEnsaios = filteredEnsaios.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    // Gerar para próximos 3 meses
-    const months = [0, 1, 2].map(offset => addMonths(new Date(), offset));
-
-    months.forEach((monthDate, monthIndex) => {
-      if (monthIndex > 0) {
-        doc.addPage();
-        yPosition = 20;
-      }
-
-      const monthName = format(monthDate, 'MMMM yyyy', { locale: ptBR });
-      
-      // Cabeçalho do mês
-      doc.setFontSize(16);
-      doc.setTextColor(59, 130, 246);
-      doc.text(monthName.toUpperCase(), 14, yPosition);
-      yPosition += 10;
-
-      const days = eachDayOfInterval({
-        start: startOfMonth(monthDate),
-        end: endOfMonth(monthDate),
-      });
-
-      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-      const tableData: string[][] = [];
-
-      days.forEach(day => {
-        const dayName = dayNames[getDay(day)];
-        
-        rehearsals.forEach(rehearsal => {
-          let shouldShow = false;
-
-          if (rehearsal.repeats && rehearsal.day === dayName) {
-            shouldShow = true;
-          } else if (rehearsal.date) {
-            const rehearsalDate = new Date(rehearsal.date);
-            if (
-              rehearsalDate.getDate() === day.getDate() &&
-              rehearsalDate.getMonth() === day.getMonth() &&
-              rehearsalDate.getFullYear() === day.getFullYear()
-            ) {
-              shouldShow = true;
-            }
-          }
-
-          if (shouldShow) {
-            tableData.push([
-              format(day, 'dd/MM'),
-              dayName,
-              rehearsal.congregation,
-              rehearsal.type,
-              rehearsal.time,
-            ]);
-          }
-        });
-      });
-
-      if (tableData.length > 0) {
-        autoTable(doc, {
-          startY: yPosition,
-          head: [['Data', 'Dia', 'Congregação', 'Tipo', 'Horário']],
-          body: tableData,
-          theme: 'striped',
-          headStyles: {
-            fillColor: [59, 130, 246],
-            textColor: [255, 255, 255],
-            fontStyle: 'bold',
-            fontSize: 10,
-          },
-          bodyStyles: {
-            fontSize: 9,
-            textColor: [31, 41, 55],
-          },
-          alternateRowStyles: {
-            fillColor: [249, 250, 251],
-          },
-          margin: { top: 10 },
-          styles: {
-            cellPadding: 4,
-            lineColor: [229, 231, 235],
-            lineWidth: 0.1,
-          },
-        });
-      } else {
-        doc.setFontSize(10);
-        doc.setTextColor(107, 114, 128);
-        doc.text('Nenhum ensaio cadastrado para este mês.', 14, yPosition + 5);
-      }
+    const tableData: string[][] = sortedEnsaios.map(ensaio => {
+      const congregation = congregations.find(c => c.id === ensaio.congregationId);
+      return [
+        format(ensaio.date, 'dd/MM/yyyy'),
+        ensaio.congregationName,
+        ensaio.type === 'regional' ? 'Regional' : 'Local',
+        congregation?.city || '-',
+      ];
     });
 
-    doc.save(`calendario-ensaios-${format(new Date(), 'yyyy-MM')}.pdf`);
+    autoTable(doc, {
+      startY: yPos + 10,
+      head: [['Data', 'Congregação', 'Tipo', 'Cidade']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: {
+        fillColor: [59, 130, 246],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 10,
+      },
+      bodyStyles: {
+        fontSize: 9,
+        textColor: [31, 41, 55],
+      },
+      alternateRowStyles: {
+        fillColor: [249, 250, 251],
+      },
+      styles: {
+        cellPadding: 4,
+        lineColor: [229, 231, 235],
+        lineWidth: 0.1,
+      },
+    });
+
+    const fileName = `calendario-ensaios-${filterCalendarYear}${filterCalendarMonth ? `-${filterCalendarMonth.padStart(2, '0')}` : ''}.pdf`;
+    doc.save(fileName);
 
     toast({
       title: 'Calendário exportado!',
       description: 'O arquivo PDF foi gerado com sucesso.',
     });
+    
+    setCalendarDialogOpen(false);
   };
 
   return (
@@ -472,25 +454,15 @@ export default function Musical() {
             </p>
           </div>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                Calendário de Ensaios
-                <FileDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={exportToExcel} className="gap-2">
-                <FileDown className="h-4 w-4" />
-                Exportar para Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToPDF} className="gap-2">
-                <FileDown className="h-4 w-4" />
-                Exportar para PDF
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => setCalendarDialogOpen(true)}
+          >
+            <Calendar className="h-4 w-4" />
+            Calendário de Ensaios
+            <Filter className="h-4 w-4" />
+          </Button>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -729,6 +701,129 @@ export default function Musical() {
           </Card>
         </div>
       </div>
+
+      {/* Calendar Filter Dialog */}
+      <Dialog open={calendarDialogOpen} onOpenChange={setCalendarDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Exportar Calendário de Ensaios</DialogTitle>
+            <DialogDescription>
+              Escolha os filtros para gerar o calendário
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Filtro de Congregação */}
+            <div className="space-y-2">
+              <Label>Congregação</Label>
+              <Select
+                value={filterCalendarCongregation}
+                onValueChange={setFilterCalendarCongregation}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas</SelectItem>
+                  {congregations.map((cong) => (
+                    <SelectItem key={cong.id} value={cong.id!}>
+                      {cong.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro de Cidade */}
+            <div className="space-y-2">
+              <Label>Cidade</Label>
+              <Select
+                value={filterCalendarCity}
+                onValueChange={setFilterCalendarCity}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Todas</SelectItem>
+                  {Array.from(new Set(congregations.map(c => c.city)))
+                    .sort()
+                    .map((city) => (
+                      <SelectItem key={city} value={city}>
+                        {city}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro de Mês */}
+            <div className="space-y-2">
+              <Label>Mês</Label>
+              <Select
+                value={filterCalendarMonth}
+                onValueChange={setFilterCalendarMonth}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Próximos 3 meses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Próximos 3 meses</SelectItem>
+                  <SelectItem value="1">Janeiro</SelectItem>
+                  <SelectItem value="2">Fevereiro</SelectItem>
+                  <SelectItem value="3">Março</SelectItem>
+                  <SelectItem value="4">Abril</SelectItem>
+                  <SelectItem value="5">Maio</SelectItem>
+                  <SelectItem value="6">Junho</SelectItem>
+                  <SelectItem value="7">Julho</SelectItem>
+                  <SelectItem value="8">Agosto</SelectItem>
+                  <SelectItem value="9">Setembro</SelectItem>
+                  <SelectItem value="10">Outubro</SelectItem>
+                  <SelectItem value="11">Novembro</SelectItem>
+                  <SelectItem value="12">Dezembro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro de Ano */}
+            <div className="space-y-2">
+              <Label>Ano</Label>
+              <Select
+                value={filterCalendarYear}
+                onValueChange={setFilterCalendarYear}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Ano atual" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">{new Date().getFullYear()}</SelectItem>
+                  <SelectItem value={String(new Date().getFullYear() + 1)}>
+                    {new Date().getFullYear() + 1}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              onClick={exportToExcel}
+              disabled={loadingEnsaios}
+              className="w-full sm:w-auto"
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              Exportar Excel
+            </Button>
+            <Button
+              onClick={exportToPDF}
+              disabled={loadingEnsaios}
+              variant="secondary"
+              className="w-full sm:w-auto"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Exportar PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
