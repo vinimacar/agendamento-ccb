@@ -464,7 +464,7 @@ export default function CongregationForm() {
     }
 
     // Preparar dados
-    const data: any[] = [];
+    const data: (string | number)[][] = [];
 
     // Cabeçalho
     data.push(['TABELA DE ENSAIOS']);
