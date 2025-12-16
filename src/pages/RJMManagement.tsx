@@ -100,6 +100,23 @@ export default function RJMManagement() {
     loadRecitatives();
   }, [loadMembers, loadRecitatives]);
 
+  // Preencher cooperador de jovens quando selecionar congregação
+  useEffect(() => {
+    if (selectedCongregationId) {
+      const congregation = rjmCongregations.find(c => c.id === selectedCongregationId);
+      if (congregation && congregation.youthCooperators && congregation.youthCooperators.length > 0) {
+        // Buscar cooperador local
+        const localCooperator = congregation.youthCooperators.find(c => c.isLocal);
+        if (localCooperator && localCooperator.name) {
+          setMemberResponsible(localCooperator.name);
+        } else if (congregation.youthCooperators[0]?.name) {
+          // Se não houver cooperador local, usar o primeiro da lista
+          setMemberResponsible(congregation.youthCooperators[0].name);
+        }
+      }
+    }
+  }, [selectedCongregationId, rjmCongregations]);
+
   const handleAddMember = async () => {
     if (!selectedCongregationId || !memberName || !memberPhone || !memberResponsible || !memberAge) {
       toast({
@@ -330,13 +347,19 @@ export default function RJMManagement() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="member-responsible">Responsável *</Label>
+                    <Label htmlFor="member-responsible">Cooperador de Jovens *</Label>
                     <Input
                       id="member-responsible"
-                      placeholder="Nome do responsável"
+                      placeholder="Selecione uma congregação"
                       value={memberResponsible}
                       onChange={(e) => setMemberResponsible(e.target.value)}
+                      disabled={!selectedCongregationId}
                     />
+                    {selectedCongregationId && memberResponsible && (
+                      <p className="text-xs text-muted-foreground">
+                        Preenchido automaticamente da congregação
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
