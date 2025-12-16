@@ -378,6 +378,16 @@ export default function ReforcoAgendamento() {
     const cultosOficiais = schedules.filter(s => s.type === 'culto-oficial');
     const rjms = schedules.filter(s => s.type === 'rjm');
 
+    const DAYS_MAP: Record<number, string> = {
+      0: 'Domingo',
+      1: 'Segunda-feira',
+      2: 'Terça-feira',
+      3: 'Quarta-feira',
+      4: 'Quinta-feira',
+      5: 'Sexta-feira',
+      6: 'Sábado',
+    };
+
     const printContent = `
       <!DOCTYPE html>
       <html>
@@ -387,68 +397,71 @@ export default function ReforcoAgendamento() {
             body {
               font-family: Arial, sans-serif;
               padding: 20px;
-              max-width: 800px;
-              margin: 0 auto;
+              margin: 0;
             }
             h1 {
               text-align: center;
               color: #333;
               margin-bottom: 10px;
+              font-size: 20px;
             }
             .subtitle {
               text-align: center;
               color: #666;
               margin-bottom: 30px;
+              font-size: 14px;
             }
             .section {
-              margin-bottom: 30px;
+              margin-bottom: 40px;
             }
             .section-title {
-              font-size: 18px;
+              font-size: 16px;
               font-weight: bold;
               color: #333;
               margin-bottom: 15px;
-              padding-bottom: 5px;
-              border-bottom: 2px solid #333;
+              padding: 8px;
+              background-color: #f0f0f0;
+              border-left: 4px solid #333;
             }
-            .item {
-              margin-bottom: 15px;
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-bottom: 20px;
+            }
+            th {
+              background-color: #333;
+              color: white;
               padding: 10px;
-              border: 1px solid #ddd;
-              border-radius: 5px;
-            }
-            .congregation-name {
-              font-weight: bold;
-              font-size: 14px;
-              margin-bottom: 5px;
-            }
-            .badge {
-              display: inline-block;
-              padding: 2px 8px;
-              border-radius: 3px;
-              font-size: 11px;
-              font-weight: bold;
-              margin-bottom: 8px;
-            }
-            .badge-culto {
-              background-color: #e3f2fd;
-              color: #1976d2;
-            }
-            .badge-rjm {
-              background-color: #f5f5f5;
-              color: #666;
-            }
-            .info {
+              text-align: left;
               font-size: 12px;
-              color: #666;
-              margin-top: 5px;
+              font-weight: bold;
             }
-            .info-line {
-              margin: 3px 0;
+            td {
+              padding: 8px 10px;
+              border-bottom: 1px solid #ddd;
+              font-size: 11px;
             }
+            tr:nth-child(even) {
+              background-color: #f9f9f9;
+            }
+            tr:hover {
+              background-color: #f0f0f0;
+            }
+            .date-col { width: 12%; }
+            .day-col { width: 15%; }
+            .time-col { width: 10%; }
+            .location-col { width: 35%; }
+            .responsible-col { width: 28%; }
             @media print {
               body {
                 padding: 10px;
+              }
+              table {
+                page-break-inside: auto;
+              }
+              tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
               }
             }
           </style>
@@ -460,32 +473,56 @@ export default function ReforcoAgendamento() {
           ${cultosOficiais.length > 0 ? `
             <div class="section">
               <div class="section-title">Cultos Oficiais (${cultosOficiais.length})</div>
-              ${cultosOficiais.map(schedule => `
-                <div class="item">
-                  <div class="congregation-name">${schedule.congregationName}</div>
-                  <div class="badge badge-culto">Culto Oficial</div>
-                  <div class="info">
-                    <div class="info-line">📅 ${format(schedule.date, 'dd/MM/yyyy', { locale: ptBR })} às ${schedule.time}</div>
-                    <div class="info-line">👤 ${schedule.responsibleName}${schedule.isFromOutside && schedule.outsideLocation ? ` (${schedule.outsideLocation})` : ''}</div>
-                  </div>
-                </div>
-              `).join('')}
+              <table>
+                <thead>
+                  <tr>
+                    <th class="date-col">Data</th>
+                    <th class="day-col">Dia</th>
+                    <th class="time-col">Hora</th>
+                    <th class="location-col">Localidade</th>
+                    <th class="responsible-col">Irmão que Atende</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${cultosOficiais.map(schedule => `
+                    <tr>
+                      <td>${format(schedule.date, 'dd/MM/yyyy', { locale: ptBR })}</td>
+                      <td>${DAYS_MAP[schedule.date.getDay()]}</td>
+                      <td>${schedule.time}</td>
+                      <td>${schedule.congregationName}</td>
+                      <td>${schedule.responsibleName}${schedule.isFromOutside && schedule.outsideLocation ? ` (${schedule.outsideLocation})` : ''}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
             </div>
           ` : ''}
           
           ${rjms.length > 0 ? `
             <div class="section">
               <div class="section-title">Reuniões de Jovens e Menores - RJM (${rjms.length})</div>
-              ${rjms.map(schedule => `
-                <div class="item">
-                  <div class="congregation-name">${schedule.congregationName}</div>
-                  <div class="badge badge-rjm">RJM</div>
-                  <div class="info">
-                    <div class="info-line">📅 ${format(schedule.date, 'dd/MM/yyyy', { locale: ptBR })} às ${schedule.time}</div>
-                    <div class="info-line">👤 ${schedule.responsibleName}${schedule.isFromOutside && schedule.outsideLocation ? ` (${schedule.outsideLocation})` : ''}</div>
-                  </div>
-                </div>
-              `).join('')}
+              <table>
+                <thead>
+                  <tr>
+                    <th class="date-col">Data</th>
+                    <th class="day-col">Dia</th>
+                    <th class="time-col">Hora</th>
+                    <th class="location-col">Localidade</th>
+                    <th class="responsible-col">Irmão que Atende</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rjms.map(schedule => `
+                    <tr>
+                      <td>${format(schedule.date, 'dd/MM/yyyy', { locale: ptBR })}</td>
+                      <td>${DAYS_MAP[schedule.date.getDay()]}</td>
+                      <td>${schedule.time}</td>
+                      <td>${schedule.congregationName}</td>
+                      <td>${schedule.responsibleName}${schedule.isFromOutside && schedule.outsideLocation ? ` (${schedule.outsideLocation})` : ''}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
             </div>
           ` : ''}
           
