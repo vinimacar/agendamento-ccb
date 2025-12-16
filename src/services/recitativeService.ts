@@ -77,7 +77,7 @@ export const recitativeService = {
 
   async update(id: string, data: Partial<RecitativeData>): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       ...data,
       updatedAt: Timestamp.now(),
     };
