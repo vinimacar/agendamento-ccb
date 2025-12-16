@@ -66,6 +66,48 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated();
     }
     
+    // Regras para a coleção de membros RJM
+    match /rjmMembers/{memberId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de recitativos RJM
+    match /recitativos/{recitativoId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de músicos
+    match /musicians/{musicianId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de setores DARPE
+    match /darpeSectors/{sectorId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de membros DARPE
+    match /darpeMembers/{memberId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de instituições DARPE
+    match /darpeInstitutions/{institutionId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
     // Bloquear acesso a qualquer outra coleção não especificada
     match /{document=**} {
       allow read, write: if false;
