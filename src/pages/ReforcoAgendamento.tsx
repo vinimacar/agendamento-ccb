@@ -22,7 +22,7 @@ import { useCongregations } from '@/hooks/useCongregations';
 import { reforcoService } from '@/services/reforcoService';
 import { congregationService } from '@/services/congregationService';
 import type { ReforcoSchedule } from '@/types';
-import { Calendar, Users, Plus, Trash2, Loader2, Building2, MapPin, CalendarCheck, Pencil } from 'lucide-react';
+import { Calendar, Users, Plus, Trash2, Loader2, Building2, MapPin, CalendarCheck, Pencil, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -366,15 +366,160 @@ export default function ReforcoAgendamento() {
 
   const selectedCongregation = congregations.find(c => c.id === selectedCongregationId);
 
+  // Função para imprimir lista de agendamentos
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const cultosOficiais = schedules.filter(s => s.type === 'culto-oficial');
+    const rjms = schedules.filter(s => s.type === 'rjm');
+
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Reforços de Coletas - ${format(currentMonth, 'MMMM/yyyy', { locale: ptBR })}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            h1 {
+              text-align: center;
+              color: #333;
+              margin-bottom: 10px;
+            }
+            .subtitle {
+              text-align: center;
+              color: #666;
+              margin-bottom: 30px;
+            }
+            .section {
+              margin-bottom: 30px;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #333;
+              margin-bottom: 15px;
+              padding-bottom: 5px;
+              border-bottom: 2px solid #333;
+            }
+            .item {
+              margin-bottom: 15px;
+              padding: 10px;
+              border: 1px solid #ddd;
+              border-radius: 5px;
+            }
+            .congregation-name {
+              font-weight: bold;
+              font-size: 14px;
+              margin-bottom: 5px;
+            }
+            .badge {
+              display: inline-block;
+              padding: 2px 8px;
+              border-radius: 3px;
+              font-size: 11px;
+              font-weight: bold;
+              margin-bottom: 8px;
+            }
+            .badge-culto {
+              background-color: #e3f2fd;
+              color: #1976d2;
+            }
+            .badge-rjm {
+              background-color: #f5f5f5;
+              color: #666;
+            }
+            .info {
+              font-size: 12px;
+              color: #666;
+              margin-top: 5px;
+            }
+            .info-line {
+              margin: 3px 0;
+            }
+            @media print {
+              body {
+                padding: 10px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Agendamento de Reforços de Coletas</h1>
+          <div class="subtitle">${format(currentMonth, 'MMMM/yyyy', { locale: ptBR })}</div>
+          
+          ${cultosOficiais.length > 0 ? `
+            <div class="section">
+              <div class="section-title">Cultos Oficiais (${cultosOficiais.length})</div>
+              ${cultosOficiais.map(schedule => `
+                <div class="item">
+                  <div class="congregation-name">${schedule.congregationName}</div>
+                  <div class="badge badge-culto">Culto Oficial</div>
+                  <div class="info">
+                    <div class="info-line">📅 ${format(schedule.date, 'dd/MM/yyyy', { locale: ptBR })} às ${schedule.time}</div>
+                    <div class="info-line">👤 ${schedule.responsibleName}${schedule.isFromOutside && schedule.outsideLocation ? ` (${schedule.outsideLocation})` : ''}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          
+          ${rjms.length > 0 ? `
+            <div class="section">
+              <div class="section-title">Reuniões de Jovens e Menores - RJM (${rjms.length})</div>
+              ${rjms.map(schedule => `
+                <div class="item">
+                  <div class="congregation-name">${schedule.congregationName}</div>
+                  <div class="badge badge-rjm">RJM</div>
+                  <div class="info">
+                    <div class="info-line">📅 ${format(schedule.date, 'dd/MM/yyyy', { locale: ptBR })} às ${schedule.time}</div>
+                    <div class="info-line">👤 ${schedule.responsibleName}${schedule.isFromOutside && schedule.outsideLocation ? ` (${schedule.outsideLocation})` : ''}</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : ''}
+          
+          ${schedules.length === 0 ? '<p style="text-align: center; color: #999;">Nenhum agendamento neste mês</p>' : ''}
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(printContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 250);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Agendamento de Reforços de Coletas</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie os agendamentos de cultos oficiais e RJM para reforço de coletas
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Agendamento de Reforços de Coletas</h1>
+            <p className="text-muted-foreground mt-1">
+              Gerencie os agendamentos de cultos oficiais e RJM para reforço de coletas
+            </p>
+          </div>
+          {schedules.length > 0 && (
+            <Button
+              onClick={handlePrint}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir Lista
+            </Button>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
