@@ -18,6 +18,8 @@ import Schedule from "./pages/Schedule";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import ReforcoAgendamento from "./pages/ReforcoAgendamento";
+import RJMManagement from "./pages/RJMManagement";
+import Musical from "./pages/Musical";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -111,6 +113,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ReforcoAgendamento />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rjm"
+              element={
+                <ProtectedRoute>
+                  <RJMManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/musical"
+              element={
+                <ProtectedRoute>
+                  <Musical />
                 </ProtectedRoute>
               }
             />

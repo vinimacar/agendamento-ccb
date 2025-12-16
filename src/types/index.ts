@@ -179,3 +179,43 @@ export interface EnsaioData {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Membro de Reunião de Jovens e Menores
+export interface RJMMember {
+  id?: string;
+  name: string;
+  gender: 'male' | 'female';
+  phone: string;
+  responsible: string; // Nome do responsável
+  age: number;
+  congregationId: string;
+  congregationName: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Lançamento de recitativos por reunião
+export interface RecitativeData {
+  id?: string;
+  congregationId: string;
+  congregationName: string;
+  date: Date;
+  maleCount: number; // Quantidade de recitativos de irmãos
+  femaleCount: number; // Quantidade de recitativos de irmãs
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Músico/Organista
+export interface Musician {
+  id?: string;
+  name: string;
+  congregationId: string;
+  congregationName: string;
+  city: string;
+  phone: string;
+  instrument: string; // Nome do instrumento
+  stage: 'Ensaio' | 'RJM' | 'Culto Oficial' | 'Oficialização';
+  createdAt: Date;
+  updatedAt: Date;
+}
