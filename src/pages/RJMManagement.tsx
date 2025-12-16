@@ -102,18 +102,25 @@ export default function RJMManagement() {
 
   // Preencher cooperador de jovens quando selecionar congregação
   useEffect(() => {
-    if (selectedCongregationId) {
+    if (selectedCongregationId && rjmCongregations.length > 0) {
       const congregation = rjmCongregations.find(c => c.id === selectedCongregationId);
-      if (congregation && congregation.youthCooperators && congregation.youthCooperators.length > 0) {
-        // Buscar cooperador local
-        const localCooperator = congregation.youthCooperators.find(c => c.isLocal);
-        if (localCooperator && localCooperator.name) {
-          setMemberResponsible(localCooperator.name);
-        } else if (congregation.youthCooperators[0]?.name) {
-          // Se não houver cooperador local, usar o primeiro da lista
-          setMemberResponsible(congregation.youthCooperators[0].name);
+      if (congregation) {
+        // Limpar o campo primeiro
+        setMemberResponsible('');
+        
+        if (congregation.youthCooperators && congregation.youthCooperators.length > 0) {
+          // Buscar cooperador local
+          const localCooperator = congregation.youthCooperators.find(c => c.isLocal);
+          if (localCooperator && localCooperator.name) {
+            setMemberResponsible(localCooperator.name);
+          } else if (congregation.youthCooperators[0]?.name) {
+            // Se não houver cooperador local, usar o primeiro da lista
+            setMemberResponsible(congregation.youthCooperators[0].name);
+          }
         }
       }
+    } else {
+      setMemberResponsible('');
     }
   }, [selectedCongregationId, rjmCongregations]);
 
@@ -147,12 +154,12 @@ export default function RJMManagement() {
         description: `${memberName} foi cadastrado com sucesso.`,
       });
 
-      // Limpar formulário
+      // Limpar formulário mas manter congregação selecionada
       setMemberName('');
       setMemberGender('male');
       setMemberPhone('');
-      setMemberResponsible('');
       setMemberAge('');
+      // O cooperador será recarregado automaticamente pelo useEffect
       
       loadMembers();
     } catch (error) {
