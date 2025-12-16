@@ -219,3 +219,39 @@ export interface Musician {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// DARPE - Setor
+export interface DarpeSector {
+  id?: string;
+  name: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// DARPE - Membro
+export interface DarpeMember {
+  id?: string;
+  name: string;
+  congregationId: string;
+  congregationName: string;
+  city: string;
+  role: string; // Cargo/ministério (ancião, cooperador, diácono, etc.)
+  contact: string; // Telefone ou email
+  sectors: string[]; // IDs dos setores que participa
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// DARPE - Instituição Atendida
+export interface DarpeInstitution {
+  id?: string;
+  name: string;
+  address: string;
+  city: string;
+  contact: string;
+  schedules: EventSchedule[]; // Usa o mesmo formato de EventSchedule para dias de atendimento
+  responsibleMembers: string[]; // IDs dos membros responsáveis
+  createdAt: Date;
+  updatedAt: Date;
+}
