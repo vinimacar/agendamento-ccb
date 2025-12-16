@@ -220,32 +220,6 @@ export interface Musician {
   updatedAt: Date;
 }
 
-// Membro da Equipe Musical (Encarregados e Examinadoras)
-export interface MusicalTeamMember {
-  id?: string;
-  name: string;
-  role: 'regional-supervisor' | 'local-supervisor' | 'examiner'; // Encarregado Regional, Encarregado Local, Examinadora
-  congregationId?: string; // Opcional para regionais
-  congregationName?: string;
-  city: string;
-  phone: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-// Ensaio Musical
-export interface MusicalRehearsal {
-  id?: string;
-  type: 'Local' | 'Regional' | 'GEM' | 'Geral';
-  congregationId?: string; // Opcional para ensaios regionais/gerais
-  congregationName?: string;
-  date: Date;
-  time: string;
-  description?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
 // DARPE - Setor
 export interface DarpeSector {
   id?: string;

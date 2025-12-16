@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,12 +19,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { musicianService } from '@/services/musicianService';
-import { musicalTeamService } from '@/services/musicalTeamService';
-import { musicalRehearsalService } from '@/services/musicalRehearsalService';
-import type { Musician, MusicalTeamMember, MusicalRehearsal } from '@/types';
-import { Music, Plus, Trash2, Loader2, Search, Users2, Calendar, Printer, X } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import type { Musician } from '@/types';
+import { Music, Plus, Trash2, Loader2, Search } from 'lucide-react';
 
 const INSTRUMENTS = [
   'Clarinete',
@@ -69,18 +64,6 @@ export default function Musical() {
   const [filterStage, setFilterStage] = useState('');
   const [filterCongregation, setFilterCongregation] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Equipe Musical
-  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
-  const [teamMembers, setTeamMembers] = useState<MusicalTeamMember[]>([]);
-  const [loadingTeam, setLoadingTeam] = useState(false);
-
-  // Calendário de Ensaios
-  const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
-  const [rehearsals, setRehearsals] = useState<MusicalRehearsal[]>([]);
-  const [loadingRehearsals, setLoadingRehearsals] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
 
   // Delete
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -196,138 +179,6 @@ export default function Musical() {
     }
   };
 
-  // Carregar equipe musical
-  const loadTeam = async () => {
-    setLoadingTeam(true);
-    try {
-      const data = await musicalTeamService.getAll();
-      setTeamMembers(data);
-    } catch (error) {
-      console.error('Error loading team:', error);
-      toast({
-        title: 'Erro ao carregar',
-        description: 'Não foi possível carregar a equipe.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoadingTeam(false);
-    }
-  };
-
-  // Carregar ensaios
-  const loadRehearsals = async () => {
-    setLoadingRehearsals(true);
-    try {
-      let data: MusicalRehearsal[];
-      if (selectedMonth !== null) {
-        data = await musicalRehearsalService.getByMonth(selectedYear, selectedMonth);
-      } else {
-        data = await musicalRehearsalService.getByYear(selectedYear);
-      }
-      setRehearsals(data);
-    } catch (error) {
-      console.error('Error loading rehearsals:', error);
-      toast({
-        title: 'Erro ao carregar',
-        description: 'Não foi possível carregar os ensaios.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoadingRehearsals(false);
-    }
-  };
-
-  // Abrir dialog de equipe
-  const openTeamDialog = () => {
-    setTeamDialogOpen(true);
-    loadTeam();
-  };
-
-  // Abrir dialog de calendário
-  const openCalendarDialog = () => {
-    setCalendarDialogOpen(true);
-    loadRehearsals();
-  };
-
-  // Imprimir calendário
-  const handlePrintCalendar = () => {
-    const periodText = selectedMonth !== null 
-      ? format(new Date(selectedYear, selectedMonth - 1), "MMMM 'de' yyyy", { locale: ptBR })
-      : `Ano de ${selectedYear}`;
-
-    const printContent = `
-      <html>
-        <head>
-          <title>Calendário de Ensaios - ${periodText}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 20px; }
-            h1 { text-align: center; color: #333; }
-            h2 { text-align: center; color: #666; margin-bottom: 30px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-            th { background-color: #4A90E2; color: white; font-weight: bold; }
-            tr:nth-child(even) { background-color: #f9f9f9; }
-            .type-badge { 
-              display: inline-block;
-              padding: 4px 8px;
-              border-radius: 4px;
-              font-size: 12px;
-              font-weight: bold;
-            }
-            .type-local { background-color: #E3F2FD; color: #1976D2; }
-            .type-regional { background-color: #F3E5F5; color: #7B1FA2; }
-            .type-gem { background-color: #FFF3E0; color: #F57C00; }
-            .type-geral { background-color: #E8F5E9; color: #388E3C; }
-          </style>
-        </head>
-        <body>
-          <h1>Calendário de Ensaios</h1>
-          <h2>${periodText}</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Dia da Semana</th>
-                <th>Horário</th>
-                <th>Tipo</th>
-                <th>Local</th>
-                <th>Observações</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rehearsals.length === 0 ? '<tr><td colspan="6" style="text-align: center;">Nenhum ensaio agendado</td></tr>' : ''}
-              ${rehearsals.map(rehearsal => `
-                <tr>
-                  <td>${format(rehearsal.date, 'dd/MM/yyyy', { locale: ptBR })}</td>
-                  <td>${format(rehearsal.date, 'EEEE', { locale: ptBR })}</td>
-                  <td>${rehearsal.time}</td>
-                  <td>
-                    <span class="type-badge type-${rehearsal.type.toLowerCase()}">
-                      ${rehearsal.type}
-                    </span>
-                  </td>
-                  <td>${rehearsal.congregationName || '-'}</td>
-                  <td>${rehearsal.description || '-'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `;
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printContent);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 250);
-    }
-  };
-
   // Aplicar filtros
   const filteredMusicians = musicians.filter((musician) => {
     if (filterInstrument && musician.instrument !== filterInstrument) return false;
@@ -357,23 +208,11 @@ export default function Musical() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Musical</h1>
-            <p className="text-muted-foreground mt-1">
-              Gerencie músicos e organistas da região
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={openTeamDialog}>
-              <Users2 className="h-4 w-4 mr-2" />
-              Equipe
-            </Button>
-            <Button variant="outline" onClick={openCalendarDialog}>
-              <Calendar className="h-4 w-4 mr-2" />
-              Calendário
-            </Button>
-          </div>
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Musical</h1>
+          <p className="text-muted-foreground mt-1">
+            Gerencie músicos e organistas da região
+          </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -513,7 +352,7 @@ export default function Musical() {
                     <SelectValue placeholder="Instrumento" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos os instrumentos</SelectItem>
+                    <SelectItem value=" ">Todos</SelectItem>
                     {INSTRUMENTS.map((inst) => (
                       <SelectItem key={inst} value={inst}>
                         {inst}
@@ -526,7 +365,7 @@ export default function Musical() {
                     <SelectValue placeholder="Etapa" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as etapas</SelectItem>
+                    <SelectItem value=" ">Todas</SelectItem>
                     {STAGES.map((s) => (
                       <SelectItem key={s} value={s}>
                         {s}
@@ -539,7 +378,7 @@ export default function Musical() {
                     <SelectValue placeholder="Congregação" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas as congregações</SelectItem>
+                    <SelectItem value=" ">Todas</SelectItem>
                     {congregations.map((cong) => (
                       <SelectItem key={cong.id} value={cong.id!}>
                         {cong.name}
@@ -632,212 +471,6 @@ export default function Musical() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Equipe Musical Dialog */}
-      <Dialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Users2 className="h-5 w-5" />
-              Equipe Musical
-            </DialogTitle>
-            <DialogDescription>
-              Encarregados Regionais, Locais e Examinadoras
-            </DialogDescription>
-          </DialogHeader>
-          
-          {loadingTeam ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {/* Encarregados Regionais */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <Badge variant="default">Encarregados Regionais</Badge>
-                </h3>
-                <div className="space-y-2">
-                  {teamMembers.filter(m => m.role === 'regional-supervisor').length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum encarregado regional cadastrado</p>
-                  ) : (
-                    teamMembers.filter(m => m.role === 'regional-supervisor').map((member) => (
-                      <div key={member.id} className="p-3 rounded-lg bg-secondary/20 border">
-                        <p className="font-semibold">{member.name}</p>
-                        <p className="text-sm text-muted-foreground">{member.city}</p>
-                        <p className="text-xs text-muted-foreground">📞 {member.phone}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Encarregados Locais */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <Badge variant="secondary">Encarregados Locais</Badge>
-                </h3>
-                <div className="space-y-2">
-                  {teamMembers.filter(m => m.role === 'local-supervisor').length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum encarregado local cadastrado</p>
-                  ) : (
-                    teamMembers.filter(m => m.role === 'local-supervisor').map((member) => (
-                      <div key={member.id} className="p-3 rounded-lg bg-secondary/20 border">
-                        <p className="font-semibold">{member.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {member.congregationName} • {member.city}
-                        </p>
-                        <p className="text-xs text-muted-foreground">📞 {member.phone}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Examinadoras */}
-              <div>
-                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                  <Badge variant="outline">Examinadoras</Badge>
-                </h3>
-                <div className="space-y-2">
-                  {teamMembers.filter(m => m.role === 'examiner').length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhuma examinadora cadastrada</p>
-                  ) : (
-                    teamMembers.filter(m => m.role === 'examiner').map((member) => (
-                      <div key={member.id} className="p-3 rounded-lg bg-secondary/20 border">
-                        <p className="font-semibold">{member.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {member.congregationName} • {member.city}
-                        </p>
-                        <p className="text-xs text-muted-foreground">📞 {member.phone}</p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Calendário de Ensaios Dialog */}
-      <Dialog open={calendarDialogOpen} onOpenChange={setCalendarDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Calendário de Ensaios
-            </DialogTitle>
-            <DialogDescription>
-              Visualize e imprima o calendário de ensaios
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Filtros de período */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="year">Ano</Label>
-                <Select 
-                  value={selectedYear.toString()} 
-                  onValueChange={(v) => {
-                    setSelectedYear(parseInt(v));
-                    loadRehearsals();
-                  }}
-                >
-                  <SelectTrigger id="year">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[2024, 2025, 2026, 2027].map(year => (
-                      <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="month">Mês (opcional)</Label>
-                <Select 
-                  value={selectedMonth?.toString() || ''} 
-                  onValueChange={(v) => {
-                    setSelectedMonth(v ? parseInt(v) : null);
-                    loadRehearsals();
-                  }}
-                >
-                  <SelectTrigger id="month">
-                    <SelectValue placeholder="Ano completo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Ano completo</SelectItem>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                      <SelectItem key={month} value={month.toString()}>
-                        {format(new Date(2024, month - 1), 'MMMM', { locale: ptBR })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Button onClick={handlePrintCalendar} className="w-full">
-              <Printer className="h-4 w-4 mr-2" />
-              Imprimir Calendário
-            </Button>
-
-            {/* Lista de ensaios */}
-            {loadingRehearsals ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : rehearsals.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                <p className="text-sm">Nenhum ensaio agendado para este período</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {rehearsals.map((rehearsal) => (
-                  <div
-                    key={rehearsal.id}
-                    className="p-3 rounded-lg bg-secondary/20 border"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">
-                            {format(rehearsal.date, "dd 'de' MMMM", { locale: ptBR })}
-                          </span>
-                          <Badge variant={
-                            rehearsal.type === 'Local' ? 'default' :
-                            rehearsal.type === 'Regional' ? 'secondary' :
-                            rehearsal.type === 'GEM' ? 'outline' : 'destructive'
-                          }>
-                            {rehearsal.type}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {format(rehearsal.date, 'EEEE', { locale: ptBR })} às {rehearsal.time}
-                        </p>
-                        {rehearsal.congregationName && (
-                          <p className="text-sm text-muted-foreground">
-                            📍 {rehearsal.congregationName}
-                          </p>
-                        )}
-                        {rehearsal.description && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {rehearsal.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }
