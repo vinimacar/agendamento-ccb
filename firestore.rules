@@ -87,6 +87,20 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated();
     }
     
+    // Regras para a coleção de equipe musical
+    match /musicalTeam/{teamMemberId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Regras para a coleção de ensaios musicais
+    match /musicalRehearsals/{rehearsalId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
     // Regras para a coleção de setores DARPE
     match /darpeSectors/{sectorId} {
       // Permitir leitura e escrita para usuários autenticados
