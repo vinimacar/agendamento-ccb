@@ -30,8 +30,9 @@ export default function RJMManagement() {
   const { toast } = useToast();
   const { congregations, loading: loadingCongregations } = useCongregations();
 
-  // Filtrar apenas congregações com RJM
+  // Filtrar apenas congregações com RJM - se não houver nenhuma, mostrar todas
   const rjmCongregations = congregations.filter(c => c.hasRJM);
+  const displayCongregations = rjmCongregations.length > 0 ? rjmCongregations : congregations;
 
   // Estados para membros
   const [members, setMembers] = useState<RJMMember[]>([]);
@@ -102,8 +103,8 @@ export default function RJMManagement() {
 
   // Preencher cooperador de jovens quando selecionar congregação
   useEffect(() => {
-    if (selectedCongregationId && rjmCongregations.length > 0) {
-      const congregation = rjmCongregations.find(c => c.id === selectedCongregationId);
+    if (selectedCongregationId && displayCongregations.length > 0) {
+      const congregation = displayCongregations.find(c => c.id === selectedCongregationId);
       if (congregation) {
         // Limpar o campo primeiro
         setMemberResponsible('');
@@ -122,7 +123,7 @@ export default function RJMManagement() {
     } else {
       setMemberResponsible('');
     }
-  }, [selectedCongregationId, rjmCongregations]);
+  }, [selectedCongregationId, displayCongregations]);
 
   const handleAddMember = async () => {
     if (!selectedCongregationId || !memberName || !memberPhone || !memberResponsible || !memberAge) {
@@ -134,7 +135,7 @@ export default function RJMManagement() {
       return;
     }
 
-    const congregation = rjmCongregations.find(c => c.id === selectedCongregationId);
+    const congregation = displayCongregations.find(c => c.id === selectedCongregationId);
     if (!congregation) return;
 
     setSavingMember(true);
@@ -184,7 +185,7 @@ export default function RJMManagement() {
       return;
     }
 
-    const congregation = rjmCongregations.find(c => c.id === recitativeCongregationId);
+    const congregation = displayCongregations.find(c => c.id === recitativeCongregationId);
     if (!congregation) return;
 
     setSavingRecitative(true);
@@ -305,18 +306,33 @@ export default function RJMManagement() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="member-congregation">Congregação *</Label>
-                    <Select value={selectedCongregationId} onValueChange={setSelectedCongregationId}>
+                    <Select 
+                      value={selectedCongregationId} 
+                      onValueChange={setSelectedCongregationId}
+                      disabled={loadingCongregations}
+                    >
                       <SelectTrigger id="member-congregation">
-                        <SelectValue placeholder="Selecione uma congregação" />
+                        <SelectValue placeholder={
+                          loadingCongregations 
+                            ? "Carregando congregações..." 
+                            : displayCongregations.length === 0
+                              ? "Nenhuma congregação cadastrada"
+                              : "Selecione uma congregação"
+                        } />
                       </SelectTrigger>
                       <SelectContent>
-                        {rjmCongregations.map((cong) => (
+                        {displayCongregations.map((cong) => (
                           <SelectItem key={cong.id} value={cong.id!}>
                             {cong.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    {!loadingCongregations && rjmCongregations.length === 0 && congregations.length > 0 && (
+                      <p className="text-xs text-amber-600">
+                        ⚠️ Nenhuma congregação marcada com RJM. Mostrando todas.
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -414,13 +430,21 @@ export default function RJMManagement() {
                   
                   {/* Filtro por Congregação */}
                   <div className="pt-4">
-                    <Select value={filterCongregationId} onValueChange={setFilterCongregationId}>
+                    <Select 
+                      value={filterCongregationId} 
+                      onValueChange={setFilterCongregationId}
+                      disabled={loadingCongregations}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Filtrar por congregação" />
+                        <SelectValue placeholder={
+                          loadingCongregations 
+                            ? "Carregando..." 
+                            : "Filtrar por congregação"
+                        } />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value=" ">Todas as congregações</SelectItem>
-                        {rjmCongregations.map((cong) => (
+                        {displayCongregations.map((cong) => (
                           <SelectItem key={cong.id} value={cong.id!}>
                             {cong.name}
                           </SelectItem>
@@ -494,12 +518,22 @@ export default function RJMManagement() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="recitative-congregation">Congregação *</Label>
-                    <Select value={recitativeCongregationId} onValueChange={setRecitativeCongregationId}>
+                    <Select 
+                      value={recitativeCongregationId} 
+                      onValueChange={setRecitativeCongregationId}
+                      disabled={loadingCongregations}
+                    >
                       <SelectTrigger id="recitative-congregation">
-                        <SelectValue placeholder="Selecione uma congregação" />
+                        <SelectValue placeholder={
+                          loadingCongregations 
+                            ? "Carregando congregações..." 
+                            : displayCongregations.length === 0
+                              ? "Nenhuma congregação cadastrada"
+                              : "Selecione uma congregação"
+                        } />
                       </SelectTrigger>
                       <SelectContent>
-                        {rjmCongregations.map((cong) => (
+                        {displayCongregations.map((cong) => (
                           <SelectItem key={cong.id} value={cong.id!}>
                             {cong.name}
                           </SelectItem>
@@ -577,13 +611,21 @@ export default function RJMManagement() {
                   
                   {/* Filtro por Congregação */}
                   <div className="pt-4">
-                    <Select value={filterRecitativeCongregationId} onValueChange={setFilterRecitativeCongregationId}>
+                    <Select 
+                      value={filterRecitativeCongregationId} 
+                      onValueChange={setFilterRecitativeCongregationId}
+                      disabled={loadingCongregations}
+                    >
                       <SelectTrigger>
-                        <SelectValue placeholder="Filtrar por congregação" />
+                        <SelectValue placeholder={
+                          loadingCongregations 
+                            ? "Carregando..." 
+                            : "Filtrar por congregação"
+                        } />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value=" ">Todas as congregações</SelectItem>
-                        {rjmCongregations.map((cong) => (
+                        {displayCongregations.map((cong) => (
                           <SelectItem key={cong.id} value={cong.id!}>
                             {cong.name}
                           </SelectItem>
