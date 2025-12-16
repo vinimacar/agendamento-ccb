@@ -51,7 +51,11 @@ export default function ReforcoAgendamento() {
   
   const [schedules, setSchedules] = useState<ReforcoSchedule[]>([]);
   const [loadingSchedules, setLoadingSchedules] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+    return nextMonth;
+  });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState<{ id: string; name: string } | null>(null);
   
