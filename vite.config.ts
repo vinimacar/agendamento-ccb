@@ -16,4 +16,11 @@ export default defineConfig(({ mode }) => ({
     },
   },
   base: "/agendamento-ccb/",
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
 }));
