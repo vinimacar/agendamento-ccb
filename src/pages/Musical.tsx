@@ -16,11 +16,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { musicianService } from '@/services/musicianService';
 import type { Musician } from '@/types';
-import { Music, Plus, Trash2, Loader2, Search } from 'lucide-react';
+import { Music, Plus, Trash2, Loader2, Search, Calendar, FileDown } from 'lucide-react';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const INSTRUMENTS = [
   'Clarinete',
@@ -204,15 +215,282 @@ export default function Musical() {
     }
   };
 
+  // Função para coletar todos os ensaios de todas as congregações
+  const getAllRehearsals = () => {
+    const allRehearsals: Array<{
+      congregation: string;
+      type: string;
+      day?: string;
+      date?: Date;
+      time: string;
+      repeats: boolean;
+    }> = [];
+
+    congregations.forEach(congregation => {
+      if (congregation.rehearsals && congregation.rehearsals.length > 0) {
+        congregation.rehearsals.forEach(rehearsal => {
+          allRehearsals.push({
+            congregation: congregation.name,
+            type: rehearsal.type,
+            day: rehearsal.day,
+            date: rehearsal.date,
+            time: rehearsal.time,
+            repeats: rehearsal.repeats,
+          });
+        });
+      }
+    });
+
+    return allRehearsals;
+  };
+
+  // Função para gerar calendário em Excel
+  const exportToExcel = () => {
+    const rehearsals = getAllRehearsals();
+    
+    if (rehearsals.length === 0) {
+      toast({
+        title: 'Nenhum ensaio cadastrado',
+        description: 'Cadastre ensaios nas congregações primeiro.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Criar dados para próximos 3 meses
+    const months = [0, 1, 2].map(offset => addMonths(new Date(), offset));
+    const worksheetData: (string | number)[][] = [];
+
+    months.forEach(monthDate => {
+      const monthName = format(monthDate, 'MMMM yyyy', { locale: ptBR });
+      worksheetData.push([monthName.toUpperCase()]);
+      worksheetData.push(['Data', 'Dia', 'Congregação', 'Tipo', 'Horário']);
+
+      const days = eachDayOfInterval({
+        start: startOfMonth(monthDate),
+        end: endOfMonth(monthDate),
+      });
+
+      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+      days.forEach(day => {
+        const dayName = dayNames[getDay(day)];
+        
+        rehearsals.forEach(rehearsal => {
+          let shouldShow = false;
+
+          if (rehearsal.repeats && rehearsal.day === dayName) {
+            shouldShow = true;
+          } else if (rehearsal.date) {
+            const rehearsalDate = new Date(rehearsal.date);
+            if (
+              rehearsalDate.getDate() === day.getDate() &&
+              rehearsalDate.getMonth() === day.getMonth() &&
+              rehearsalDate.getFullYear() === day.getFullYear()
+            ) {
+              shouldShow = true;
+            }
+          }
+
+          if (shouldShow) {
+            worksheetData.push([
+              format(day, 'dd/MM/yyyy'),
+              dayName,
+              rehearsal.congregation,
+              rehearsal.type,
+              rehearsal.time,
+            ]);
+          }
+        });
+      });
+
+      worksheetData.push([]);
+    });
+
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Calendário de Ensaios');
+
+    // Aplicar estilos
+    const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!worksheet[cellAddress]) continue;
+        
+        if (worksheet[cellAddress].v && typeof worksheet[cellAddress].v === 'string') {
+          if (worksheet[cellAddress].v.match(/^\w+ \d{4}$/)) {
+            worksheet[cellAddress].s = { font: { bold: true, sz: 14 } };
+          }
+        }
+      }
+    }
+
+    XLSX.writeFile(workbook, `calendario-ensaios-${format(new Date(), 'yyyy-MM')}.xlsx`);
+
+    toast({
+      title: 'Calendário exportado!',
+      description: 'O arquivo Excel foi gerado com sucesso.',
+    });
+  };
+
+  // Função para gerar calendário em PDF
+  const exportToPDF = () => {
+    const rehearsals = getAllRehearsals();
+    
+    if (rehearsals.length === 0) {
+      toast({
+        title: 'Nenhum ensaio cadastrado',
+        description: 'Cadastre ensaios nas congregações primeiro.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const doc = new jsPDF();
+    
+    // Configurar fonte e cores
+    doc.setFont('helvetica');
+    
+    // Título
+    doc.setFontSize(20);
+    doc.setTextColor(31, 41, 55);
+    doc.text('Calendário de Ensaios Musicais', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 105, 28, { align: 'center' });
+
+    let yPosition = 40;
+
+    // Gerar para próximos 3 meses
+    const months = [0, 1, 2].map(offset => addMonths(new Date(), offset));
+
+    months.forEach((monthDate, monthIndex) => {
+      if (monthIndex > 0) {
+        doc.addPage();
+        yPosition = 20;
+      }
+
+      const monthName = format(monthDate, 'MMMM yyyy', { locale: ptBR });
+      
+      // Cabeçalho do mês
+      doc.setFontSize(16);
+      doc.setTextColor(59, 130, 246);
+      doc.text(monthName.toUpperCase(), 14, yPosition);
+      yPosition += 10;
+
+      const days = eachDayOfInterval({
+        start: startOfMonth(monthDate),
+        end: endOfMonth(monthDate),
+      });
+
+      const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      const tableData: string[][] = [];
+
+      days.forEach(day => {
+        const dayName = dayNames[getDay(day)];
+        
+        rehearsals.forEach(rehearsal => {
+          let shouldShow = false;
+
+          if (rehearsal.repeats && rehearsal.day === dayName) {
+            shouldShow = true;
+          } else if (rehearsal.date) {
+            const rehearsalDate = new Date(rehearsal.date);
+            if (
+              rehearsalDate.getDate() === day.getDate() &&
+              rehearsalDate.getMonth() === day.getMonth() &&
+              rehearsalDate.getFullYear() === day.getFullYear()
+            ) {
+              shouldShow = true;
+            }
+          }
+
+          if (shouldShow) {
+            tableData.push([
+              format(day, 'dd/MM'),
+              dayName,
+              rehearsal.congregation,
+              rehearsal.type,
+              rehearsal.time,
+            ]);
+          }
+        });
+      });
+
+      if (tableData.length > 0) {
+        autoTable(doc, {
+          startY: yPosition,
+          head: [['Data', 'Dia', 'Congregação', 'Tipo', 'Horário']],
+          body: tableData,
+          theme: 'striped',
+          headStyles: {
+            fillColor: [59, 130, 246],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 10,
+          },
+          bodyStyles: {
+            fontSize: 9,
+            textColor: [31, 41, 55],
+          },
+          alternateRowStyles: {
+            fillColor: [249, 250, 251],
+          },
+          margin: { top: 10 },
+          styles: {
+            cellPadding: 4,
+            lineColor: [229, 231, 235],
+            lineWidth: 0.1,
+          },
+        });
+      } else {
+        doc.setFontSize(10);
+        doc.setTextColor(107, 114, 128);
+        doc.text('Nenhum ensaio cadastrado para este mês.', 14, yPosition + 5);
+      }
+    });
+
+    doc.save(`calendario-ensaios-${format(new Date(), 'yyyy-MM')}.pdf`);
+
+    toast({
+      title: 'Calendário exportado!',
+      description: 'O arquivo PDF foi gerado com sucesso.',
+    });
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Musical</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie músicos e organistas da região
-          </p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl lg:text-3xl font-bold text-foreground">Musical</h1>
+            <p className="text-muted-foreground mt-1">
+              Gerencie músicos e organistas da região
+            </p>
+          </div>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Calendar className="h-4 w-4" />
+                Calendário de Ensaios
+                <FileDown className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToExcel} className="gap-2">
+                <FileDown className="h-4 w-4" />
+                Exportar para Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToPDF} className="gap-2">
+                <FileDown className="h-4 w-4" />
+                Exportar para PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
