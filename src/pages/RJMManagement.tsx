@@ -37,6 +37,7 @@ export default function RJMManagement() {
   const [members, setMembers] = useState<RJMMember[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [selectedCongregationId, setSelectedCongregationId] = useState('');
+  const [filterCongregationId, setFilterCongregationId] = useState('');
   const [memberName, setMemberName] = useState('');
   const [memberGender, setMemberGender] = useState<'male' | 'female'>('male');
   const [memberPhone, setMemberPhone] = useState('');
@@ -231,9 +232,9 @@ export default function RJMManagement() {
     }
   };
 
-  // Filtrar membros por congregação selecionada
-  const filteredMembers = selectedCongregationId 
-    ? members.filter(m => m.congregationId === selectedCongregationId)
+  // Filtrar membros por congregação selecionada no filtro
+  const filteredMembers = filterCongregationId 
+    ? members.filter(m => m.congregationId === filterCongregationId)
     : members;
 
   // Filtrar recitativos por congregação selecionada
@@ -376,11 +377,23 @@ export default function RJMManagement() {
                     <Users className="h-5 w-5" />
                     Membros Cadastrados
                   </CardTitle>
-                  <CardDescription>
-                    {selectedCongregationId
-                      ? rjmCongregations.find(c => c.id === selectedCongregationId)?.name
-                      : 'Selecione uma congregação'}
-                  </CardDescription>
+                  <CardDescription>Total: {filteredMembers.length}</CardDescription>
+                  <div className="pt-4">
+                    <Label htmlFor="filter-congregation">Filtrar por Congregação</Label>
+                    <Select value={filterCongregationId} onValueChange={setFilterCongregationId}>
+                      <SelectTrigger id="filter-congregation">
+                        <SelectValue placeholder="Todas as congregações" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Todas as congregações</SelectItem>
+                        {rjmCongregations.map((cong) => (
+                          <SelectItem key={cong.id} value={cong.id!}>
+                            {cong.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   {loadingMembers ? (
@@ -410,7 +423,7 @@ export default function RJMManagement() {
                             <p className="text-sm text-muted-foreground">
                               📞 {member.phone} • Responsável: {member.responsible}
                             </p>
-                            {!selectedCongregationId && (
+                            {!filterCongregationId && (
                               <p className="text-xs text-muted-foreground mt-1">
                                 {member.congregationName}
                               </p>

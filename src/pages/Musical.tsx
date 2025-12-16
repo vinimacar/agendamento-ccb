@@ -352,7 +352,7 @@ export default function Musical() {
                     <SelectValue placeholder="Instrumento" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value=" ">Todos</SelectItem>
+                    <SelectItem value="">Todos os instrumentos</SelectItem>
                     {INSTRUMENTS.map((inst) => (
                       <SelectItem key={inst} value={inst}>
                         {inst}
@@ -365,7 +365,7 @@ export default function Musical() {
                     <SelectValue placeholder="Etapa" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value=" ">Todas</SelectItem>
+                    <SelectItem value="">Todas as etapas</SelectItem>
                     {STAGES.map((s) => (
                       <SelectItem key={s} value={s}>
                         {s}
@@ -378,7 +378,7 @@ export default function Musical() {
                     <SelectValue placeholder="Congregação" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value=" ">Todas</SelectItem>
+                    <SelectItem value="">Todas as congregações</SelectItem>
                     {congregations.map((cong) => (
                       <SelectItem key={cong.id} value={cong.id!}>
                         {cong.name}
