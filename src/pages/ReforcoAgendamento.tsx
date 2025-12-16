@@ -22,7 +22,7 @@ import { useCongregations } from '@/hooks/useCongregations';
 import { reforcoService } from '@/services/reforcoService';
 import { congregationService } from '@/services/congregationService';
 import type { ReforcoSchedule } from '@/types';
-import { Calendar, Users, Plus, Trash2, Loader2, Building2, MapPin, CalendarCheck } from 'lucide-react';
+import { Calendar, Users, Plus, Trash2, Loader2, Building2, MapPin, CalendarCheck, Pencil } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -54,6 +54,10 @@ export default function ReforcoAgendamento() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [scheduleToDelete, setScheduleToDelete] = useState<{ id: string; name: string } | null>(null);
+  
+  // Estados para edição
+  const [editingSchedule, setEditingSchedule] = useState<ReforcoSchedule | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
   
   const [availablePeople, setAvailablePeople] = useState<string[]>([]);
   const [availableDays, setAvailableDays] = useState<Array<{ day: string; time: string }>>([]);
@@ -224,56 +228,75 @@ export default function ReforcoAgendamento() {
       return;
     }
 
-    // Verificar se pode agendar
-    const { canSchedule, message } = await checkIfCanSchedule();
-    if (!canSchedule) {
-      toast({
-        title: 'Não é possível agendar',
-        description: message,
-        variant: 'destructive',
-      });
-      return;
+    // Verificar se pode agendar (apenas para novos agendamentos)
+    if (!isEditing) {
+      const { canSchedule, message } = await checkIfCanSchedule();
+      if (!canSchedule) {
+        toast({
+          title: 'Não é possível agendar',
+          description: message,
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     setSaving(true);
     try {
       const congregation = congregations.find(c => c.id === selectedCongregationId);
       
-      const scheduleData: Omit<ReforcoSchedule, 'id'> = {
-        congregationId: selectedCongregationId,
-        congregationName: congregation?.name || '',
-        type,
-        date: selectedDate,
-        time: selectedTime,
-        responsibleName,
-        isFromOutside,
-        outsideLocation: isFromOutside ? outsideLocation : undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      if (isEditing && editingSchedule?.id) {
+        // Atualizar agendamento existente
+        const updateData: Partial<ReforcoSchedule> = {
+          congregationId: selectedCongregationId,
+          congregationName: congregation?.name || '',
+          type,
+          date: selectedDate,
+          time: selectedTime,
+          responsibleName,
+          isFromOutside,
+          outsideLocation: isFromOutside ? outsideLocation : undefined,
+          updatedAt: new Date(),
+        };
 
-      await reforcoService.create(scheduleData);
-      
-      toast({
-        title: 'Agendamento realizado!',
-        description: 'O reforço foi agendado com sucesso.',
-      });
+        await reforcoService.update(editingSchedule.id, updateData);
+        
+        toast({
+          title: 'Agendamento atualizado!',
+          description: 'O reforço foi atualizado com sucesso.',
+        });
+      } else {
+        // Criar novo agendamento
+        const scheduleData: Omit<ReforcoSchedule, 'id'> = {
+          congregationId: selectedCongregationId,
+          congregationName: congregation?.name || '',
+          type,
+          date: selectedDate,
+          time: selectedTime,
+          responsibleName,
+          isFromOutside,
+          outsideLocation: isFromOutside ? outsideLocation : undefined,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        await reforcoService.create(scheduleData);
+        
+        toast({
+          title: 'Agendamento realizado!',
+          description: 'O reforço foi agendado com sucesso.',
+        });
+      }
 
       // Limpar formulário
-      setSelectedCongregationId('');
-      setType('culto-oficial');
-      setResponsibleName('');
-      setIsFromOutside(false);
-      setOutsideLocation('');
-      setSelectedDate(null);
-      setSelectedTime('');
+      cancelEdit();
       
       // Recarregar agendamentos
       loadSchedules();
     } catch (error) {
       console.error('Error saving schedule:', error);
       toast({
-        title: 'Erro ao agendar',
+        title: isEditing ? 'Erro ao atualizar' : 'Erro ao agendar',
         description: 'Não foi possível salvar o agendamento.',
         variant: 'destructive',
       });
@@ -285,6 +308,33 @@ export default function ReforcoAgendamento() {
   const openDeleteDialog = (id: string, congregationName: string) => {
     setScheduleToDelete({ id, name: congregationName });
     setDeleteDialogOpen(true);
+  };
+
+  const handleEdit = (schedule: ReforcoSchedule) => {
+    setEditingSchedule(schedule);
+    setIsEditing(true);
+    setSelectedCongregationId(schedule.congregationId);
+    setType(schedule.type);
+    setResponsibleName(schedule.responsibleName);
+    setIsFromOutside(schedule.isFromOutside);
+    setOutsideLocation(schedule.outsideLocation || '');
+    setSelectedDate(schedule.date);
+    setSelectedTime(schedule.time);
+    
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingSchedule(null);
+    setIsEditing(false);
+    setSelectedCongregationId('');
+    setType('culto-oficial');
+    setResponsibleName('');
+    setIsFromOutside(false);
+    setOutsideLocation('');
+    setSelectedDate(null);
+    setSelectedTime('');
   };
 
   const handleDelete = async () => {
@@ -334,10 +384,10 @@ export default function ReforcoAgendamento() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CalendarCheck className="h-5 w-5" />
-                  Novo Agendamento
+                  {isEditing ? 'Editar Agendamento' : 'Novo Agendamento'}
                 </CardTitle>
                 <CardDescription>
-                  Marque até 1 culto oficial e 1 RJM por congregação por mês
+                  {isEditing ? 'Atualize os dados do agendamento' : 'Marque até 1 culto oficial e 1 RJM por congregação por mês'}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -470,23 +520,45 @@ export default function ReforcoAgendamento() {
                     </div>
                   )}
 
-                  <Button 
-                    type="submit" 
-                    className="w-full gradient-primary text-primary-foreground hover:opacity-90"
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Agendar Reforço
-                      </>
+                  <div className="flex gap-2">
+                    {isEditing && (
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={cancelEdit}
+                        disabled={saving}
+                        className="flex-1"
+                      >
+                        Cancelar
+                      </Button>
                     )}
-                  </Button>
+                    <Button 
+                      type="submit" 
+                      className="flex-1 gradient-primary text-primary-foreground hover:opacity-90"
+                      disabled={saving}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          Salvando...
+                        </>
+                      ) : (
+                        <>
+                          {isEditing ? (
+                            <>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Atualizar Agendamento
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Agendar Reforço
+                            </>
+                          )}
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </form>
               </CardContent>
             </Card>
@@ -562,40 +634,116 @@ export default function ReforcoAgendamento() {
                     <p className="text-sm">Nenhum agendamento neste mês</p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {schedules.map((schedule) => (
-                      <div key={schedule.id} className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-sm text-foreground">{schedule.congregationName}</p>
-                            <Badge variant={schedule.type === 'culto-oficial' ? 'default' : 'secondary'} className="text-xs mt-1">
-                              {schedule.type === 'culto-oficial' ? 'Culto Oficial' : 'RJM'}
-                            </Badge>
-                          </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => schedule.id && openDeleteDialog(schedule.id, schedule.congregationName)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <p className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {format(schedule.date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                          </p>
-                          <p className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
-                            {schedule.responsibleName}
-                            {schedule.isFromOutside && schedule.outsideLocation && (
-                              <span className="text-primary">({schedule.outsideLocation})</span>
-                            )}
-                          </p>
+                  <div className="space-y-4">
+                    {/* Cultos Oficiais */}
+                    {schedules.filter(s => s.type === 'culto-oficial').length > 0 && (
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-primary"></div>
+                          Cultos Oficiais
+                        </h3>
+                        <div className="space-y-2">
+                          {schedules.filter(s => s.type === 'culto-oficial').map((schedule) => (
+                            <div key={schedule.id} className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm text-foreground">{schedule.congregationName}</p>
+                                  <Badge variant="default" className="text-xs mt-1">
+                                    Culto Oficial
+                                  </Badge>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => handleEdit(schedule)}
+                                  >
+                                    <Pencil className="h-4 w-4 text-primary" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => schedule.id && openDeleteDialog(schedule.id, schedule.congregationName)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="space-y-1 text-xs text-muted-foreground">
+                                <p className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(schedule.date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                </p>
+                                <p className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  {schedule.responsibleName}
+                                  {schedule.isFromOutside && schedule.outsideLocation && (
+                                    <span className="text-primary">({schedule.outsideLocation})</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                    )}
+
+                    {/* RJMs */}
+                    {schedules.filter(s => s.type === 'rjm').length > 0 && (
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-secondary"></div>
+                          Reuniões de Jovens e Menores (RJM)
+                        </h3>
+                        <div className="space-y-2">
+                          {schedules.filter(s => s.type === 'rjm').map((schedule) => (
+                            <div key={schedule.id} className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <p className="font-medium text-sm text-foreground">{schedule.congregationName}</p>
+                                  <Badge variant="secondary" className="text-xs mt-1">
+                                    RJM
+                                  </Badge>
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => handleEdit(schedule)}
+                                  >
+                                    <Pencil className="h-4 w-4 text-primary" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    onClick={() => schedule.id && openDeleteDialog(schedule.id, schedule.congregationName)}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </div>
+                              <div className="space-y-1 text-xs text-muted-foreground">
+                                <p className="flex items-center gap-1">
+                                  <Calendar className="h-3 w-3" />
+                                  {format(schedule.date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                </p>
+                                <p className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  {schedule.responsibleName}
+                                  {schedule.isFromOutside && schedule.outsideLocation && (
+                                    <span className="text-primary">({schedule.outsideLocation})</span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

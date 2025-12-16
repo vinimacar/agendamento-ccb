@@ -26,12 +26,14 @@ import {
   Building,
   Loader2,
   Clock,
-  Printer
+  Printer,
+  FileSpreadsheet
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { congregationService } from '@/services/congregationService';
 import type { EventSchedule } from '@/types';
 import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
 
 const STATES = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -304,6 +306,232 @@ export default function CongregationForm() {
     toast({
       title: "Relatório gerado",
       description: `O relatório foi baixado como ${fileName}`,
+    });
+  };
+
+  // Função para gerar tabela de ensaios em PDF
+  const generateRehearsalsTablePDF = () => {
+    if (rehearsals.length === 0) {
+      toast({
+        title: "Nenhum ensaio cadastrado",
+        description: "Adicione ensaios antes de gerar a tabela.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let yPos = 20;
+
+    // Cabeçalho
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TABELA DE ENSAIOS', pageWidth / 2, yPos, { align: 'center' });
+    yPos += 8;
+
+    if (name) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text(name, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
+    }
+
+    // Linha separadora
+    doc.setDrawColor(0, 0, 0);
+    doc.line(20, yPos, pageWidth - 20, yPos);
+    yPos += 10;
+
+    // Cabeçalho da tabela
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tipo', 20, yPos);
+    doc.text('Recorrência', 45, yPos);
+    doc.text('Dia', 75, yPos);
+    doc.text('Semana', 95, yPos);
+    doc.text('Horário', 120, yPos);
+    doc.text('Meses', 145, yPos);
+    yPos += 3;
+
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, yPos, pageWidth - 20, yPos);
+    yPos += 5;
+
+    // Dados
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+
+    REHEARSAL_TYPES.forEach((type) => {
+      const typeRehearsals = rehearsals.filter(r => r.type === type);
+      if (typeRehearsals.length === 0) return;
+
+      typeRehearsals.forEach((rehearsal) => {
+        // Verificar se precisa de nova página
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+          // Repetir cabeçalho
+          doc.setFont('helvetica', 'bold');
+          doc.text('Tipo', 20, yPos);
+          doc.text('Recorrência', 45, yPos);
+          doc.text('Dia', 75, yPos);
+          doc.text('Semana', 95, yPos);
+          doc.text('Horário', 120, yPos);
+          doc.text('Meses', 145, yPos);
+          yPos += 3;
+          doc.line(20, yPos, pageWidth - 20, yPos);
+          yPos += 5;
+          doc.setFont('helvetica', 'normal');
+        }
+
+        // Tipo
+        doc.text(rehearsal.type, 20, yPos);
+
+        // Recorrência
+        doc.text(rehearsal.recurrenceType || '-', 45, yPos);
+
+        // Dia
+        const dayLabel = rehearsal.recurrenceType === 'Agendado'
+          ? rehearsal.date ? format(rehearsal.date, 'dd/MM/yyyy', { locale: ptBR }) : '-'
+          : rehearsal.day ? DAYS_OF_WEEK.find(d => d.id === rehearsal.day)?.label || '-' : '-';
+        doc.text(dayLabel, 75, yPos);
+
+        // Semana
+        const weekLabel = rehearsal.weekOfMonth ? `${rehearsal.weekOfMonth}ª` : '-';
+        doc.text(weekLabel, 95, yPos);
+
+        // Horário
+        doc.text(rehearsal.time, 120, yPos);
+
+        // Meses
+        if (rehearsal.months && rehearsal.months.length > 0) {
+          const monthsStr = rehearsal.months.map(m =>
+            ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'][m - 1]
+          ).join(',');
+          doc.text(monthsStr, 145, yPos);
+        } else if (rehearsal.recurrenceType !== 'Agendado') {
+          doc.text('Todos', 145, yPos);
+        } else {
+          doc.text('-', 145, yPos);
+        }
+
+        yPos += 6;
+      });
+
+      // Espaço entre tipos
+      yPos += 2;
+    });
+
+    // Rodapé
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text(
+        `Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`,
+        pageWidth / 2,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+      doc.text(
+        `Página ${i} de ${totalPages}`,
+        pageWidth - 20,
+        doc.internal.pageSize.getHeight() - 10,
+        { align: 'right' }
+      );
+    }
+
+    // Salvar
+    const fileName = `Tabela_Ensaios${name ? '_' + name.replace(/\s+/g, '_') : ''}.pdf`;
+    doc.save(fileName);
+
+    toast({
+      title: "Tabela gerada",
+      description: `O arquivo foi baixado como ${fileName}`,
+    });
+  };
+
+  // Função para gerar tabela de ensaios em Excel
+  const generateRehearsalsTableExcel = () => {
+    if (rehearsals.length === 0) {
+      toast({
+        title: "Nenhum ensaio cadastrado",
+        description: "Adicione ensaios antes de gerar a tabela.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Preparar dados
+    const data: any[] = [];
+
+    // Cabeçalho
+    data.push(['TABELA DE ENSAIOS']);
+    if (name) {
+      data.push([name]);
+    }
+    data.push([]);
+    data.push(['Tipo', 'Recorrência', 'Dia', 'Semana do Mês', 'Horário', 'Meses']);
+
+    // Dados
+    REHEARSAL_TYPES.forEach((type) => {
+      const typeRehearsals = rehearsals.filter(r => r.type === type);
+      if (typeRehearsals.length === 0) return;
+
+      typeRehearsals.forEach((rehearsal) => {
+        const dayLabel = rehearsal.recurrenceType === 'Agendado'
+          ? rehearsal.date ? format(rehearsal.date, 'dd/MM/yyyy', { locale: ptBR }) : '-'
+          : rehearsal.day ? DAYS_OF_WEEK.find(d => d.id === rehearsal.day)?.label || '-' : '-';
+
+        const weekLabel = rehearsal.weekOfMonth ? `${rehearsal.weekOfMonth}ª semana` : '-';
+
+        const monthsLabel = rehearsal.months && rehearsal.months.length > 0
+          ? rehearsal.months.map(m =>
+              ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'][m - 1]
+            ).join(', ')
+          : rehearsal.recurrenceType !== 'Agendado' ? 'Todos os meses' : '-';
+
+        data.push([
+          rehearsal.type,
+          rehearsal.recurrenceType || '-',
+          dayLabel,
+          weekLabel,
+          rehearsal.time,
+          monthsLabel
+        ]);
+      });
+    });
+
+    // Adicionar rodapé
+    data.push([]);
+    data.push([`Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`]);
+
+    // Criar planilha
+    const ws = XLSX.utils.aoa_to_sheet(data);
+
+    // Ajustar largura das colunas
+    const colWidths = [
+      { wch: 12 },  // Tipo
+      { wch: 12 },  // Recorrência
+      { wch: 15 },  // Dia
+      { wch: 15 },  // Semana
+      { wch: 10 },  // Horário
+      { wch: 40 }   // Meses
+    ];
+    ws['!cols'] = colWidths;
+
+    // Criar workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Ensaios');
+
+    // Salvar
+    const fileName = `Tabela_Ensaios${name ? '_' + name.replace(/\s+/g, '_') : ''}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+
+    toast({
+      title: "Tabela gerada",
+      description: `O arquivo foi baixado como ${fileName}`,
     });
   };
 
@@ -1538,8 +1766,36 @@ export default function CongregationForm() {
           <TabsContent value="rehearsals">
             <Card className="shadow-md hover:shadow-lg transition-shadow duration-300 border-border/40">
               <CardHeader>
-                <CardTitle>Ensaios</CardTitle>
-                <CardDescription>Cadastre os ensaios da congregação (Local, Regional, GEM ou Geral)</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Ensaios</CardTitle>
+                    <CardDescription>Cadastre os ensaios da congregação (Local, Regional, GEM ou Geral)</CardDescription>
+                  </div>
+                  {rehearsals.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={generateRehearsalsTablePDF}
+                        className="flex items-center gap-2"
+                      >
+                        <Printer className="h-4 w-4" />
+                        Exportar PDF
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={generateRehearsalsTableExcel}
+                        className="flex items-center gap-2"
+                      >
+                        <FileSpreadsheet className="h-4 w-4" />
+                        Exportar Excel
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Rehearsals List - Organized by Type */}
