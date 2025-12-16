@@ -28,14 +28,8 @@ service cloud.firestore {
     
     // Regras para a coleção de usuários (se houver)
     match /users/{userId} {
-      // Usuários podem ler seus próprios dados
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-      
-      // Usuários podem atualizar seus próprios dados
-      allow update: if isAuthenticated() && request.auth.uid == userId;
-      
-      // Apenas administradores podem criar novos usuários (implementar lógica adicional se necessário)
-      allow create: if isAuthenticated();
+      // Permitir leitura e escrita para usuários autenticados
+      allow read, write: if isAuthenticated();
     }
     
     // Regras para a coleção de agendamentos de reforços
