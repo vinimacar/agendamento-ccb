@@ -21,6 +21,7 @@ import ReforcoAgendamento from "./pages/ReforcoAgendamento";
 import RJMManagement from "./pages/RJMManagement";
 import Musical from "./pages/Musical";
 import DarpeManagement from "./pages/DarpeManagement";
+import EBIManagement from "./pages/EBIManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -138,6 +139,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <DarpeManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ebi"
+              element={
+                <ProtectedRoute>
+                  <EBIManagement />
                 </ProtectedRoute>
               }
             />

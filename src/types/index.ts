@@ -255,3 +255,85 @@ export interface DarpeInstitution {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// EBI - Grupo de Trabalho
+export interface EBIWorkGroup {
+  id?: string;
+  name: string; // Nome do grupo (ex: Berçário, Maternal, Jardim, etc.)
+  description?: string;
+  ageRange?: string; // Faixa etária (ex: 0-2 anos)
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// EBI - Membro/Colaborador
+export interface EBIMember {
+  id?: string;
+  name: string;
+  congregationId: string;
+  congregationName: string;
+  contact: string;
+  workGroups: string[]; // IDs dos grupos que atende
+  role: string; // Função (Professor, Auxiliar, Coordenador, etc.)
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// EBI - Escala de Atendimento
+export interface EBISchedule {
+  id?: string;
+  congregationId: string;
+  congregationName: string;
+  date: Date;
+  time: string;
+  workGroupId: string;
+  workGroupName: string;
+  memberIds: string[]; // IDs dos membros escalados
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// EBI - Atividade
+export interface EBIActivity {
+  id?: string;
+  congregationId: string;
+  congregationName: string;
+  workGroupId: string;
+  workGroupName: string;
+  date: Date;
+  theme: string; // Tema da atividade
+  objective: string; // Objetivo
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// EBI - Criança
+export interface EBIChild {
+  id?: string;
+  name: string;
+  age: number;
+  congregationId: string;
+  congregationName: string;
+  workGroupId: string;
+  workGroupName: string;
+  responsibleName: string; // Nome do responsável
+  responsibleContact: string; // Contato do responsável
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// EBI - Frequência
+export interface EBIAttendance {
+  id?: string;
+  congregationId: string;
+  congregationName: string;
+  activityId: string;
+  date: Date;
+  workGroupId: string;
+  workGroupName: string;
+  childrenPresent: string[]; // IDs das crianças presentes
+  totalPresent: number;
+  totalAbsent: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
