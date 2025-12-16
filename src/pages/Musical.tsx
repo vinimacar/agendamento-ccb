@@ -86,9 +86,9 @@ export default function Musical() {
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
   const [ensaios, setEnsaios] = useState<EnsaioData[]>([]);
   const [loadingEnsaios, setLoadingEnsaios] = useState(false);
-  const [filterCalendarCongregation, setFilterCalendarCongregation] = useState('');
-  const [filterCalendarCity, setFilterCalendarCity] = useState('');
-  const [filterCalendarMonth, setFilterCalendarMonth] = useState('');
+  const [filterCalendarCongregation, setFilterCalendarCongregation] = useState('all');
+  const [filterCalendarCity, setFilterCalendarCity] = useState('all');
+  const [filterCalendarMonth, setFilterCalendarMonth] = useState('all');
   const [filterCalendarYear, setFilterCalendarYear] = useState(new Date().getFullYear().toString());
 
   const loadMusicians = useCallback(async () => {
@@ -255,24 +255,21 @@ export default function Musical() {
     let filtered = [...ensaios];
 
     // Filtro por congregação
-    if (filterCalendarCongregation) {
+    if (filterCalendarCongregation && filterCalendarCongregation !== 'all') {
       filtered = filtered.filter(e => e.congregationId === filterCalendarCongregation);
     }
 
     // Filtro por cidade
-    if (filterCalendarCity) {
-      const congregation = congregations.find(c => c.id === filterCalendarCongregation);
-      if (congregation) {
-        filtered = filtered.filter(e => {
-          const cong = congregations.find(c => c.id === e.congregationId);
-          return cong?.city === filterCalendarCity;
-        });
-      }
+    if (filterCalendarCity && filterCalendarCity !== 'all') {
+      filtered = filtered.filter(e => {
+        const cong = congregations.find(c => c.id === e.congregationId);
+        return cong?.city === filterCalendarCity;
+      });
     }
 
     // Filtro por mês
-    if (filterCalendarMonth) {
-      const monthIndex = parseInt(filterCalendarMonth);
+    if (filterCalendarMonth && filterCalendarMonth !== 'all') {
+      const monthIndex = parseInt(filterCalendarMonth) - 1; // Ajustar para índice 0-based
       filtered = filtered.filter(e => getMonth(e.date) === monthIndex);
     }
 
@@ -723,7 +720,7 @@ export default function Musical() {
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   {congregations.map((cong) => (
                     <SelectItem key={cong.id} value={cong.id!}>
                       {cong.name}
@@ -744,7 +741,7 @@ export default function Musical() {
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   {Array.from(new Set(congregations.map(c => c.city)))
                     .sort()
                     .map((city) => (
@@ -767,7 +764,7 @@ export default function Musical() {
                   <SelectValue placeholder="Próximos 3 meses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Próximos 3 meses</SelectItem>
+                  <SelectItem value="all">Próximos 3 meses</SelectItem>
                   <SelectItem value="1">Janeiro</SelectItem>
                   <SelectItem value="2">Fevereiro</SelectItem>
                   <SelectItem value="3">Março</SelectItem>
@@ -795,7 +792,7 @@ export default function Musical() {
                   <SelectValue placeholder="Ano atual" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{new Date().getFullYear()}</SelectItem>
+                  <SelectItem value={String(new Date().getFullYear())}>{new Date().getFullYear()}</SelectItem>
                   <SelectItem value={String(new Date().getFullYear() + 1)}>
                     {new Date().getFullYear() + 1}
                   </SelectItem>
