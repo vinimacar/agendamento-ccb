@@ -111,8 +111,7 @@ export default function Musical() {
   const loadEnsaios = useCallback(async () => {
     setLoadingEnsaios(true);
     try {
-      const year = parseInt(filterCalendarYear || String(new Date().getFullYear()));
-      const data = await ensaioDataService.getByYear(year);
+      const data = await ensaioDataService.getAll();
       setEnsaios(data);
     } catch (error) {
       console.error('Error loading ensaios:', error);
@@ -124,7 +123,7 @@ export default function Musical() {
     } finally {
       setLoadingEnsaios(false);
     }
-  }, [filterCalendarYear, toast]);
+  }, [toast]);
 
   useEffect(() => {
     loadMusicians();
@@ -254,6 +253,12 @@ export default function Musical() {
   const getFilteredEnsaios = () => {
     let filtered = [...ensaios];
 
+    // Filtro por ano
+    if (filterCalendarYear) {
+      const year = parseInt(filterCalendarYear);
+      filtered = filtered.filter(e => getYear(e.date) === year);
+    }
+
     // Filtro por congregação
     if (filterCalendarCongregation && filterCalendarCongregation !== 'all') {
       filtered = filtered.filter(e => e.congregationId === filterCalendarCongregation);
@@ -268,7 +273,7 @@ export default function Musical() {
     }
 
     // Filtro por mês
-    if (filterCalendarMonth && filterCalendarMonth !== 'all') {
+    if (filterCalendarMonth && filterCalendarMonth !== 'all' && filterCalendarMonth !== 'annual') {
       const monthIndex = parseInt(filterCalendarMonth) - 1; // Ajustar para índice 0-based
       filtered = filtered.filter(e => getMonth(e.date) === monthIndex);
     }
