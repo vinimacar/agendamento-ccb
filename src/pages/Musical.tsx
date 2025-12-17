@@ -304,9 +304,11 @@ export default function Musical() {
     if (filterCalendarCity) {
       filters.push(`Cidade: ${filterCalendarCity}`);
     }
-    if (filterCalendarMonth) {
-      const monthName = format(new Date(2000, parseInt(filterCalendarMonth), 1), 'MMMM', { locale: ptBR });
+    if (filterCalendarMonth && filterCalendarMonth !== 'all' && filterCalendarMonth !== 'annual') {
+      const monthName = format(new Date(2000, parseInt(filterCalendarMonth) - 1, 1), 'MMMM', { locale: ptBR });
       filters.push(`Mês: ${monthName}`);
+    } else if (filterCalendarMonth === 'annual') {
+      filters.push(`Período: Anual`);
     }
     filters.push(`Ano: ${filterCalendarYear}`);
     
@@ -331,7 +333,7 @@ export default function Musical() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Ensaios');
 
-    const fileName = `calendario-ensaios-${filterCalendarYear}${filterCalendarMonth ? `-${filterCalendarMonth.padStart(2, '0')}` : ''}.xlsx`;
+    const fileName = `calendario-ensaios-${filterCalendarYear}${filterCalendarMonth === 'annual' ? '-anual' : filterCalendarMonth && filterCalendarMonth !== 'all' ? `-${filterCalendarMonth.padStart(2, '0')}` : ''}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 
     toast({
@@ -380,9 +382,12 @@ export default function Musical() {
       doc.text(`Cidade: ${filterCalendarCity}`, 105, yPos, { align: 'center' });
       yPos += 5;
     }
-    if (filterCalendarMonth) {
-      const monthName = format(new Date(2000, parseInt(filterCalendarMonth), 1), 'MMMM', { locale: ptBR });
+    if (filterCalendarMonth && filterCalendarMonth !== 'all' && filterCalendarMonth !== 'annual') {
+      const monthName = format(new Date(2000, parseInt(filterCalendarMonth) - 1, 1), 'MMMM', { locale: ptBR });
       doc.text(`Mês: ${monthName}`, 105, yPos, { align: 'center' });
+      yPos += 5;
+    } else if (filterCalendarMonth === 'annual') {
+      doc.text(`Período: Anual`, 105, yPos, { align: 'center' });
       yPos += 5;
     }
     doc.text(`Ano: ${filterCalendarYear}`, 105, yPos, { align: 'center' });
@@ -428,7 +433,7 @@ export default function Musical() {
       },
     });
 
-    const fileName = `calendario-ensaios-${filterCalendarYear}${filterCalendarMonth ? `-${filterCalendarMonth.padStart(2, '0')}` : ''}.pdf`;
+    const fileName = `calendario-ensaios-${filterCalendarYear}${filterCalendarMonth === 'annual' ? '-anual' : filterCalendarMonth && filterCalendarMonth !== 'all' ? `-${filterCalendarMonth.padStart(2, '0')}` : ''}.pdf`;
     doc.save(fileName);
 
     toast({
@@ -765,6 +770,7 @@ export default function Musical() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Próximos 3 meses</SelectItem>
+                  <SelectItem value="annual">Anual (12 meses)</SelectItem>
                   <SelectItem value="1">Janeiro</SelectItem>
                   <SelectItem value="2">Fevereiro</SelectItem>
                   <SelectItem value="3">Março</SelectItem>
