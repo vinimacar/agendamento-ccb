@@ -823,6 +823,46 @@ export default function Musical() {
               </Select>
             </div>
           </div>
+
+          {/* Preview dos ensaios filtrados */}
+          {!loadingEnsaios && ensaios.length > 0 && (
+            <div className="border-t pt-4">
+              <Label className="text-sm font-semibold mb-2 block">
+                Ensaios que serão exportados ({getFilteredEnsaios().length})
+              </Label>
+              <div className="max-h-60 overflow-y-auto space-y-2">
+                {getFilteredEnsaios().length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum ensaio encontrado com os filtros selecionados
+                  </p>
+                ) : (
+                  getFilteredEnsaios()
+                    .sort((a, b) => a.date.getTime() - b.date.getTime())
+                    .map((ensaio, idx) => {
+                      const cong = congregations.find(c => c.id === ensaio.congregationId);
+                      return (
+                        <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded text-xs">
+                          <div className="flex-1">
+                            <span className="font-medium">{format(ensaio.date, 'dd/MM/yyyy')}</span>
+                            <span className="mx-2">•</span>
+                            <span>{ensaio.congregationName}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {ensaio.type === 'regional' ? 'Regional' : 'Local'}
+                            </Badge>
+                            {cong && (
+                              <span className="text-muted-foreground">{cong.city}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                )}
+              </div>
+            </div>
+          )}
+
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               onClick={exportToExcel}
