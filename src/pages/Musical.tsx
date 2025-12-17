@@ -464,7 +464,10 @@ export default function Musical() {
           <Button 
             variant="outline" 
             className="gap-2"
-            onClick={() => setCalendarDialogOpen(true)}
+            onClick={() => {
+              loadEnsaios();
+              setCalendarDialogOpen(true);
+            }}
           >
             <Calendar className="h-4 w-4" />
             Calendário de Ensaios
@@ -715,7 +718,16 @@ export default function Musical() {
           <DialogHeader>
             <DialogTitle>Exportar Calendário de Ensaios</DialogTitle>
             <DialogDescription>
-              Escolha os filtros para gerar o calendário
+              {loadingEnsaios ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Carregando ensaios...
+                </span>
+              ) : (
+                <>
+                  {ensaios.length} ensaio{ensaios.length !== 1 ? 's' : ''} encontrado{ensaios.length !== 1 ? 's' : ''} • Escolha os filtros para gerar o calendário
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
