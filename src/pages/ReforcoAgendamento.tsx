@@ -17,6 +17,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { reforcoService } from '@/services/reforcoService';
@@ -62,6 +69,9 @@ export default function ReforcoAgendamento() {
   // Estados para edição
   const [editingSchedule, setEditingSchedule] = useState<ReforcoSchedule | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Estado para Dialog de congregações
+  const [showAllCongregationsDialog, setShowAllCongregationsDialog] = useState(false);
   
   const [availablePeople, setAvailablePeople] = useState<string[]>([]);
   const [availableDays, setAvailableDays] = useState<Array<{ day: string; time: string }>>([]);
@@ -787,9 +797,12 @@ export default function ReforcoAgendamento() {
                       </div>
                     ))}
                     {congregationsWithoutSchedule.length > 10 && (
-                      <p className="text-sm text-muted-foreground text-center">
+                      <button
+                        onClick={() => setShowAllCongregationsDialog(true)}
+                        className="text-sm text-primary hover:underline text-center w-full py-2"
+                      >
                         +{congregationsWithoutSchedule.length - 10} congregações
-                      </p>
+                      </button>
                     )}
                   </div>
                 </CardContent>
@@ -957,6 +970,46 @@ export default function ReforcoAgendamento() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Diálogo com todas as congregações sem agendamento */}
+      <Dialog open={showAllCongregationsDialog} onOpenChange={setShowAllCongregationsDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Congregações sem Agendamento</DialogTitle>
+            <DialogDescription>
+              {congregationsWithoutSchedule.length} congregação(ões) ainda não têm reforço agendado este mês
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 mt-4">
+            {congregationsWithoutSchedule.map((cong) => (
+              <div key={cong.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Building2 className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">{cong.name}</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {cong.city}/{cong.state}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedCongregationId(cong.id!);
+                    setShowAllCongregationsDialog(false);
+                  }}
+                >
+                  Agendar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
