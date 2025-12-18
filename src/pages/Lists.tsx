@@ -7,13 +7,23 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { batismoDataService, santaCeiaDataService, ensaioDataService } from '@/services/dataLancamentoService';
 import { reforcoService } from '@/services/reforcoService';
 import { eventService } from '@/services/eventService';
-import type { BatismoData, SantaCeiaData, EnsaioData, Event as EventType } from '@/types';
-import { FileSpreadsheet, FileText, Eye, Loader2, Calendar, Filter } from 'lucide-react';
+import { savedListService } from '@/services/savedListService';
+import type { BatismoData, SantaCeiaData, EnsaioData, Event as EventType, SavedList } from '@/types';
+import { FileSpreadsheet, FileText, Eye, Loader2, Calendar, Filter, Save, FolderOpen, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -60,9 +70,16 @@ export default function Lists() {
   const [filterCongregation, setFilterCongregation] = useState('all');
   const [showPreview, setShowPreview] = useState(false);
   const [avisos, setAvisos] = useState('');
+  
+  // Listas salvas
+  const [savedLists, setSavedLists] = useState<SavedList[]>([]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [listTitle, setListTitle] = useState('');
 
   useEffect(() => {
     loadAllData();
+    loadSavedLists();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadAllData = async () => {
@@ -90,6 +107,97 @@ export default function Lists() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSavedLists = async () => {
+    try {
+      const lists = await savedListService.getAll();
+      setSavedLists(lists);
+    } catch (error) {
+      console.error('Error loading saved lists:', error);
+    }
+  };
+
+  const saveList = async () => {
+    if (!listTitle.trim()) {
+      toast({
+        title: 'Título obrigatório',
+        description: 'Por favor, informe um título para a lista.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const items = getFilteredItems();
+    if (items.length === 0) {
+      toast({
+        title: 'Lista vazia',
+        description: 'Não há itens para salvar com os filtros selecionados.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await savedListService.create({
+        title: listTitle,
+        startDate,
+        endDate,
+        filterType,
+        filterCongregation,
+        avisos,
+        items,
+      });
+
+      toast({
+        title: 'Lista salva!',
+        description: 'A lista foi salva com sucesso.',
+      });
+
+      setListTitle('');
+      setSaveDialogOpen(false);
+      loadSavedLists();
+    } catch (error) {
+      console.error('Error saving list:', error);
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar a lista.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const loadList = (list: SavedList) => {
+    setStartDate(list.startDate);
+    setEndDate(list.endDate);
+    setFilterType(list.filterType);
+    setFilterCongregation(list.filterCongregation);
+    setAvisos(list.avisos);
+    setLoadDialogOpen(false);
+    setShowPreview(true);
+
+    toast({
+      title: 'Lista carregada!',
+      description: `Lista "${list.title}" foi carregada com sucesso.`,
+    });
+  };
+
+  const deleteList = async (id: string) => {
+    try {
+      await savedListService.delete(id);
+      toast({
+        title: 'Lista excluída!',
+        description: 'A lista foi excluída com sucesso.',
+      });
+      loadSavedLists();
+    } catch (error) {
+      console.error('Error deleting list:', error);
+      toast({
+        title: 'Erro ao excluir',
+        description: 'Não foi possível excluir a lista.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -521,6 +629,85 @@ export default function Lists() {
                 <Eye className="h-4 w-4" />
                 {showPreview ? 'Ocultar' : 'Mostrar'} Preview
               </Button>
+              
+              <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Save className="h-4 w-4" />
+                    Salvar Lista
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Salvar Lista</DialogTitle>
+                    <DialogDescription>
+                      Digite um título para identificar esta lista
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-2">
+                    <Label>Título da Lista</Label>
+                    <Input
+                      placeholder="Ex: Batismos Dezembro 2025"
+                      value={listTitle}
+                      onChange={(e) => setListTitle(e.target.value)}
+                    />
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setSaveDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={saveList}>Salvar</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={loadDialogOpen} onOpenChange={setLoadDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <FolderOpen className="h-4 w-4" />
+                    Carregar Lista
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Listas Salvas</DialogTitle>
+                    <DialogDescription>
+                      Selecione uma lista para carregar
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="max-h-96 overflow-y-auto space-y-2">
+                    {savedLists.length === 0 ? (
+                      <p className="text-center py-8 text-muted-foreground">
+                        Nenhuma lista salva
+                      </p>
+                    ) : (
+                      savedLists.map(list => (
+                        <div key={list.id} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
+                          <div className="flex-1">
+                            <p className="font-medium">{list.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(list.createdAt, 'dd/MM/yyyy HH:mm', { locale: ptBR })} • {list.items.length} itens
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => loadList(list)}>
+                              Carregar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => list.id && deleteList(list.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
               <Button onClick={exportToExcel} disabled={loading} className="gap-2">
                 <FileSpreadsheet className="h-4 w-4" />
                 Exportar Excel

@@ -143,6 +143,13 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated();
     }
     
+    // Regras para a coleção de listas salvas
+    match /saved-lists/{listId} {
+      // Permitir leitura e escrita para usuários autenticados
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAuthenticated();
+    }
+    
     // Bloquear acesso a qualquer outra coleção não especificada
     match /{document=**} {
       allow read, write: if false;

@@ -337,3 +337,25 @@ export interface EBIAttendance {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Lista Salva
+export interface SavedList {
+  id?: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  filterType: string;
+  filterCongregation: string;
+  avisos: string;
+  items: Array<{
+    date: Date;
+    time?: string;
+    type: string;
+    congregationName: string;
+    city: string;
+    details?: string;
+    responsavel?: string;
+  }>;
+  createdAt: Date;
+  updatedAt: Date;
+}
