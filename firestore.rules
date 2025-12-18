@@ -34,10 +34,8 @@ service cloud.firestore {
     
     // Regras para a coleção de agendamentos de reforços
     match /reforco-schedules/{scheduleId} {
-      // Permitir leitura pública (acesso sem login)
-      allow read: if true;
-      // Permitir escrita apenas para usuários autenticados
-      allow create, update, delete: if isAuthenticated();
+      // Permitir leitura e escrita pública (acesso sem login)
+      allow read, create, update, delete: if true;
     }
     
     // Regras para a coleção de dados de batismos
