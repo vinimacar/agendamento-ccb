@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -28,7 +29,9 @@ import { useCongregations } from '@/hooks/useCongregations';
 import { musicianService } from '@/services/musicianService';
 import { ensaioDataService } from '@/services/dataLancamentoService';
 import type { Musician, EnsaioData } from '@/types';
-import { Music, Plus, Trash2, Loader2, Search, Calendar, FileDown, Filter, FileSpreadsheet, FileText } from 'lucide-react';
+import { Music, Plus, Trash2, Loader2, Search, Calendar, FileDown, Filter, FileSpreadsheet, FileText, Upload, FileUp } from 'lucide-react';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -81,6 +84,13 @@ export default function Musical() {
   // Delete
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [musicianToDelete, setMusicianToDelete] = useState<{ id: string; name: string } | null>(null);
+
+  // Import PDF/Excel
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importedData, setImportedData] = useState<Omit<Musician, 'id' | 'createdAt' | 'updatedAt'>[]>([]);
+  const [processingPDF, setProcessingPDF] = useState(false);
+  const [savingImportedData, setSavingImportedData] = useState(false);
+  const [importType, setImportType] = useState<'pdf' | 'excel' | null>(null);
 
   // Calendário e filtros
   const [calendarDialogOpen, setCalendarDialogOpen] = useState(false);
@@ -221,6 +231,281 @@ export default function Musical() {
       setDeleteDialogOpen(false);
       setMusicianToDelete(null);
     }
+  };
+
+  // Configurar worker do PDF.js
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+  const handlePDFUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      toast({
+        title: 'Arquivo inválido',
+        description: 'Por favor, selecione um arquivo PDF.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setProcessingPDF(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+
+      // Extrair texto de todas as páginas
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items
+          .map((item) => ('str' in item ? item.str : ''))
+          .join(' ');
+        fullText += pageText + '\n';
+      }
+
+      // Parsear os dados do PDF
+      const parsedMusicians = parsePDFText(fullText);
+      
+      if (parsedMusicians.length === 0) {
+        toast({
+          title: 'Nenhum dado encontrado',
+          description: 'Não foi possível extrair dados do PDF. Verifique o formato do arquivo.',
+          variant: 'destructive',
+        });
+      } else {
+        setImportedData(parsedMusicians);
+        setImportType('pdf');
+        toast({
+          title: 'PDF processado!',
+          description: `${parsedMusicians.length} músico(s) encontrado(s) no arquivo.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error processing PDF:', error);
+      toast({
+        title: 'Erro ao processar PDF',
+        description: 'Não foi possível ler o arquivo PDF.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessingPDF(false);
+      // Limpar o input para permitir upload do mesmo arquivo novamente
+      event.target.value = '';
+    }
+  };
+
+  const parseExcelData = (data: string[][]): Omit<Musician, 'id' | 'createdAt' | 'updatedAt'>[] => {
+    const musicians: Omit<Musician, 'id' | 'createdAt' | 'updatedAt'>[] = [];
+    
+    // Ignorar a primeira linha (cabeçalho)
+    const rows = data.slice(1);
+
+    for (const row of rows) {
+      // Verificar se a linha tem todos os campos necessários
+      if (row.length < 6) continue;
+
+      const [name, congregationName, city, phone, instrument, stageName] = row.map(cell => 
+        String(cell || '').trim()
+      );
+
+      // Validar campos vazios
+      if (!name || !congregationName || !city || !phone || !instrument || !stageName) {
+        continue;
+      }
+
+      // Validar instrumento
+      if (!INSTRUMENTS.includes(instrument)) {
+        console.warn(`Instrumento inválido: ${instrument} para ${name}`);
+        continue;
+      }
+
+      // Validar etapa
+      if (!STAGES.includes(stageName as typeof STAGES[number])) {
+        console.warn(`Etapa inválida: ${stageName} para ${name}`);
+        continue;
+      }
+
+      // Encontrar congregação pelo nome
+      const congregation = congregations.find(c => 
+        c.name.toLowerCase().includes(congregationName.toLowerCase()) ||
+        congregationName.toLowerCase().includes(c.name.toLowerCase())
+      );
+
+      if (congregation) {
+        musicians.push({
+          name,
+          congregationId: congregation.id!,
+          congregationName: congregation.name,
+          city: city || congregation.city,
+          phone,
+          instrument,
+          stage: stageName as typeof STAGES[number],
+        });
+      } else {
+        console.warn(`Congregação não encontrada: ${congregationName} para ${name}`);
+      }
+    }
+
+    return musicians;
+  };
+
+  const parsePDFText = (text: string): Omit<Musician, 'id' | 'createdAt' | 'updatedAt'>[] => {
+    const musicians: Omit<Musician, 'id' | 'createdAt' | 'updatedAt'>[] = [];
+    const lines = text.split('\n').filter(line => line.trim());
+
+    // Padrão esperado: Nome | Congregação | Cidade | Telefone | Instrumento | Etapa
+    // Ajuste este padrão conforme o formato do seu PDF
+    for (const line of lines) {
+      // Tentar diferentes separadores comuns
+      let parts = line.split('|').map(p => p.trim());
+      if (parts.length < 6) {
+        parts = line.split('\t').map(p => p.trim());
+      }
+      if (parts.length < 6) {
+        parts = line.split(/\s{2,}/).map(p => p.trim());
+      }
+
+      // Validar se temos todos os campos necessários
+      if (parts.length >= 6) {
+        const [name, congregationName, city, phone, instrument, stageName] = parts;
+        
+        // Validar instrumento
+        if (!INSTRUMENTS.includes(instrument)) {
+          continue;
+        }
+
+        // Validar etapa
+        if (!STAGES.includes(stageName as typeof STAGES[number])) {
+          continue;
+        }
+
+        // Encontrar congregação pelo nome
+        const congregation = congregations.find(c => 
+          c.name.toLowerCase().includes(congregationName.toLowerCase()) ||
+          congregationName.toLowerCase().includes(c.name.toLowerCase())
+        );
+
+        if (congregation) {
+          musicians.push({
+            name,
+            congregationId: congregation.id!,
+            congregationName: congregation.name,
+            city: city || congregation.city,
+            phone,
+            instrument,
+            stage: stageName as typeof STAGES[number],
+          });
+        }
+      }
+    }
+
+    return musicians;
+  };
+
+  const handleExcelUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = [
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'text/csv'
+    ];
+
+    if (!validTypes.includes(file.type) && !file.name.match(/\.(xlsx?|csv)$/i)) {
+      toast({
+        title: 'Arquivo inválido',
+        description: 'Por favor, selecione um arquivo Excel (.xlsx, .xls) ou CSV.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setProcessingPDF(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+      
+      // Pegar a primeira planilha
+      const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+      const data: string[][] = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+      // Parsear os dados do Excel
+      const parsedMusicians = parseExcelData(data);
+      
+      if (parsedMusicians.length === 0) {
+        toast({
+          title: 'Nenhum dado encontrado',
+          description: 'Não foi possível extrair dados do arquivo. Verifique o formato.',
+          variant: 'destructive',
+        });
+      } else {
+        setImportedData(parsedMusicians);
+        setImportType('excel');
+        toast({
+          title: 'Arquivo processado!',
+          description: `${parsedMusicians.length} músico(s) encontrado(s) no arquivo.`,
+        });
+      }
+    } catch (error) {
+      console.error('Error processing Excel:', error);
+      toast({
+        title: 'Erro ao processar arquivo',
+        description: 'Não foi possível ler o arquivo Excel/CSV.',
+        variant: 'destructive',
+      });
+    } finally {
+      setProcessingPDF(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (importedData.length === 0) return;
+
+    setSavingImportedData(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    try {
+      for (const musician of importedData) {
+        try {
+          await musicianService.create(musician);
+          successCount++;
+        } catch (error) {
+          console.error('Error importing musician:', musician.name, error);
+          errorCount++;
+        }
+      }
+
+      toast({
+        title: 'Importação concluída!',
+        description: `${successCount} músico(s) importado(s) com sucesso${errorCount > 0 ? `. ${errorCount} falha(s).` : '.'}`,
+      });
+
+      // Limpar dados e fechar diálogo
+      setImportedData([]);
+      setImportType(null);
+      setImportDialogOpen(false);
+      loadMusicians();
+    } catch (error) {
+      console.error('Error during import:', error);
+      toast({
+        title: 'Erro na importação',
+        description: 'Ocorreu um erro ao importar os dados.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSavingImportedData(false);
+    }
+  };
+
+  const handleCancelImport = () => {
+    setImportedData([]);
+    setImportType(null);
+    setImportDialogOpen(false);
   };
 
   // Aplicar filtros
@@ -461,18 +746,38 @@ export default function Musical() {
             </p>
           </div>
           
-          <Button 
-            variant="outline" 
-            className="gap-2"
-            onClick={() => {
-              loadEnsaios();
-              setCalendarDialogOpen(true);
-            }}
-          >
-            <Calendar className="h-4 w-4" />
-            Calendário de Ensaios
-            <Filter className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="gap-2">
+                  <FileUp className="h-4 w-4" />
+                  Importar Dados
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Importar PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Importar Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button 
+              variant="outline" 
+              className="gap-2"
+              onClick={() => {
+                loadEnsaios();
+                setCalendarDialogOpen(true);
+              }}
+            >
+              <Calendar className="h-4 w-4" />
+              Calendário de Ensaios
+              <Filter className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -711,6 +1016,183 @@ export default function Musical() {
           </Card>
         </div>
       </div>
+
+      {/* Import Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Importar Músicos</DialogTitle>
+            <DialogDescription>
+              Selecione um arquivo PDF ou Excel/CSV contendo dados de músicos
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {importedData.length === 0 ? (
+              <Tabs defaultValue="pdf" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="pdf">
+                    <FileText className="h-4 w-4 mr-2" />
+                    PDF
+                  </TabsTrigger>
+                  <TabsTrigger value="excel">
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Excel/CSV
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="pdf" className="space-y-4">
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                    <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <Label htmlFor="pdf-upload" className="cursor-pointer">
+                      <div className="text-sm font-medium mb-2">
+                        {processingPDF ? 'Processando PDF...' : 'Clique para selecionar um arquivo PDF'}
+                      </div>
+                      <div className="text-xs text-muted-foreground mb-3">
+                        Formato esperado: Nome | Congregação | Cidade | Telefone | Instrumento | Etapa
+                      </div>
+                      <Button variant="outline" size="sm" type="button">
+                        <FileText className="h-4 w-4 mr-2" />
+                        Selecionar PDF
+                      </Button>
+                    </Label>
+                    <Input
+                      id="pdf-upload"
+                      type="file"
+                      accept=".pdf"
+                      onChange={handlePDFUpload}
+                      disabled={processingPDF}
+                      className="hidden"
+                    />
+                    {processingPDF && (
+                      <div className="mt-4 flex justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="excel" className="space-y-4">
+                  <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                    <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <Label htmlFor="excel-upload" className="cursor-pointer">
+                      <div className="text-sm font-medium mb-2">
+                        {processingPDF ? 'Processando arquivo...' : 'Clique para selecionar um arquivo Excel ou CSV'}
+                      </div>
+                      <div className="text-xs text-muted-foreground mb-3">
+                        Formato esperado: Colunas - Nome | Congregação | Cidade | Telefone | Instrumento | Etapa
+                      </div>
+                      <Button variant="outline" size="sm" type="button">
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />
+                        Selecionar Excel/CSV
+                      </Button>
+                    </Label>
+                    <Input
+                      id="excel-upload"
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handleExcelUpload}
+                      disabled={processingPDF}
+                      className="hidden"
+                    />
+                    {processingPDF && (
+                      <div className="mt-4 flex justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Music className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold">Dados Prontos para Importação</p>
+                      <p className="text-sm text-muted-foreground">
+                        {importedData.length} músico(s) encontrado(s) • Revise antes de confirmar
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCancelImport}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between px-2">
+                    <Label className="text-xs text-muted-foreground uppercase">Preview dos Dados</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {importedData.length} {importedData.length === 1 ? 'registro' : 'registros'}
+                    </span>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto space-y-2 border rounded-lg p-4 bg-muted/30">
+                    {importedData.map((musician, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start justify-between p-3 rounded-lg bg-secondary/20 border border-secondary/40"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold">{musician.name}</h3>
+                            <Badge variant="outline">{musician.instrument}</Badge>
+                            <Badge className={getStageColor(musician.stage)}>
+                              {musician.stage}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {musician.congregationName} • {musician.city}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            📞 {musician.phone}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            {importedData.length > 0 && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelImport}
+                  disabled={savingImportedData}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleConfirmImport}
+                  disabled={savingImportedData}
+                >
+                  {savingImportedData ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Importando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Confirmar e Importar
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Calendar Filter Dialog */}
       <Dialog open={calendarDialogOpen} onOpenChange={setCalendarDialogOpen}>
