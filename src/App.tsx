@@ -119,11 +119,7 @@ const App = () => (
             />
             <Route
               path="/reforco-agendamento"
-              element={
-                <ProtectedRoute>
-                  <ReforcoAgendamento />
-                </ProtectedRoute>
-              }
+              element={<ReforcoAgendamento />}
             />
             <Route
               path="/rjm"
