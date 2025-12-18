@@ -117,10 +117,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/reforco-agendamento"
-              element={<ReforcoAgendamento />}
-            />
+            <Route path="/reforco-agendamento" element={<ReforcoAgendamento />} />
             <Route
               path="/rjm"
               element={
