@@ -781,7 +781,7 @@ export default function Lists() {
                   Nenhum item encontrado com os filtros selecionados
                 </p>
               ) : (
-                <div className="space-y-8 print:space-y-3">
+                <div className="space-y-3">
                   <style>{`
                     @media print {
                       * { 
@@ -796,20 +796,19 @@ export default function Lists() {
                         padding: 2px 4px !important;
                         line-height: 1.1 !important;
                       }
-                      .space-y-8 > * + * { margin-top: 8px !important; }
-                      .space-y-2 > * + * { margin-top: 4px !important; }
-                      .p-2 { padding: 2px 4px !important; }
-                      .p-3 { padding: 4px 6px !important; }
-                      .p-4 { padding: 6px 8px !important; }
-                      .pb-4 { padding-bottom: 6px !important; }
-                      .mt-8 { margin-top: 10px !important; }
+                      .space-y-3 > * + * { margin-top: 6px !important; }
+                      .space-y-1 > * + * { margin-top: 2px !important; }
+                      .compact-p { padding: 2px 4px !important; }
+                      .compact-header { padding: 3px 6px !important; }
+                      .pb-2 { padding-bottom: 4px !important; }
+                      .mt-4 { margin-top: 8px !important; }
                     }
                   `}</style>
                   {/* Cabeçalho */}
-                  <div className="text-center space-y-2 border-b pb-4">
-                    <h2 className="text-xl font-bold">CONGREGAÇÃO CRISTÃ NO BRASIL</h2>
-                    <p className="text-sm font-semibold">ADMINISTRAÇÃO ITUIUTABA - {getPeriodText()}</p>
-                    <p className="text-sm font-semibold">
+                  <div className="text-center space-y-1 border-b pb-2">
+                    <h2 className="text-base font-bold">CONGREGAÇÃO CRISTÃ NO BRASIL</h2>
+                    <p className="text-xs font-semibold">ADMINISTRAÇÃO ITUIUTABA - {getPeriodText()}</p>
+                    <p className="text-xs font-semibold">
                       {filterType === 'batismo' ? 'LISTA DE BATISMOS' :
                        filterType === 'santa-ceia' ? 'LISTA DE SANTA CEIA' :
                        filterType === 'ensaio-regional' ? 'LISTA DE ENSAIOS REGIONAIS' :
@@ -822,24 +821,24 @@ export default function Lists() {
 
                   {/* Itens agrupados por tipo */}
                   {sortedGroupedItems.map(([eventType, items]) => (
-                    <div key={eventType} className="space-y-2">
+                    <div key={eventType} className="space-y-1">
                       {/* Categoria com toggle visual */}
-                      <div className="relative bg-gray-400 p-3 font-bold text-center text-white rounded-sm">
+                      <div className="relative bg-gray-400 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs">
                         {eventType.toUpperCase()}
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-5 bg-green-500 rounded-full flex items-center px-1">
-                          <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-4 bg-green-500 rounded-full flex items-center px-0.5">
+                          <div className="w-3 h-3 bg-white rounded-full ml-auto"></div>
                         </div>
                       </div>
 
                       {/* Tabela */}
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm border-collapse border border-gray-300">
+                        <table className="w-full text-xs border-collapse border border-gray-300">
                           <thead>
                             <tr className="bg-gray-100">
-                              <th className="p-2 text-left border border-gray-300 font-bold">DATA</th>
-                              <th className="p-2 text-left border border-gray-300 font-bold">HORA</th>
-                              <th className="p-2 text-left border border-gray-300 font-bold">LOCALIDADE</th>
-                              <th className="p-2 text-left border border-gray-300 font-bold">
+                              <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">DATA</th>
+                              <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">HORA</th>
+                              <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">LOCALIDADE</th>
+                              <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">
                                 {items[0]?.eventTitle ? 'TIPO DE REUNIÃO' : 
                                  eventType.includes('Reforço') ? 'RESPONSÁVEL' : 'ANCIÃO'}
                               </th>
@@ -848,10 +847,10 @@ export default function Lists() {
                           <tbody>
                             {items.map((item, idx) => (
                               <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                <td className="p-2 border border-gray-300">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toUpperCase())}</td>
-                                <td className="p-2 border border-gray-300">{item.time || '19:30'}</td>
-                                <td className="p-2 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
-                                <td className="p-2 border border-gray-300">
+                                <td className="compact-p py-1 px-2 border border-gray-300">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toUpperCase())}</td>
+                                <td className="compact-p py-1 px-2 border border-gray-300">{item.time || '19:30'}</td>
+                                <td className="compact-p py-1 px-2 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
+                                <td className="compact-p py-1 px-2 border border-gray-300">
                                   {item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-')}
                                 </td>
                               </tr>
@@ -864,14 +863,14 @@ export default function Lists() {
 
                   {/* Avisos para Irmandade */}
                   {avisos && (
-                    <div className="mt-8 space-y-2">
-                      <div className="relative bg-gray-400 p-3 font-bold text-center text-white rounded-sm">
+                    <div className="mt-4 space-y-1">
+                      <div className="relative bg-gray-400 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs">
                         AVISOS PARA IRMANDADE
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-5 bg-green-500 rounded-full flex items-center px-1">
-                          <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
+                        <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-4 bg-green-500 rounded-full flex items-center px-0.5">
+                          <div className="w-3 h-3 bg-white rounded-full ml-auto"></div>
                         </div>
                       </div>
-                      <div className="border border-gray-300 p-4 whitespace-pre-wrap text-sm bg-white">
+                      <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
                         {avisos}
                       </div>
                     </div>
