@@ -51,7 +51,9 @@ export default function Lists() {
   const [reforcos, setReforcos] = useState<ReforcoSchedule[]>([]);
   const [events, setEvents] = useState<EventType[]>([]);
   
-  const [filterYear, setFilterYear] = useState(String(new Date().getFullYear()));
+  // Filtros de período
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterCongregation, setFilterCongregation] = useState('all');
   const [showPreview, setShowPreview] = useState(false);
@@ -90,12 +92,24 @@ export default function Lists() {
 
   const getFilteredItems = (): ListItem[] => {
     const items: ListItem[] = [];
-    const year = parseInt(filterYear);
+    
+    // Parse das datas do filtro
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    
+    // Função auxiliar para verificar se a data está no período
+    const isInPeriod = (date: Date) => {
+      if (!start && !end) return true;
+      if (start && end) return date >= start && date <= end;
+      if (start) return date >= start;
+      if (end) return date <= end;
+      return true;
+    };
 
     // Batismos
     if (filterType === 'all' || filterType === 'batismo') {
       batismos.forEach(batismo => {
-        if (batismo.date.getFullYear() === year) {
+        if (isInPeriod(batismo.date)) {
           if (filterCongregation === 'all' || batismo.congregationId === filterCongregation) {
             const cong = congregations.find(c => c.id === batismo.congregationId);
             items.push({
@@ -115,7 +129,7 @@ export default function Lists() {
     // Santa Ceia
     if (filterType === 'all' || filterType === 'santa-ceia') {
       santaCeias.forEach(ceia => {
-        if (ceia.date.getFullYear() === year) {
+        if (isInPeriod(ceia.date)) {
           if (filterCongregation === 'all' || ceia.congregationId === filterCongregation) {
             const cong = congregations.find(c => c.id === ceia.congregationId);
             items.push({
@@ -135,7 +149,7 @@ export default function Lists() {
     // Ensaios Regionais
     if (filterType === 'all' || filterType === 'ensaio-regional') {
       ensaios.forEach(ensaio => {
-        if (ensaio.date.getFullYear() === year && ensaio.type === 'regional') {
+        if (ensaio.type === 'regional' && isInPeriod(ensaio.date)) {
           if (filterCongregation === 'all' || ensaio.congregationId === filterCongregation) {
             const cong = congregations.find(c => c.id === ensaio.congregationId);
             items.push({
@@ -154,7 +168,7 @@ export default function Lists() {
     // Reforços para Cultos Oficiais
     if (filterType === 'all' || filterType === 'reforco-culto') {
       reforcos.forEach(reforco => {
-        if (reforco.date.getFullYear() === year && reforco.type === 'culto-oficial') {
+        if (reforco.type === 'culto-oficial' && isInPeriod(reforco.date)) {
           if (filterCongregation === 'all' || reforco.congregationId === filterCongregation) {
             const cong = congregations.find(c => c.id === reforco.congregationId);
             items.push({
@@ -173,7 +187,7 @@ export default function Lists() {
     // Reforços para RJM
     if (filterType === 'all' || filterType === 'reforco-rjm') {
       reforcos.forEach(reforco => {
-        if (reforco.date.getFullYear() === year && reforco.type === 'rjm') {
+        if (reforco.type === 'rjm' && isInPeriod(reforco.date)) {
           if (filterCongregation === 'all' || reforco.congregationId === filterCongregation) {
             const cong = congregations.find(c => c.id === reforco.congregationId);
             items.push({
@@ -192,7 +206,7 @@ export default function Lists() {
     // Eventos gerais
     if (filterType === 'all' || filterType === 'eventos') {
       events.forEach(event => {
-        if (event.date.getFullYear() === year) {
+        if (isInPeriod(event.date)) {
           if (filterCongregation === 'all' || event.congregationId === filterCongregation) {
             const cong = congregations.find(c => c.id === event.congregationId);
             items.push({
@@ -319,6 +333,26 @@ export default function Lists() {
   };
 
   const filteredItems = getFilteredItems();
+  
+  // Agrupar itens por tipo de evento
+  const groupedItems = filteredItems.reduce((acc, item) => {
+    if (!acc[item.type]) {
+      acc[item.type] = [];
+    }
+    acc[item.type].push(item);
+    return acc;
+  }, {} as Record<string, ListItem[]>);
+
+  // Formatar período para exibição
+  const getPeriodText = () => {
+    if (!startDate && !endDate) return 'TODO O PERÍODO';
+    if (startDate && endDate) {
+      return `${format(new Date(startDate), 'dd/MM/yyyy')} A ${format(new Date(endDate), 'dd/MM/yyyy')}`;
+    }
+    if (startDate) return `A PARTIR DE ${format(new Date(startDate), 'dd/MM/yyyy')}`;
+    if (endDate) return `ATÉ ${format(new Date(endDate), 'dd/MM/yyyy')}`;
+    return '';
+  };
 
   return (
     <DashboardLayout>
@@ -338,25 +372,23 @@ export default function Lists() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="space-y-2">
-                <Label>Ano</Label>
-                <Select value={filterYear} onValueChange={setFilterYear}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={String(new Date().getFullYear() - 1)}>
-                      {new Date().getFullYear() - 1}
-                    </SelectItem>
-                    <SelectItem value={String(new Date().getFullYear())}>
-                      {new Date().getFullYear()}
-                    </SelectItem>
-                    <SelectItem value={String(new Date().getFullYear() + 1)}>
-                      {new Date().getFullYear() + 1}
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Data Inicial</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Data Final</Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                />
               </div>
 
               <div className="space-y-2">
@@ -433,11 +465,11 @@ export default function Lists() {
                   Nenhum item encontrado com os filtros selecionados
                 </p>
               ) : (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {/* Cabeçalho */}
                   <div className="text-center space-y-2 border-b pb-4">
                     <h2 className="text-xl font-bold">CONGREGAÇÃO CRISTÃ NO BRASIL</h2>
-                    <p className="text-sm font-semibold">REGIONAL UBERLÂNDIA - {format(new Date(parseInt(filterYear), 0), 'MMMM', { locale: ptBR }).toUpperCase()} DE {filterYear}</p>
+                    <p className="text-sm font-semibold">REGIONAL UBERLÂNDIA - {getPeriodText()}</p>
                     <p className="text-sm font-semibold">
                       {filterType === 'batismo' ? 'LISTA DE BATISMOS' :
                        filterType === 'santa-ceia' ? 'LISTA DE SANTA CEIA' :
@@ -449,40 +481,39 @@ export default function Lists() {
                     </p>
                   </div>
 
-                  {/* Categoria */}
-                  <div className="bg-muted/30 p-2 font-bold text-center">
-                    {filterType === 'batismo' ? 'BATISMOS' :
-                     filterType === 'santa-ceia' ? 'SANTA CEIA' :
-                     filterType === 'ensaio-regional' ? 'ENSAIOS REGIONAIS' :
-                     filterType === 'reforco-culto' ? 'REFORÇOS - CULTOS' :
-                     filterType === 'reforco-rjm' ? 'REFORÇOS - RJM' :
-                     filterType === 'eventos' ? 'EVENTOS' :
-                     'DIVERSOS'}
-                  </div>
+                  {/* Itens agrupados por tipo */}
+                  {Object.entries(groupedItems).map(([eventType, items]) => (
+                    <div key={eventType} className="space-y-4">
+                      {/* Categoria */}
+                      <div className="bg-muted/30 p-2 font-bold text-center">
+                        {eventType.toUpperCase()}
+                      </div>
 
-                  {/* Tabela */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm border-collapse">
-                      <thead>
-                        <tr className="bg-muted">
-                          <th className="p-2 text-left border font-semibold">DATA</th>
-                          <th className="p-2 text-left border font-semibold">HORA</th>
-                          <th className="p-2 text-left border font-semibold">LOCALIDADE</th>
-                          <th className="p-2 text-left border font-semibold">ANCIÃO</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredItems.map((item, idx) => (
-                          <tr key={idx} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
-                            <td className="p-2 border">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toUpperCase())}</td>
-                            <td className="p-2 border">{item.time || '19:30'}</td>
-                            <td className="p-2 border">{item.congregationName.toUpperCase()} ({item.city})</td>
-                            <td className="p-2 border">{item.responsavel?.toUpperCase() || '-'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      {/* Tabela */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm border-collapse">
+                          <thead>
+                            <tr className="bg-muted">
+                              <th className="p-2 text-left border font-semibold">DATA</th>
+                              <th className="p-2 text-left border font-semibold">HORA</th>
+                              <th className="p-2 text-left border font-semibold">LOCALIDADE</th>
+                              <th className="p-2 text-left border font-semibold">ANCIÃO</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.map((item, idx) => (
+                              <tr key={idx} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                                <td className="p-2 border">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toUpperCase())}</td>
+                                <td className="p-2 border">{item.time || '19:30'}</td>
+                                <td className="p-2 border">{item.congregationName.toUpperCase()} ({item.city})</td>
+                                <td className="p-2 border">{item.responsavel?.toUpperCase() || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
