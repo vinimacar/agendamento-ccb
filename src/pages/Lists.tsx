@@ -546,10 +546,13 @@ export default function Lists() {
   // Ordem específica dos tipos de evento
   const eventTypeOrder: Record<string, number> = {
     'Batismo': 1,
-    'Reforço - RJM': 2,
-    'Ensaio Regional': 3,
-    'Santa Ceia': 4,
+    'reuniao-mocidade': 2,
+    'Santa Ceia': 3,
+    'Ensaio Regional': 4,
+    'culto-oficial-reforco': 5,
+    'rjm-reforco': 5, // mesma posição que culto-oficial-reforco
     'Reforço - Culto Oficial': 5,
+    'Reforço - RJM': 5,
     'culto-busca-dons': 6,
   };
   
