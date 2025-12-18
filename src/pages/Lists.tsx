@@ -358,9 +358,10 @@ export default function Lists() {
     worksheetData.push([`Período: ${getPeriodText()}`]);
     worksheetData.push([]);
     
-    // Verificar se tem eventos (com eventTitle)
+    // Verificar se tem eventos (com eventTitle) ou reforços
     const hasEvents = items.some(item => item.eventTitle);
-    const lastColumnHeader = hasEvents ? 'Tipo de Reunião' : 'Ancião';
+    const hasReforcos = items.some(item => item.type.includes('Reforço'));
+    const lastColumnHeader = hasEvents ? 'Tipo de Reunião' : hasReforcos ? 'Responsável' : 'Ancião';
     worksheetData.push(['Data', 'Hora', 'Tipo', 'Congregação', 'Cidade', lastColumnHeader]);
 
     items.forEach(item => {
@@ -450,6 +451,7 @@ export default function Lists() {
 
       // Tabela
       const hasEventsInGroup = eventItems.some(item => item.eventTitle);
+      const hasReforcosInGroup = eventType.includes('Reforço');
       const tableData = eventItems.map(item => [
         format(item.date, "dd/MM EEE", { locale: ptBR }).replace(/\w+$/, (day) => day.substring(0, 3).toUpperCase()),
         item.time || '19:30',
@@ -459,7 +461,7 @@ export default function Lists() {
 
       autoTable(doc, {
         startY: currentY,
-        head: [["DATA", "HORA", "LOCALIDADE", hasEventsInGroup ? "TIPO DE REUNIÃO" : "ANCIÃO"]],
+        head: [["DATA", "HORA", "LOCALIDADE", hasEventsInGroup ? "TIPO DE REUNIÃO" : hasReforcosInGroup ? "RESPONSÁVEL" : "ANCIÃO"]],
         body: tableData,
         theme: 'grid',
         headStyles: {
@@ -798,7 +800,8 @@ export default function Lists() {
                               <th className="p-2 text-left border font-semibold">HORA</th>
                               <th className="p-2 text-left border font-semibold">LOCALIDADE</th>
                               <th className="p-2 text-left border font-semibold">
-                                {items[0]?.eventTitle ? 'TIPO DE REUNIÃO' : 'ANCIÃO'}
+                                {items[0]?.eventTitle ? 'TIPO DE REUNIÃO' : 
+                                 eventType.includes('Reforço') ? 'RESPONSÁVEL' : 'ANCIÃO'}
                               </th>
                             </tr>
                           </thead>
