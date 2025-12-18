@@ -240,19 +240,21 @@ export default function Lists() {
     }
 
     const worksheetData: (string | number)[][] = [];
-    worksheetData.push(['LISTA DE SERVIÇOS E EVENTOS']);
+    worksheetData.push(['CONGREGAÇÃO CRISTÃ NO BRASIL']);
+    worksheetData.push(['REGIONAL UBERLÂNDIA']);
     worksheetData.push([]);
-    worksheetData.push([`Ano: ${filterYear}`]);
+    worksheetData.push([`Período: ${getPeriodText()}`]);
     worksheetData.push([]);
-    worksheetData.push(['Data', 'Tipo', 'Congregação', 'Cidade', 'Detalhes']);
+    worksheetData.push(['Data', 'Hora', 'Tipo', 'Congregação', 'Cidade', 'Ancião']);
 
     items.forEach(item => {
       worksheetData.push([
         format(item.date, 'dd/MM/yyyy'),
+        item.time || '19:30',
         item.type,
         item.congregationName,
         item.city,
-        item.details || '-',
+        item.responsavel || '-',
       ]);
     });
 
@@ -260,7 +262,11 @@ export default function Lists() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Lista de Serviços');
 
-    XLSX.writeFile(workbook, `lista-servicos-${filterYear}.xlsx`);
+    const filename = startDate && endDate 
+      ? `lista-servicos-${format(new Date(startDate), 'yyyy-MM-dd')}_${format(new Date(endDate), 'yyyy-MM-dd')}.xlsx`
+      : `lista-servicos-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+
+    XLSX.writeFile(workbook, filename);
 
     toast({
       title: 'Lista exportada!',
@@ -282,50 +288,90 @@ export default function Lists() {
 
     const doc = new jsPDF();
 
-    doc.setFont('helvetica');
-    doc.setFontSize(20);
-    doc.setTextColor(31, 41, 55);
-    doc.text('Lista de Serviços e Eventos', 105, 20, { align: 'center' });
-
+    // Cabeçalho
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 15, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text('REGIONAL UBERLÂNDIA', 105, 22, { align: 'center' });
+    
     doc.setFontSize(10);
-    doc.setTextColor(107, 114, 128);
-    doc.text(`Ano: ${filterYear}`, 105, 28, { align: 'center' });
-    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 105, 33, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.text(getPeriodText(), 105, 28, { align: 'center' });
 
-    const tableData = items.map(item => [
-      format(item.date, 'dd/MM/yyyy'),
-      item.type,
-      item.congregationName,
-      item.city,
-      item.details || '-',
-    ]);
+    // Agrupar por tipo
+    const grouped = items.reduce((acc, item) => {
+      if (!acc[item.type]) acc[item.type] = [];
+      acc[item.type].push(item);
+      return acc;
+    }, {} as Record<string, ListItem[]>);
 
-    autoTable(doc, {
-      startY: 40,
-      head: [['Data', 'Tipo', 'Congregação', 'Cidade', 'Detalhes']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [59, 130, 246],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 10,
-      },
-      bodyStyles: {
-        fontSize: 9,
-        textColor: [31, 41, 55],
-      },
-      alternateRowStyles: {
-        fillColor: [249, 250, 251],
-      },
-      styles: {
-        cellPadding: 3,
-        lineColor: [229, 231, 235],
-        lineWidth: 0.1,
-      },
+    let currentY = 35;
+
+    Object.entries(grouped).forEach(([eventType, eventItems], index) => {
+      if (index > 0 && currentY > 250) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      // Categoria
+      doc.setFillColor(240, 240, 240);
+      doc.rect(10, currentY, 190, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text(eventType.toUpperCase(), 105, currentY + 5, { align: 'center' });
+      currentY += 10;
+
+      // Tabela
+      const tableData = eventItems.map(item => [
+        format(item.date, "dd/MM EEE", { locale: ptBR }).replace(/\w+$/, (day) => day.substring(0, 3).toUpperCase()),
+        item.time || '19:30',
+        `${item.congregationName.toUpperCase()} (${item.city})`,
+        item.responsavel?.toUpperCase() || '-',
+      ]);
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [['DATA', 'HORA', 'LOCALIDADE', 'ANCIÃO']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [200, 200, 200],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          fontSize: 9,
+          halign: 'left',
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: [0, 0, 0],
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245],
+        },
+        styles: {
+          cellPadding: 2,
+          lineColor: [0, 0, 0],
+          lineWidth: 0.1,
+        },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 90 },
+          3: { cellWidth: 50 },
+        },
+      });
+
+      currentY = (doc as any).lastAutoTable.finalY + 5;
     });
 
-    doc.save(`lista-servicos-${filterYear}.pdf`);
+    const filename = startDate && endDate 
+      ? `lista-servicos-${format(new Date(startDate), 'yyyy-MM-dd')}_${format(new Date(endDate), 'yyyy-MM-dd')}.pdf`
+      : `lista-servicos-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+
+    doc.save(filename);
 
     toast({
       title: 'Lista exportada!',
