@@ -6,13 +6,11 @@ const COLLECTION_NAME = 'saved-lists';
 
 const savedListConverter = {
   toFirestore: (list: SavedList) => {
-    return {
+    const data: Record<string, unknown> = {
       title: list.title,
       startDate: list.startDate,
       endDate: list.endDate,
-      filterType: list.filterType,
-      filterCongregation: list.filterCongregation,
-      avisos: list.avisos,
+      avisos: list.avisos || '',
       items: list.items.map(item => ({
         ...item,
         date: Timestamp.fromDate(item.date),
@@ -20,6 +18,16 @@ const savedListConverter = {
       createdAt: list.createdAt ? Timestamp.fromDate(list.createdAt) : Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
+    
+    // Only add optional fields if they have values
+    if (list.filterType) {
+      data.filterType = list.filterType;
+    }
+    if (list.filterCongregation) {
+      data.filterCongregation = list.filterCongregation;
+    }
+    
+    return data;
   },
   fromFirestore: (snapshot: QueryDocumentSnapshot<DocumentData>): SavedList => {
     const data = snapshot.data();
