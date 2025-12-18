@@ -254,24 +254,64 @@ export default function Musical() {
       const arrayBuffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
       let fullText = '';
+      const structuredText: string[] = [];
 
-      // Extrair texto de todas as páginas
+      console.log(`📄 Processando PDF com ${pdf.numPages} página(s)...`);
+
+      // Extrair texto de todas as páginas com melhor estruturação
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items
-          .map((item) => ('str' in item ? item.str : ''))
-          .join(' ');
-        fullText += pageText + '\n';
+        
+        // Agrupar itens por linha usando posição Y
+        const itemsByLine: Map<number, { str: string; transform: number[] }[]> = new Map();
+        
+        textContent.items.forEach((item: unknown) => {
+          const textItem = item as { str?: string; transform?: number[] };
+          if (textItem.str && textItem.str.trim() && textItem.transform) {
+            const y = Math.round(textItem.transform[5]); // Posição Y
+            if (!itemsByLine.has(y)) {
+              itemsByLine.set(y, []);
+            }
+            itemsByLine.get(y)!.push({ str: textItem.str, transform: textItem.transform });
+          }
+        });
+
+        // Ordenar por posição Y (de cima para baixo)
+        const sortedLines = Array.from(itemsByLine.entries())
+          .sort((a, b) => b[0] - a[0]); // Inverter para ler de cima para baixo
+
+        // Construir linhas de texto
+        sortedLines.forEach(([_, items]) => {
+          // Ordenar itens da linha por posição X (esquerda para direita)
+          items.sort((a, b) => a.transform[4] - b.transform[4]);
+          const lineText = items.map(item => item.str).join(' ');
+          if (lineText.trim()) {
+            structuredText.push(lineText.trim());
+            fullText += lineText + '\n';
+          }
+        });
       }
 
+      console.log('📋 Texto extraído do PDF:');
+      console.log('─'.repeat(80));
+      console.log(fullText.substring(0, 1000)); // Mostrar primeiros 1000 caracteres
+      console.log('─'.repeat(80));
+      console.log(`Total de linhas: ${structuredText.length}`);
+
       // Parsear os dados do PDF
-      const parsedMusicians = parsePDFText(fullText);
+      const parsedMusicians = parsePDFText(fullText, structuredText);
+      
+      console.log(`✅ Músicos encontrados: ${parsedMusicians.length}`);
       
       if (parsedMusicians.length === 0) {
+        console.warn('⚠️ Nenhum músico válido encontrado.');
+        console.log('💡 Dica: Verifique se o PDF está no formato correto:');
+        console.log('   Nome | Congregação | Cidade | Telefone | Instrumento | Etapa');
+        
         toast({
           title: 'Nenhum dado encontrado',
-          description: 'Não foi possível extrair dados do PDF. Verifique o formato do arquivo.',
+          description: 'Verifique o console do navegador (F12) para ver o texto extraído e ajustar o formato.',
           variant: 'destructive',
         });
       } else {
@@ -283,10 +323,10 @@ export default function Musical() {
         });
       }
     } catch (error) {
-      console.error('Error processing PDF:', error);
+      console.error('❌ Error processing PDF:', error);
       toast({
         title: 'Erro ao processar PDF',
-        description: 'Não foi possível ler o arquivo PDF.',
+        description: 'Não foi possível ler o arquivo PDF. Verifique o console (F12).',
         variant: 'destructive',
       });
     } finally {
@@ -351,56 +391,134 @@ export default function Musical() {
     return musicians;
   };
 
-  const parsePDFText = (text: string): Omit<Musician, 'id' | 'createdAt' | 'updatedAt'>[] => {
+  const parsePDFText = (text: string, lines?: string[]): Omit<Musician, 'id' | 'createdAt' | 'updatedAt'>[] => {
     const musicians: Omit<Musician, 'id' | 'createdAt' | 'updatedAt'>[] = [];
-    const lines = text.split('\n').filter(line => line.trim());
+    const textLines = lines || text.split('\n').filter(line => line.trim());
+
+    console.log('🔍 Iniciando parsing do PDF...');
+    console.log(`📊 Total de linhas a processar: ${textLines.length}`);
 
     // Padrão esperado: Nome | Congregação | Cidade | Telefone | Instrumento | Etapa
-    // Ajuste este padrão conforme o formato do seu PDF
-    for (const line of lines) {
-      // Tentar diferentes separadores comuns
-      let parts = line.split('|').map(p => p.trim());
-      if (parts.length < 6) {
-        parts = line.split('\t').map(p => p.trim());
+    for (let i = 0; i < textLines.length; i++) {
+      const line = textLines[i];
+      if (!line.trim()) continue;
+
+      // Pular linhas que parecem ser cabeçalhos
+      const lowerLine = line.toLowerCase();
+      if (lowerLine.includes('nome') && lowerLine.includes('congregação') && lowerLine.includes('instrumento')) {
+        console.log(`⏭️  Pulando cabeçalho na linha ${i + 1}: ${line}`);
+        continue;
       }
+
+      // Tentar diferentes estratégias de separação
+      let parts: string[] = [];
+      let separator = '';
+
+      // Estratégia 1: Pipe |
+      if (line.includes('|')) {
+        parts = line.split('|').map(p => p.trim()).filter(p => p);
+        separator = 'pipe (|)';
+      }
+      
+      // Estratégia 2: Tabulação
+      if (parts.length < 6 && line.includes('\t')) {
+        parts = line.split('\t').map(p => p.trim()).filter(p => p);
+        separator = 'tabulação';
+      }
+      
+      // Estratégia 3: Múltiplos espaços (2 ou mais)
       if (parts.length < 6) {
-        parts = line.split(/\s{2,}/).map(p => p.trim());
+        const spaceParts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
+        if (spaceParts.length >= 6) {
+          parts = spaceParts;
+          separator = 'espaços múltiplos';
+        }
       }
 
-      // Validar se temos todos os campos necessários
-      if (parts.length >= 6) {
-        const [name, congregationName, city, phone, instrument, stageName] = parts;
-        
-        // Validar instrumento
-        if (!INSTRUMENTS.includes(instrument)) {
-          continue;
+      // Estratégia 4: Tentar identificar por padrões conhecidos (telefone, instrumentos)
+      if (parts.length < 6) {
+        // Buscar telefone no formato (XX) XXXXX-XXXX ou similar
+        const phoneMatch = line.match(/\(?\d{2}\)?\s?\d{4,5}-?\d{4}/);
+        if (phoneMatch) {
+          const phone = phoneMatch[0];
+          const beforePhone = line.substring(0, phoneMatch.index).trim();
+          const afterPhone = line.substring((phoneMatch.index || 0) + phone.length).trim();
+          
+          // Tentar extrair campos antes do telefone
+          const beforeParts = beforePhone.split(/\s{2,}/).filter(p => p.trim());
+          // Tentar extrair campos depois do telefone
+          const afterParts = afterPhone.split(/\s{2,}/).filter(p => p.trim());
+          
+          if (beforeParts.length >= 3 && afterParts.length >= 2) {
+            parts = [...beforeParts, phone, ...afterParts];
+            separator = 'padrão de telefone';
+          }
         }
+      }
 
-        // Validar etapa
-        if (!STAGES.includes(stageName as typeof STAGES[number])) {
-          continue;
+      // Se ainda não conseguiu separar adequadamente, pular esta linha
+      if (parts.length < 6) {
+        if (parts.length > 0) {
+          console.log(`⚠️  Linha ${i + 1} ignorada (${parts.length} campos): ${line.substring(0, 100)}`);
         }
+        continue;
+      }
 
-        // Encontrar congregação pelo nome
-        const congregation = congregations.find(c => 
-          c.name.toLowerCase().includes(congregationName.toLowerCase()) ||
-          congregationName.toLowerCase().includes(c.name.toLowerCase())
-        );
+      // Extrair campos (considerando que pode haver mais de 6 campos)
+      const [name, congregationName, city, phone, instrument, stageName, ...extra] = parts;
 
-        if (congregation) {
-          musicians.push({
-            name,
-            congregationId: congregation.id!,
-            congregationName: congregation.name,
-            city: city || congregation.city,
-            phone,
-            instrument,
-            stage: stageName as typeof STAGES[number],
-          });
-        }
+      console.log(`\n📝 Linha ${i + 1} (${separator}):`);
+      console.log(`   Nome: "${name}"`);
+      console.log(`   Congregação: "${congregationName}"`);
+      console.log(`   Cidade: "${city}"`);
+      console.log(`   Telefone: "${phone}"`);
+      console.log(`   Instrumento: "${instrument}"`);
+      console.log(`   Etapa: "${stageName}"`);
+
+      // Validar campos obrigatórios
+      if (!name || !congregationName || !instrument || !stageName) {
+        console.log(`   ❌ Campos vazios detectados`);
+        continue;
+      }
+
+      // Validar instrumento
+      if (!INSTRUMENTS.includes(instrument)) {
+        console.log(`   ❌ Instrumento inválido: "${instrument}"`);
+        console.log(`   💡 Instrumentos válidos: ${INSTRUMENTS.join(', ')}`);
+        continue;
+      }
+
+      // Validar etapa
+      if (!STAGES.includes(stageName as typeof STAGES[number])) {
+        console.log(`   ❌ Etapa inválida: "${stageName}"`);
+        console.log(`   💡 Etapas válidas: ${STAGES.join(', ')}`);
+        continue;
+      }
+
+      // Encontrar congregação pelo nome
+      const congregation = congregations.find(c => 
+        c.name.toLowerCase().includes(congregationName.toLowerCase()) ||
+        congregationName.toLowerCase().includes(c.name.toLowerCase())
+      );
+
+      if (congregation) {
+        console.log(`   ✅ Congregação encontrada: ${congregation.name}`);
+        musicians.push({
+          name,
+          congregationId: congregation.id!,
+          congregationName: congregation.name,
+          city: city || congregation.city,
+          phone: phone || '',
+          instrument,
+          stage: stageName as typeof STAGES[number],
+        });
+      } else {
+        console.log(`   ❌ Congregação não encontrada: "${congregationName}"`);
+        console.log(`   💡 Congregações disponíveis: ${congregations.map(c => c.name).join(', ')}`);
       }
     }
 
+    console.log(`\n✅ Total de músicos válidos encontrados: ${musicians.length}`);
     return musicians;
   };
 
