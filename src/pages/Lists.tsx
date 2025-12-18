@@ -270,7 +270,7 @@ export default function Lists() {
               type: 'Ensaio Regional',
               congregationName: ensaio.congregationName,
               city: cong?.city || '-',
-              responsavel: '-',
+              responsavel: ensaio.anciao || ensaio.encarregadoRegional || cong?.admin || '-',
             });
           }
         }
@@ -785,21 +785,24 @@ export default function Lists() {
 
                   {/* Itens agrupados por tipo */}
                   {sortedGroupedItems.map(([eventType, items]) => (
-                    <div key={eventType} className="space-y-4">
-                      {/* Categoria */}
-                      <div className="bg-muted/30 p-2 font-bold text-center">
+                    <div key={eventType} className="space-y-2">
+                      {/* Categoria com toggle visual */}
+                      <div className="relative bg-gray-400 p-3 font-bold text-center text-white rounded-sm">
                         {eventType.toUpperCase()}
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-5 bg-green-500 rounded-full flex items-center px-1">
+                          <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
+                        </div>
                       </div>
 
                       {/* Tabela */}
                       <div className="overflow-x-auto">
-                        <table className="w-full text-sm border-collapse">
+                        <table className="w-full text-sm border-collapse border border-gray-300">
                           <thead>
-                            <tr className="bg-muted">
-                              <th className="p-2 text-left border font-semibold">DATA</th>
-                              <th className="p-2 text-left border font-semibold">HORA</th>
-                              <th className="p-2 text-left border font-semibold">LOCALIDADE</th>
-                              <th className="p-2 text-left border font-semibold">
+                            <tr className="bg-gray-100">
+                              <th className="p-2 text-left border border-gray-300 font-bold">DATA</th>
+                              <th className="p-2 text-left border border-gray-300 font-bold">HORA</th>
+                              <th className="p-2 text-left border border-gray-300 font-bold">LOCALIDADE</th>
+                              <th className="p-2 text-left border border-gray-300 font-bold">
                                 {items[0]?.eventTitle ? 'TIPO DE REUNIÃO' : 
                                  eventType.includes('Reforço') ? 'RESPONSÁVEL' : 'ANCIÃO'}
                               </th>
@@ -807,11 +810,11 @@ export default function Lists() {
                           </thead>
                           <tbody>
                             {items.map((item, idx) => (
-                              <tr key={idx} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
-                                <td className="p-2 border">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toUpperCase())}</td>
-                                <td className="p-2 border">{item.time || '19:30'}</td>
-                                <td className="p-2 border">{item.congregationName.toUpperCase()} ({item.city})</td>
-                                <td className="p-2 border">
+                              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                <td className="p-2 border border-gray-300">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toUpperCase())}</td>
+                                <td className="p-2 border border-gray-300">{item.time || '19:30'}</td>
+                                <td className="p-2 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
+                                <td className="p-2 border border-gray-300">
                                   {item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-')}
                                 </td>
                               </tr>
@@ -825,10 +828,13 @@ export default function Lists() {
                   {/* Avisos para Irmandade */}
                   {avisos && (
                     <div className="mt-8 space-y-2">
-                      <div className="bg-muted/30 p-2 font-bold text-center">
+                      <div className="relative bg-gray-400 p-3 font-bold text-center text-white rounded-sm">
                         AVISOS PARA IRMANDADE
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-5 bg-green-500 rounded-full flex items-center px-1">
+                          <div className="w-4 h-4 bg-white rounded-full ml-auto"></div>
+                        </div>
                       </div>
-                      <div className="border p-4 whitespace-pre-wrap text-sm">
+                      <div className="border border-gray-300 p-4 whitespace-pre-wrap text-sm bg-white">
                         {avisos}
                       </div>
                     </div>
