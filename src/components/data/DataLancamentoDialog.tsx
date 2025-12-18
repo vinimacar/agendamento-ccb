@@ -10,8 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { batismoDataService, santaCeiaDataService, ensaioDataService } from '@/services/dataLancamentoService';
 import { eventService } from '@/services/eventService';
-import type { InstrumentCounts, Event, Congregation } from '@/types';
-import { Loader2, Plus, Music, Users2, Droplet, Printer } from 'lucide-react';
+import type { InstrumentCounts, Event, Congregation, BatismoData, SantaCeiaData, EnsaioData } from '@/types';
+import { Loader2, Plus, Music, Users2, Droplet, Printer, Search, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 
@@ -75,6 +75,13 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
 
   // Estados para lista de anciãos
   const [availableElders, setAvailableElders] = useState<string[]>([]);
+  
+  // Estados para eventos já realizados
+  const [showSavedEvents, setShowSavedEvents] = useState(false);
+  const [savedBatismos, setSavedBatismos] = useState<BatismoData[]>([]);
+  const [savedSantaCeias, setSavedSantaCeias] = useState<SantaCeiaData[]>([]);
+  const [savedEnsaios, setSavedEnsaios] = useState<EnsaioData[]>([]);
+  const [loadingSavedEvents, setLoadingSavedEvents] = useState(false);
   
   // Estados para dados salvos (para impressão)
   const [lastSavedData, setLastSavedData] = useState<{
@@ -245,6 +252,99 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
       : format(new Date(), 'yyyyMMdd');
     const fileName = `${type}_${congregation?.name || 'congregacao'}_${fileDate}.pdf`;
     doc.save(fileName);
+  };
+
+  // Carregar eventos já realizados
+  const loadSavedEvents = async () => {
+    setLoadingSavedEvents(true);
+    try {
+      const [batismos, ceias, ensaios] = await Promise.all([
+        batismoDataService.getAll(),
+        santaCeiaDataService.getAll(),
+        ensaioDataService.getAll(),
+      ]);
+      setSavedBatismos(batismos);
+      setSavedSantaCeias(ceias);
+      setSavedEnsaios(ensaios);
+      setShowSavedEvents(true);
+    } catch (error) {
+      console.error('Error loading saved events:', error);
+      toast({
+        title: 'Erro ao carregar',
+        description: 'Não foi possível carregar os eventos salvos.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingSavedEvents(false);
+    }
+  };
+
+  // Editar evento
+  const handleEditEvent = (event: BatismoData | SantaCeiaData | EnsaioData, type: 'batismo' | 'santa-ceia' | 'ensaio') => {
+    setActiveTab(type);
+    setShowSavedEvents(false);
+    
+    if (type === 'batismo' && 'tipoBatismo' in event) {
+      const batismoEvent = event as BatismoData;
+      setBatismoCongregationId(batismoEvent.congregationId);
+      setBatismoDate(format(batismoEvent.date, 'yyyy-MM-dd'));
+      setBatismoIrmaos(String(batismoEvent.irmaos || 0));
+      setBatismoIrmas(String(batismoEvent.irmas || 0));
+      setBatismoElderName(batismoEvent.elderName || '');
+      setBatismoElderFromOther(batismoEvent.elderFromOtherLocation || false);
+      setBatismoOtherElderName(batismoEvent.otherElderName || '');
+      setBatismoTipo(batismoEvent.tipoBatismo || 'extra');
+    } else if (type === 'santa-ceia' && 'irmaos' in event) {
+      const ceiaEvent = event as SantaCeiaData;
+      setCeiaCongregationId(ceiaEvent.congregationId);
+      setCeiaDate(format(ceiaEvent.date, 'yyyy-MM-dd'));
+      setCeiaIrmaos(String(ceiaEvent.irmaos || 0));
+      setCeiaIrmas(String(ceiaEvent.irmas || 0));
+      setCeiaElderName(ceiaEvent.elderName || '');
+      setCeiaElderFromOther(ceiaEvent.elderFromOtherLocation || false);
+      setCeiaOtherElderName(ceiaEvent.otherElderName || '');
+    } else if (type === 'ensaio' && 'instruments' in event) {
+      const ensaioEvent = event as EnsaioData;
+      setEnsaioCongregationId(ensaioEvent.congregationId);
+      setEnsaioDate(format(ensaioEvent.date, 'yyyy-MM-dd'));
+      setEnsaioType(ensaioEvent.type || 'local');
+      setEnsaioAnciao(ensaioEvent.anciao || '');
+      setEnsaioEncarregadoRegional(ensaioEvent.encarregadoRegional || '');
+      setInstruments(ensaioEvent.instruments || {
+        clarinete: 0, clarone: 0, saxSoprano: 0, saxAlto: 0, saxTenor: 0, saxBaritono: 0,
+        trompete: 0, flugelhorn: 0, euphonio: 0, trombone: 0, trombonito: 0, tuba: 0,
+        viola: 0, violino: 0, cello: 0, organista: 0,
+      });
+    }
+  };
+
+  // Excluir evento
+  const handleDeleteEvent = async (eventId: string, type: 'batismo' | 'santa-ceia' | 'ensaio') => {
+    try {
+      if (type === 'batismo') {
+        await batismoDataService.delete(eventId);
+      } else if (type === 'santa-ceia') {
+        await santaCeiaDataService.delete(eventId);
+      } else if (type === 'ensaio') {
+        await ensaioDataService.delete(eventId);
+      }
+      
+      toast({
+        title: 'Sucesso!',
+        description: 'Evento excluído com sucesso.',
+      });
+      
+      // Recarregar eventos
+      await loadSavedEvents();
+      onDataSaved();
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast({
+        title: 'Erro ao excluir',
+        description: 'Não foi possível excluir o evento.',
+        variant: 'destructive',
+      });
+    }
   };
   
   const handleSaveBatismo = async () => {
@@ -441,6 +541,149 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
             Registre dados de batismos, santa ceias e ensaios
           </DialogDescription>
         </DialogHeader>
+
+        {/* Botão para buscar eventos realizados */}
+        <div className="flex justify-end mb-4">
+          <Button
+            variant="outline"
+            onClick={loadSavedEvents}
+            disabled={loadingSavedEvents}
+            className="gap-2"
+          >
+            {loadingSavedEvents ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
+            Buscar Eventos Realizados
+          </Button>
+        </div>
+
+        {/* Lista de eventos salvos */}
+        {showSavedEvents && (
+          <Card className="mb-4">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center justify-between">
+                Eventos Já Realizados
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowSavedEvents(false)}
+                >
+                  Fechar
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="batismo-list" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="batismo-list">Batismos ({savedBatismos.length})</TabsTrigger>
+                  <TabsTrigger value="santa-ceia-list">Santa Ceia ({savedSantaCeias.length})</TabsTrigger>
+                  <TabsTrigger value="ensaio-list">Ensaios ({savedEnsaios.length})</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="batismo-list" className="space-y-2 max-h-60 overflow-y-auto">
+                  {savedBatismos.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum batismo registrado</p>
+                  ) : (
+                    savedBatismos.map((batismo) => (
+                      <div key={batismo.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{batismo.congregationName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(batismo.date, 'dd/MM/yyyy')} - {batismo.irmaos + batismo.irmas} batizados
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditEvent(batismo, 'batismo')}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => batismo.id && handleDeleteEvent(batismo.id, 'batismo')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </TabsContent>
+
+                <TabsContent value="santa-ceia-list" className="space-y-2 max-h-60 overflow-y-auto">
+                  {savedSantaCeias.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhuma santa ceia registrada</p>
+                  ) : (
+                    savedSantaCeias.map((ceia) => (
+                      <div key={ceia.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{ceia.congregationName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(ceia.date, 'dd/MM/yyyy')} - {ceia.irmaos + ceia.irmas} participantes
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditEvent(ceia, 'santa-ceia')}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => ceia.id && handleDeleteEvent(ceia.id, 'santa-ceia')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </TabsContent>
+
+                <TabsContent value="ensaio-list" className="space-y-2 max-h-60 overflow-y-auto">
+                  {savedEnsaios.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum ensaio registrado</p>
+                  ) : (
+                    savedEnsaios.map((ensaio) => (
+                      <div key={ensaio.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{ensaio.congregationName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(ensaio.date, 'dd/MM/yyyy')} - {ensaio.type === 'regional' ? 'Regional' : 'Local'}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditEvent(ensaio, 'ensaio')}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => ensaio.id && handleDeleteEvent(ensaio.id, 'ensaio')}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3">
