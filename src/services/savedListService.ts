@@ -1,4 +1,4 @@
-import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, orderBy, Timestamp, QueryDocumentSnapshot, DocumentData } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import type { SavedList } from '@/types';
 
@@ -21,7 +21,7 @@ const savedListConverter = {
       updatedAt: Timestamp.now(),
     };
   },
-  fromFirestore: (snapshot: any): SavedList => {
+  fromFirestore: (snapshot: QueryDocumentSnapshot<DocumentData>): SavedList => {
     const data = snapshot.data();
     return {
       id: snapshot.id,
@@ -31,7 +31,7 @@ const savedListConverter = {
       filterType: data.filterType,
       filterCongregation: data.filterCongregation,
       avisos: data.avisos || '',
-      items: data.items.map((item: any) => ({
+      items: data.items.map((item: { date: { toDate: () => Date }; [key: string]: unknown }) => ({
         ...item,
         date: item.date.toDate(),
       })),
@@ -60,7 +60,7 @@ export const savedListService = {
 
   async update(id: string, list: Partial<SavedList>): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
-    const updateData: any = { ...list, updatedAt: Timestamp.now() };
+    const updateData: Record<string, unknown> = { ...list, updatedAt: Timestamp.now() };
     
     if (list.items) {
       updateData.items = list.items.map(item => ({

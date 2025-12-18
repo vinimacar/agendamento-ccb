@@ -491,7 +491,8 @@ export default function Lists() {
         },
       });
 
-      currentY = (doc as any).lastAutoTable.finalY + 5;
+      currentY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || currentY + 50;
+      currentY += 5;
     });
 
     // Adicionar avisos se houver
