@@ -781,7 +781,30 @@ export default function Lists() {
                   Nenhum item encontrado com os filtros selecionados
                 </p>
               ) : (
-                <div className="space-y-8">
+                <div className="space-y-8 print:space-y-3">
+                  <style>{`
+                    @media print {
+                      * { 
+                        font-size: 9px !important;
+                        line-height: 1.2 !important;
+                      }
+                      h2 { font-size: 13px !important; }
+                      .text-xl { font-size: 13px !important; }
+                      .text-sm { font-size: 8px !important; }
+                      table { font-size: 8px !important; }
+                      th, td { 
+                        padding: 2px 4px !important;
+                        line-height: 1.1 !important;
+                      }
+                      .space-y-8 > * + * { margin-top: 8px !important; }
+                      .space-y-2 > * + * { margin-top: 4px !important; }
+                      .p-2 { padding: 2px 4px !important; }
+                      .p-3 { padding: 4px 6px !important; }
+                      .p-4 { padding: 6px 8px !important; }
+                      .pb-4 { padding-bottom: 6px !important; }
+                      .mt-8 { margin-top: 10px !important; }
+                    }
+                  `}</style>
                   {/* Cabeçalho */}
                   <div className="text-center space-y-2 border-b pb-4">
                     <h2 className="text-xl font-bold">CONGREGAÇÃO CRISTÃ NO BRASIL</h2>
