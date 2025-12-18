@@ -50,6 +50,7 @@ interface ListItem {
   city: string;
   details?: string;
   responsavel?: string;
+  eventTitle?: string; // Título do evento para reuniões
 }
 
 export default function Lists() {
@@ -328,6 +329,7 @@ export default function Lists() {
               city: cong?.city || '-',
               details: event.description || event.title,
               responsavel: event.elderName || '-',
+              eventTitle: event.title, // Título do evento
             });
           }
         }
@@ -351,11 +353,15 @@ export default function Lists() {
 
     const worksheetData: (string | number)[][] = [];
     worksheetData.push(['CONGREGAÇÃO CRISTÃ NO BRASIL']);
-    worksheetData.push(['REGIONAL UBERLÂNDIA']);
+    worksheetData.push(['ADMINISTRAÇÃO ITUIUTABA']);
     worksheetData.push([]);
     worksheetData.push([`Período: ${getPeriodText()}`]);
     worksheetData.push([]);
-    worksheetData.push(['Data', 'Hora', 'Tipo', 'Congregação', 'Cidade', 'Ancião']);
+    
+    // Verificar se tem eventos (com eventTitle)
+    const hasEvents = items.some(item => item.eventTitle);
+    const lastColumnHeader = hasEvents ? 'Tipo de Reunião' : 'Ancião';
+    worksheetData.push(['Data', 'Hora', 'Tipo', 'Congregação', 'Cidade', lastColumnHeader]);
 
     items.forEach(item => {
       worksheetData.push([
@@ -364,7 +370,7 @@ export default function Lists() {
         item.type,
         item.congregationName,
         item.city,
-        item.responsavel || '-',
+        item.eventTitle ? item.eventTitle : (item.responsavel || '-'),
       ]);
     });
 
@@ -413,7 +419,7 @@ export default function Lists() {
     doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 15, { align: 'center' });
     
     doc.setFontSize(12);
-    doc.text('REGIONAL UBERLÂNDIA', 105, 22, { align: 'center' });
+    doc.text('ADMINISTRAÇÃO ITUIUTABA', 105, 22, { align: 'center' });
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -443,16 +449,17 @@ export default function Lists() {
       currentY += 10;
 
       // Tabela
+      const hasEventsInGroup = eventItems.some(item => item.eventTitle);
       const tableData = eventItems.map(item => [
         format(item.date, "dd/MM EEE", { locale: ptBR }).replace(/\w+$/, (day) => day.substring(0, 3).toUpperCase()),
         item.time || '19:30',
         `${item.congregationName.toUpperCase()} (${item.city})`,
-        item.responsavel?.toUpperCase() || '-',
+        item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-'),
       ]);
 
       autoTable(doc, {
         startY: currentY,
-        head: [['DATA', 'HORA', 'LOCALIDADE', 'ANCIÃO']],
+        head: [["DATA", "HORA", "LOCALIDADE", hasEventsInGroup ? "TIPO DE REUNIÃO" : "ANCIÃO"]],
         body: tableData,
         theme: 'grid',
         headStyles: {
@@ -520,6 +527,16 @@ export default function Lists() {
 
   const filteredItems = getFilteredItems();
   
+  // Ordem específica dos tipos de evento
+  const eventTypeOrder: Record<string, number> = {
+    'Batismo': 1,
+    'Reforço - RJM': 2,
+    'Ensaio Regional': 3,
+    'Santa Ceia': 4,
+    'Reforço - Culto Oficial': 5,
+    'culto-busca-dons': 6,
+  };
+  
   // Agrupar itens por tipo de evento
   const groupedItems = filteredItems.reduce((acc, item) => {
     if (!acc[item.type]) {
@@ -528,6 +545,13 @@ export default function Lists() {
     acc[item.type].push(item);
     return acc;
   }, {} as Record<string, ListItem[]>);
+
+  // Ordenar grupos pela ordem definida
+  const sortedGroupedItems = Object.entries(groupedItems).sort(([typeA], [typeB]) => {
+    const orderA = eventTypeOrder[typeA] || 999;
+    const orderB = eventTypeOrder[typeB] || 999;
+    return orderA - orderB;
+  });
 
   // Formatar período para exibição
   const getPeriodText = () => {
@@ -745,7 +769,7 @@ export default function Lists() {
                   {/* Cabeçalho */}
                   <div className="text-center space-y-2 border-b pb-4">
                     <h2 className="text-xl font-bold">CONGREGAÇÃO CRISTÃ NO BRASIL</h2>
-                    <p className="text-sm font-semibold">REGIONAL UBERLÂNDIA - {getPeriodText()}</p>
+                    <p className="text-sm font-semibold">ADMINISTRAÇÃO ITUIUTABA - {getPeriodText()}</p>
                     <p className="text-sm font-semibold">
                       {filterType === 'batismo' ? 'LISTA DE BATISMOS' :
                        filterType === 'santa-ceia' ? 'LISTA DE SANTA CEIA' :
@@ -758,7 +782,7 @@ export default function Lists() {
                   </div>
 
                   {/* Itens agrupados por tipo */}
-                  {Object.entries(groupedItems).map(([eventType, items]) => (
+                  {sortedGroupedItems.map(([eventType, items]) => (
                     <div key={eventType} className="space-y-4">
                       {/* Categoria */}
                       <div className="bg-muted/30 p-2 font-bold text-center">
@@ -773,7 +797,9 @@ export default function Lists() {
                               <th className="p-2 text-left border font-semibold">DATA</th>
                               <th className="p-2 text-left border font-semibold">HORA</th>
                               <th className="p-2 text-left border font-semibold">LOCALIDADE</th>
-                              <th className="p-2 text-left border font-semibold">ANCIÃO</th>
+                              <th className="p-2 text-left border font-semibold">
+                                {items[0]?.eventTitle ? 'TIPO DE REUNIÃO' : 'ANCIÃO'}
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
@@ -782,7 +808,9 @@ export default function Lists() {
                                 <td className="p-2 border">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toUpperCase())}</td>
                                 <td className="p-2 border">{item.time || '19:30'}</td>
                                 <td className="p-2 border">{item.congregationName.toUpperCase()} ({item.city})</td>
-                                <td className="p-2 border">{item.responsavel?.toUpperCase() || '-'}</td>
+                                <td className="p-2 border">
+                                  {item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-')}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
