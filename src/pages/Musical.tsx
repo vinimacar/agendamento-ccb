@@ -55,6 +55,8 @@ const INSTRUMENTS = [
   'Violino',
   'Cello',
   'Órgão',
+  'Acordeon',
+  'Flauta',
 ];
 
 const STAGES = ['Ensaio', 'RJM', 'Culto Oficial', 'Oficialização'] as const;
@@ -398,15 +400,43 @@ export default function Musical() {
     console.log('🔍 Iniciando parsing do PDF...');
     console.log(`📊 Total de linhas a processar: ${textLines.length}`);
 
+    // Detectar formato do PDF
+    let pdfFormat: 'standard' | 'alternative' = 'standard';
+    const firstLines = textLines.slice(0, 10).join(' ').toUpperCase();
+    
+    if (firstLines.includes('LOCALIDADE') && firstLines.includes('NIVEL')) {
+      pdfFormat = 'alternative';
+      console.log('📋 Formato alternativo detectado (NOME | INSTRUMENTO | LOCALIDADE | NIVEL)');
+    } else {
+      console.log('📋 Formato padrão detectado (Nome | Congregação | Cidade | Telefone | Instrumento | Etapa)');
+    }
+
+    // Mapear níveis para etapas
+    const mapNivelToStage = (nivel: string): typeof STAGES[number] | null => {
+      const nivelUpper = nivel.toUpperCase().trim();
+      
+      if (nivelUpper.includes('OFICIALIZADO')) return 'Oficialização';
+      if (nivelUpper.includes('CULTO OFICIAL')) return 'Culto Oficial';
+      if (nivelUpper.includes('RJM') && !nivelUpper.includes('ENSAIO')) return 'RJM';
+      if (nivelUpper.includes('ENSAIO') && !nivelUpper.includes('RJM')) return 'Ensaio';
+      if (nivelUpper.includes('RJM') && nivelUpper.includes('ENSAIO')) return 'RJM'; // Priorizar RJM
+      
+      return null;
+    };
+
     // Padrão esperado: Nome | Congregação | Cidade | Telefone | Instrumento | Etapa
     for (let i = 0; i < textLines.length; i++) {
       const line = textLines[i];
       if (!line.trim()) continue;
 
-      // Pular linhas que parecem ser cabeçalhos
+      // Pular linhas que parecem ser cabeçalhos ou metadados
       const lowerLine = line.toLowerCase();
-      if (lowerLine.includes('nome') && lowerLine.includes('congregação') && lowerLine.includes('instrumento')) {
+      if (lowerLine.includes('nome') && (lowerLine.includes('congregação') || lowerLine.includes('instrumento'))) {
         console.log(`⏭️  Pulando cabeçalho na linha ${i + 1}: ${line}`);
+        continue;
+      }
+      if (lowerLine.includes('relatório') || lowerLine.includes('sistema') || lowerLine.includes('gerado em')) {
+        console.log(`⏭️  Pulando metadado na linha ${i + 1}: ${line}`);
         continue;
       }
 
@@ -421,22 +451,22 @@ export default function Musical() {
       }
       
       // Estratégia 2: Tabulação
-      if (parts.length < 6 && line.includes('\t')) {
+      if (parts.length < 4 && line.includes('\t')) {
         parts = line.split('\t').map(p => p.trim()).filter(p => p);
         separator = 'tabulação';
       }
       
       // Estratégia 3: Múltiplos espaços (2 ou mais)
-      if (parts.length < 6) {
+      if (parts.length < 4) {
         const spaceParts = line.split(/\s{2,}/).map(p => p.trim()).filter(p => p);
-        if (spaceParts.length >= 6) {
+        if (spaceParts.length >= 4) {
           parts = spaceParts;
           separator = 'espaços múltiplos';
         }
       }
 
       // Estratégia 4: Tentar identificar por padrões conhecidos (telefone, instrumentos)
-      if (parts.length < 6) {
+      if (parts.length < 4) {
         // Buscar telefone no formato (XX) XXXXX-XXXX ou similar
         const phoneMatch = line.match(/\(?\d{2}\)?\s?\d{4,5}-?\d{4}/);
         if (phoneMatch) {
@@ -457,22 +487,62 @@ export default function Musical() {
       }
 
       // Se ainda não conseguiu separar adequadamente, pular esta linha
-      if (parts.length < 6) {
-        if (parts.length > 0) {
+      if (parts.length < 4) {
+        if (parts.length > 0 && !lowerLine.includes('página') && !lowerLine.includes('total')) {
           console.log(`⚠️  Linha ${i + 1} ignorada (${parts.length} campos): ${line.substring(0, 100)}`);
         }
         continue;
       }
 
-      // Extrair campos (considerando que pode haver mais de 6 campos)
-      const [name, congregationName, city, phone, instrument, stageName, ...extra] = parts;
+      let name = '';
+      let congregationName = '';
+      let city = '';
+      let phone = '';
+      let instrument = '';
+      let stageName = '';
+
+      if (pdfFormat === 'alternative') {
+        // Formato: NOME | INSTRUMENTO | LOCALIDADE | CARGO/MINISTÉRIO | NIVEL
+        if (parts.length >= 4) {
+          name = parts[0];
+          instrument = parts[1];
+          const localidade = parts[2];
+          // parts[3] é CARGO/MINISTÉRIO (ignorar)
+          const nivel = parts[parts.length - 1]; // Último campo é NIVEL
+
+          // Extrair congregação e cidade da localidade (ex: "RECANTO DAS ACÁCIAS - CAPINÓPOLIS")
+          if (localidade.includes(' - ')) {
+            const localParts = localidade.split(' - ').map(p => p.trim());
+            congregationName = localParts[0];
+            city = localParts[localParts.length - 1];
+          } else {
+            congregationName = localidade;
+            city = localidade;
+          }
+
+          // Mapear NIVEL para etapa válida
+          const mappedStage = mapNivelToStage(nivel);
+          if (mappedStage) {
+            stageName = mappedStage;
+          } else {
+            stageName = nivel; // Tentar usar o valor original
+          }
+
+          phone = ''; // Não tem telefone neste formato
+        }
+      } else {
+        // Formato padrão: Nome | Congregação | Cidade | Telefone | Instrumento | Etapa
+        if (parts.length >= 6) {
+          [name, congregationName, city, phone, instrument, stageName] = parts;
+        }
+      }
 
       console.log(`\n📝 Linha ${i + 1} (${separator}):`);
       console.log(`   Nome: "${name}"`);
+      console.log(`   Instrumento: "${instrument}"`);
       console.log(`   Congregação: "${congregationName}"`);
       console.log(`   Cidade: "${city}"`);
-      console.log(`   Telefone: "${phone}"`);
-      console.log(`   Instrumento: "${instrument}"`);
+      console.log(`   Telefone: "${phone || '(não informado)'}"`);
       console.log(`   Etapa: "${stageName}"`);
 
       // Validar campos obrigatórios
@@ -485,7 +555,18 @@ export default function Musical() {
       if (!INSTRUMENTS.includes(instrument)) {
         console.log(`   ❌ Instrumento inválido: "${instrument}"`);
         console.log(`   💡 Instrumentos válidos: ${INSTRUMENTS.join(', ')}`);
-        continue;
+        
+        // Tentar encontrar instrumento similar
+        const similarInstrument = INSTRUMENTS.find(i => 
+          i.toLowerCase().includes(instrument.toLowerCase()) ||
+          instrument.toLowerCase().includes(i.toLowerCase())
+        );
+        if (similarInstrument) {
+          console.log(`   🔄 Usando instrumento similar: "${similarInstrument}"`);
+          instrument = similarInstrument;
+        } else {
+          continue;
+        }
       }
 
       // Validar etapa
@@ -513,8 +594,21 @@ export default function Musical() {
           stage: stageName as typeof STAGES[number],
         });
       } else {
-        console.log(`   ❌ Congregação não encontrada: "${congregationName}"`);
-        console.log(`   💡 Congregações disponíveis: ${congregations.map(c => c.name).join(', ')}`);
+        console.log(`   ⚠️  Congregação não encontrada: "${congregationName}"`);
+        console.log(`   💡 Cadastrando com nome do PDF. Congregações disponíveis: ${congregations.map(c => c.name).slice(0, 5).join(', ')}...`);
+        
+        // Criar um ID temporário baseado no nome da congregação
+        const tempId = `temp_${congregationName.toLowerCase().replace(/\s+/g, '_')}`;
+        
+        musicians.push({
+          name,
+          congregationId: tempId,
+          congregationName: congregationName,
+          city: city || 'Não informada',
+          phone: phone || '',
+          instrument,
+          stage: stageName as typeof STAGES[number],
+        });
       }
     }
 
