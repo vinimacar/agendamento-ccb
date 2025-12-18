@@ -10,10 +10,10 @@ service cloud.firestore {
     
     // Regras para a coleção de congregações
     match /congregations/{congregationId} {
-      // Permitir leitura para usuários autenticados
-      allow read: if isAuthenticated();
+      // Permitir leitura pública (para página de reforços)
+      allow read: if true;
       
-      // Permitir escrita (create, update, delete) para usuários autenticados
+      // Permitir escrita (create, update, delete) apenas para usuários autenticados
       allow create, update, delete: if isAuthenticated();
     }
     
@@ -34,8 +34,9 @@ service cloud.firestore {
     
     // Regras para a coleção de agendamentos de reforços
     match /reforco-schedules/{scheduleId} {
-      // Permitir leitura e escrita para usuários autenticados
-      allow read: if isAuthenticated();
+      // Permitir leitura pública (acesso sem login)
+      allow read: if true;
+      // Permitir escrita apenas para usuários autenticados
       allow create, update, delete: if isAuthenticated();
     }
     
