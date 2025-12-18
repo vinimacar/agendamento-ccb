@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -58,6 +59,7 @@ export default function Lists() {
   const [filterType, setFilterType] = useState('all');
   const [filterCongregation, setFilterCongregation] = useState('all');
   const [showPreview, setShowPreview] = useState(false);
+  const [avisos, setAvisos] = useState('');
 
   useEffect(() => {
     loadAllData();
@@ -258,6 +260,14 @@ export default function Lists() {
       ]);
     });
 
+    // Adicionar avisos se houver
+    if (avisos) {
+      worksheetData.push([]);
+      worksheetData.push([]);
+      worksheetData.push(['AVISOS PARA IRMANDADE']);
+      worksheetData.push([avisos]);
+    }
+
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Lista de Serviços');
@@ -367,6 +377,27 @@ export default function Lists() {
       currentY = (doc as any).lastAutoTable.finalY + 5;
     });
 
+    // Adicionar avisos se houver
+    if (avisos) {
+      if (currentY > 250) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      currentY += 5;
+      doc.setFillColor(240, 240, 240);
+      doc.rect(10, currentY, 190, 8, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('AVISOS PARA IRMANDADE', 105, currentY + 5, { align: 'center' });
+      currentY += 12;
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const splitAvisos = doc.splitTextToSize(avisos, 180);
+      doc.text(splitAvisos, 15, currentY);
+    }
+
     const filename = startDate && endDate 
       ? `lista-servicos-${format(new Date(startDate), 'yyyy-MM-dd')}_${format(new Date(endDate), 'yyyy-MM-dd')}.pdf`
       : `lista-servicos-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
@@ -474,6 +505,17 @@ export default function Lists() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label>Avisos para Irmandade</Label>
+              <Textarea
+                placeholder="Digite os avisos que serão exibidos no final da lista..."
+                value={avisos}
+                onChange={(e) => setAvisos(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+
             <div className="flex gap-2">
               <Button onClick={() => setShowPreview(!showPreview)} variant="outline" className="gap-2">
                 <Eye className="h-4 w-4" />
@@ -561,6 +603,18 @@ export default function Lists() {
                       </div>
                     </div>
                   ))}
+
+                  {/* Avisos para Irmandade */}
+                  {avisos && (
+                    <div className="mt-8 space-y-2">
+                      <div className="bg-muted/30 p-2 font-bold text-center">
+                        AVISOS PARA IRMANDADE
+                      </div>
+                      <div className="border p-4 whitespace-pre-wrap text-sm">
+                        {avisos}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>
