@@ -92,8 +92,9 @@ export default function Index() {
                 </Button>
               </Link>
               <Link to="/login">
-                <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
-                  Área Administrativa
+                <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto border-primary/30 hover:bg-primary/5">
+                  <Shield className="h-4 w-4" />
+                  Administração Ituiutaba
                 </Button>
               </Link>
             </div>
