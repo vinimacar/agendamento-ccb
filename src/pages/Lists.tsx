@@ -224,6 +224,9 @@ export default function Lists() {
         if (isInPeriod(batismo.date)) {
           if (filterCongregation === 'all' || batismo.congregationId === filterCongregation) {
             const cong = congregations.find(c => c.id === batismo.congregationId);
+            const anciaoResponsavel = batismo.elderFromOtherLocation && batismo.otherElderName 
+              ? batismo.otherElderName 
+              : batismo.elderName || cong?.admin || '-';
             items.push({
               date: batismo.date,
               time: '19:30',
@@ -231,7 +234,7 @@ export default function Lists() {
               congregationName: batismo.congregationName,
               city: cong?.city || '-',
               details: `${batismo.irmaos + batismo.irmas} batizados`,
-              responsavel: cong?.admin || '-',
+              responsavel: anciaoResponsavel,
             });
           }
         }
@@ -244,6 +247,9 @@ export default function Lists() {
         if (isInPeriod(ceia.date)) {
           if (filterCongregation === 'all' || ceia.congregationId === filterCongregation) {
             const cong = congregations.find(c => c.id === ceia.congregationId);
+            const anciaoResponsavel = ceia.elderFromOtherLocation && ceia.otherElderName 
+              ? ceia.otherElderName 
+              : ceia.elderName || cong?.admin || '-';
             items.push({
               date: ceia.date,
               time: '19:30',
@@ -251,7 +257,7 @@ export default function Lists() {
               congregationName: ceia.congregationName,
               city: cong?.city || '-',
               details: `${ceia.irmaos + ceia.irmas} participantes`,
-              responsavel: cong?.admin || '-',
+              responsavel: anciaoResponsavel,
             });
           }
         }
@@ -321,6 +327,13 @@ export default function Lists() {
         if (isInPeriod(event.date)) {
           if (filterCongregation === 'all' || event.congregationId === filterCongregation) {
             const cong = congregations.find(c => c.id === event.congregationId);
+            const anciaoResponsavel = event.elderFromOtherLocation && event.otherElderName 
+              ? event.otherElderName 
+              : event.elderName || cong?.admin || '-';
+            
+            // Para culto-busca-dons, mostrar ancião ao invés de título
+            const isBuscaDons = event.type === 'culto-busca-dons';
+            
             items.push({
               date: event.date,
               time: event.time || '19:30',
@@ -328,8 +341,8 @@ export default function Lists() {
               congregationName: event.congregationName || cong?.name || '-',
               city: cong?.city || '-',
               details: event.description || event.title,
-              responsavel: event.elderName || '-',
-              eventTitle: event.title, // Título do evento
+              responsavel: anciaoResponsavel,
+              eventTitle: isBuscaDons ? undefined : event.title, // Não usar título para busca dos dons
             });
           }
         }
