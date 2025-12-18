@@ -22,6 +22,7 @@ import RJMManagement from "./pages/RJMManagement";
 import Musical from "./pages/Musical";
 import DarpeManagement from "./pages/DarpeManagement";
 import EBIManagement from "./pages/EBIManagement";
+import Lists from "./pages/Lists";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -147,6 +148,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <EBIManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/lists"
+              element={
+                <ProtectedRoute>
+                  <Lists />
                 </ProtectedRoute>
               }
             />
