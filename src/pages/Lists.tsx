@@ -23,7 +23,9 @@ interface ReforcoSchedule {
   congregationId: string;
   congregationName: string;
   date: Date;
+  time?: string;
   type: 'culto-oficial' | 'rjm';
+  responsibleName?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -98,7 +100,7 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === batismo.congregationId);
             items.push({
               date: batismo.date,
-              time: batismo.time || '19:30',
+              time: '19:30',
               type: 'Batismo',
               congregationName: batismo.congregationName,
               city: cong?.city || '-',
@@ -118,7 +120,7 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === ceia.congregationId);
             items.push({
               date: ceia.date,
-              time: ceia.time || '19:30',
+              time: '19:30',
               type: 'Santa Ceia',
               congregationName: ceia.congregationName,
               city: cong?.city || '-',
@@ -138,7 +140,7 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === ensaio.congregationId);
             items.push({
               date: ensaio.date,
-              time: ensaio.time || '19:00',
+              time: '19:00',
               type: 'Ensaio Regional',
               congregationName: ensaio.congregationName,
               city: cong?.city || '-',
@@ -157,11 +159,11 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === reforco.congregationId);
             items.push({
               date: reforco.date,
-              time: (reforco as any).time || '19:30',
+              time: reforco.time || '19:30',
               type: 'Reforço - Culto Oficial',
               congregationName: reforco.congregationName,
               city: cong?.city || '-',
-              responsavel: (reforco as any).responsibleName || '-',
+              responsavel: reforco.responsibleName || '-',
             });
           }
         }
@@ -176,11 +178,11 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === reforco.congregationId);
             items.push({
               date: reforco.date,
-              time: (reforco as any).time || '19:30',
+              time: reforco.time || '19:30',
               type: 'Reforço - RJM',
               congregationName: reforco.congregationName,
               city: cong?.city || '-',
-              responsavel: (reforco as any).responsibleName || '-',
+              responsavel: reforco.responsibleName || '-',
             });
           }
         }
