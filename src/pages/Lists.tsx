@@ -28,22 +28,14 @@ interface ReforcoSchedule {
   updatedAt: Date;
 }
 
-interface Event {
-  id?: string;
-  title: string;
-  congregationId?: string;
-  congregationName?: string;
-  date: Date;
-  type: string;
-  description?: string;
-}
-
 interface ListItem {
   date: Date;
+  time?: string;
   type: string;
   congregationName: string;
   city: string;
   details?: string;
+  responsavel?: string;
 }
 
 export default function Lists() {
@@ -81,7 +73,7 @@ export default function Lists() {
       setSantaCeias(santaCeiasData);
       setEnsaios(ensaiosData);
       setReforcos(reforcosData);
-      setEvents(eventsData as Event[]);
+      setEvents(eventsData);
     } catch (error) {
       console.error('Error loading data:', error);
       toast({
@@ -106,10 +98,12 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === batismo.congregationId);
             items.push({
               date: batismo.date,
+              time: batismo.time || '19:30',
               type: 'Batismo',
               congregationName: batismo.congregationName,
               city: cong?.city || '-',
               details: `${batismo.irmaos + batismo.irmas} batizados`,
+              responsavel: cong?.admin || '-',
             });
           }
         }
@@ -124,10 +118,12 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === ceia.congregationId);
             items.push({
               date: ceia.date,
+              time: ceia.time || '19:30',
               type: 'Santa Ceia',
               congregationName: ceia.congregationName,
               city: cong?.city || '-',
               details: `${ceia.irmaos + ceia.irmas} participantes`,
+              responsavel: cong?.admin || '-',
             });
           }
         }
@@ -142,9 +138,11 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === ensaio.congregationId);
             items.push({
               date: ensaio.date,
+              time: ensaio.time || '19:00',
               type: 'Ensaio Regional',
               congregationName: ensaio.congregationName,
               city: cong?.city || '-',
+              responsavel: '-',
             });
           }
         }
@@ -159,9 +157,11 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === reforco.congregationId);
             items.push({
               date: reforco.date,
+              time: (reforco as any).time || '19:30',
               type: 'Reforço - Culto Oficial',
               congregationName: reforco.congregationName,
               city: cong?.city || '-',
+              responsavel: (reforco as any).responsibleName || '-',
             });
           }
         }
@@ -176,9 +176,11 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === reforco.congregationId);
             items.push({
               date: reforco.date,
+              time: (reforco as any).time || '19:30',
               type: 'Reforço - RJM',
               congregationName: reforco.congregationName,
               city: cong?.city || '-',
+              responsavel: (reforco as any).responsibleName || '-',
             });
           }
         }
@@ -193,10 +195,12 @@ export default function Lists() {
             const cong = congregations.find(c => c.id === event.congregationId);
             items.push({
               date: event.date,
-              type: event.type,
+              time: event.time || '19:30',
+              type: event.type || 'Evento',
               congregationName: event.congregationName || cong?.name || '-',
               city: cong?.city || '-',
-              details: event.description,
+              details: event.description || event.title,
+              responsavel: event.elderName || '-',
             });
           }
         }
@@ -427,31 +431,56 @@ export default function Lists() {
                   Nenhum item encontrado com os filtros selecionados
                 </p>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="p-2 text-left">Data</th>
-                        <th className="p-2 text-left">Tipo</th>
-                        <th className="p-2 text-left">Congregação</th>
-                        <th className="p-2 text-left">Cidade</th>
-                        <th className="p-2 text-left">Detalhes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredItems.map((item, idx) => (
-                        <tr key={idx} className="border-b hover:bg-muted/50">
-                          <td className="p-2">{format(item.date, 'dd/MM/yyyy')}</td>
-                          <td className="p-2">
-                            <Badge variant="outline">{item.type}</Badge>
-                          </td>
-                          <td className="p-2">{item.congregationName}</td>
-                          <td className="p-2">{item.city}</td>
-                          <td className="p-2 text-muted-foreground">{item.details || '-'}</td>
+                <div className="space-y-6">
+                  {/* Cabeçalho */}
+                  <div className="text-center space-y-2 border-b pb-4">
+                    <h2 className="text-xl font-bold">CONGREGAÇÃO CRISTÃ NO BRASIL</h2>
+                    <p className="text-sm font-semibold">REGIONAL UBERLÂNDIA - {format(new Date(parseInt(filterYear), 0), 'MMMM', { locale: ptBR }).toUpperCase()} DE {filterYear}</p>
+                    <p className="text-sm font-semibold">
+                      {filterType === 'batismo' ? 'LISTA DE BATISMOS' :
+                       filterType === 'santa-ceia' ? 'LISTA DE SANTA CEIA' :
+                       filterType === 'ensaio-regional' ? 'LISTA DE ENSAIOS REGIONAIS' :
+                       filterType === 'reforco-culto' ? 'LISTA DE REFORÇOS - CULTOS OFICIAIS' :
+                       filterType === 'reforco-rjm' ? 'LISTA DE REFORÇOS - RJM' :
+                       filterType === 'eventos' ? 'LISTA DE EVENTOS' :
+                       'LISTA DE BATISMOS E DIVERSOS'}
+                    </p>
+                  </div>
+
+                  {/* Categoria */}
+                  <div className="bg-muted/30 p-2 font-bold text-center">
+                    {filterType === 'batismo' ? 'BATISMOS' :
+                     filterType === 'santa-ceia' ? 'SANTA CEIA' :
+                     filterType === 'ensaio-regional' ? 'ENSAIOS REGIONAIS' :
+                     filterType === 'reforco-culto' ? 'REFORÇOS - CULTOS' :
+                     filterType === 'reforco-rjm' ? 'REFORÇOS - RJM' :
+                     filterType === 'eventos' ? 'EVENTOS' :
+                     'DIVERSOS'}
+                  </div>
+
+                  {/* Tabela */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm border-collapse">
+                      <thead>
+                        <tr className="bg-muted">
+                          <th className="p-2 text-left border font-semibold">DATA</th>
+                          <th className="p-2 text-left border font-semibold">HORA</th>
+                          <th className="p-2 text-left border font-semibold">LOCALIDADE</th>
+                          <th className="p-2 text-left border font-semibold">ANCIÃO</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {filteredItems.map((item, idx) => (
+                          <tr key={idx} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                            <td className="p-2 border">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toUpperCase())}</td>
+                            <td className="p-2 border">{item.time || '19:30'}</td>
+                            <td className="p-2 border">{item.congregationName.toUpperCase()} ({item.city})</td>
+                            <td className="p-2 border">{item.responsavel?.toUpperCase() || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </CardContent>
