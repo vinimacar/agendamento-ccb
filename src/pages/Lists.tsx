@@ -331,8 +331,8 @@ export default function Lists() {
               ? event.otherElderName 
               : event.elderName || cong?.admin || '-';
             
-            // Para culto-busca-dons, mostrar ancião ao invés de título
-            const isBuscaDons = event.type === 'culto-busca-dons';
+            // Apenas reuniões (mocidade e ministerial) usam eventTitle
+            const isReuniao = event.type === 'reuniao-mocidade' || event.type === 'reuniao-ministerial';
             
             items.push({
               date: event.date,
@@ -342,7 +342,7 @@ export default function Lists() {
               city: cong?.city || '-',
               details: event.description || event.title,
               responsavel: anciaoResponsavel,
-              eventTitle: isBuscaDons ? undefined : event.title, // Não usar título para busca dos dons
+              eventTitle: isReuniao ? event.title : undefined, // Apenas reuniões mostram título
             });
           }
         }
