@@ -462,7 +462,7 @@ export default function Lists() {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(0, 0, 0);
-    doc.text('LISTA DE SERVIÇOS E DIVERSOS', 105, 27, { align: 'center' });
+    doc.text('LISTA DE BATISMOS E DIVERSOS', 105, 27, { align: 'center' });
     
     // Cabeçalho - administração e período
     doc.setFontSize(8);
