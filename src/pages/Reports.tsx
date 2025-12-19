@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,7 +37,7 @@ import {
 import { eventService } from '@/services/eventService';
 import { congregationService } from '@/services/congregationService';
 import { batismoDataService, santaCeiaDataService, ensaioDataService } from '@/services/dataLancamentoService';
-import { DataLancamentoDialog } from '@/components/data/DataLancamentoDialog';
+const DataLancamentoDialog = lazy(() => import('@/components/data/DataLancamentoDialog').then(module => ({ default: module.DataLancamentoDialog })));
 import { Event, BatismoData, SantaCeiaData, EnsaioData } from '@/types';
 
 const COLORS = {
@@ -670,11 +670,13 @@ export default function Reports() {
         </div>
         
         {/* Dialog de Lançamento de Dados */}
-        <DataLancamentoDialog 
-          open={showDataDialog} 
-          onOpenChange={setShowDataDialog}
-          onDataSaved={loadReportsData}
-        />
+        <Suspense fallback={<div></div>}>
+          <DataLancamentoDialog 
+            open={showDataDialog} 
+            onOpenChange={setShowDataDialog}
+            onDataSaved={loadReportsData}
+          />
+        </Suspense>
 
         {/* Filters */}
         <Card className="shadow-md border-border/40">
