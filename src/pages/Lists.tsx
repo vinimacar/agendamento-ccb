@@ -77,6 +77,8 @@ export default function Lists() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const [listTitle, setListTitle] = useState('');
+  const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
+  const [avisosEnabled, setAvisosEnabled] = useState(true);
 
   useEffect(() => {
     loadAllData();
@@ -353,7 +355,7 @@ export default function Lists() {
   };
 
   const exportToExcel = () => {
-    const items = getFilteredItems();
+    const items = getFilteredItems().filter(item => enabledCategories[item.type] !== false);
 
     if (items.length === 0) {
       toast({
@@ -388,8 +390,8 @@ export default function Lists() {
       ]);
     });
 
-    // Adicionar avisos se houver
-    if (avisos) {
+    // Adicionar avisos se houver e estiver habilitado
+    if (avisos && avisosEnabled) {
       worksheetData.push([]);
       worksheetData.push([]);
       worksheetData.push(['AVISOS PARA IRMANDADE']);
@@ -413,7 +415,7 @@ export default function Lists() {
   };
 
   const exportToPDF = () => {
-    const items = getFilteredItems();
+    const items = getFilteredItems().filter(item => enabledCategories[item.type] !== false);
 
     if (items.length === 0) {
       toast({
@@ -508,8 +510,8 @@ export default function Lists() {
       currentY += 5;
     });
 
-    // Adicionar avisos se houver
-    if (avisos) {
+    // Adicionar avisos se houver e estiver habilitado
+    if (avisos && avisosEnabled) {
       if (currentY > 250) {
         doc.addPage();
         currentY = 20;
@@ -542,6 +544,25 @@ export default function Lists() {
   };
 
   const filteredItems = getFilteredItems();
+  
+  // Inicializar todas as categorias como habilitadas quando os itens mudam
+  useEffect(() => {
+    const categories: Record<string, boolean> = {};
+    filteredItems.forEach(item => {
+      if (!categories.hasOwnProperty(item.type)) {
+        categories[item.type] = true; // Todas habilitadas por padrão
+      }
+    });
+    setEnabledCategories(categories);
+  }, [filteredItems.length, filterType, filterCongregation, startDate, endDate]);
+
+  // Função para alternar categoria
+  const toggleCategory = (category: string) => {
+    setEnabledCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
   
   // Ordem específica dos tipos de evento
   const eventTypeOrder: Record<string, number> = {
@@ -825,59 +846,81 @@ export default function Lists() {
                   </div>
 
                   {/* Itens agrupados por tipo */}
-                  {sortedGroupedItems.map(([eventType, items]) => (
-                    <div key={eventType} className="space-y-1">
-                      {/* Categoria com toggle visual */}
-                      <div className="relative bg-gray-400 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs">
-                        {eventType.toUpperCase()}
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-4 bg-green-500 rounded-full flex items-center px-0.5">
-                          <div className="w-3 h-3 bg-white rounded-full ml-auto"></div>
+                  {sortedGroupedItems.map(([eventType, items]) => {
+                    const isEnabled = enabledCategories[eventType] !== false; // Default true se não definido
+                    
+                    return (
+                      <div key={eventType} className="space-y-1">
+                        {/* Categoria com toggle clicável */}
+                        <div 
+                          className="relative bg-gray-400 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-gray-500 transition-colors"
+                          onClick={() => toggleCategory(eventType)}
+                        >
+                          {eventType.toUpperCase()}
+                          <div className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${
+                            isEnabled ? 'bg-green-500' : 'bg-gray-300'
+                          }`}>
+                            <div className={`w-3 h-3 bg-white rounded-full transition-all ${
+                              isEnabled ? 'ml-auto' : 'mr-auto'
+                            }`}></div>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Tabela */}
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs border-collapse border border-gray-300">
-                          <thead>
-                            <tr className="bg-gray-100">
-                              <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">DATA</th>
-                              <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">HORA</th>
-                              <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">LOCALIDADE</th>
-                              <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">
-                                {items[0]?.eventTitle ? 'TIPO DE REUNIÃO' : 
-                                 eventType.includes('Reforço') ? 'RESPONSÁVEL' : 'ANCIÃO'}
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {items.map((item, idx) => (
-                              <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                <td className="compact-p py-1 px-2 border border-gray-300">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toLowerCase())}</td>
-                                <td className="compact-p py-1 px-2 border border-gray-300">{item.time || '19:30'}</td>
-                                <td className="compact-p py-1 px-2 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
-                                <td className="compact-p py-1 px-2 border border-gray-300">
-                                  {item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-')}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        {/* Tabela - só mostra se habilitado */}
+                        {isEnabled && (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs border-collapse border border-gray-300">
+                              <thead>
+                                <tr className="bg-gray-100">
+                                  <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">DATA</th>
+                                  <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">HORA</th>
+                                  <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">LOCALIDADE</th>
+                                  <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">
+                                    {items[0]?.eventTitle ? 'TIPO DE REUNIÃO' : 
+                                     eventType.includes('Reforço') ? 'RESPONSÁVEL' : 'ANCIÃO'}
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {items.map((item, idx) => (
+                                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                    <td className="compact-p py-1 px-2 border border-gray-300">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toLowerCase())}</td>
+                                    <td className="compact-p py-1 px-2 border border-gray-300">{item.time || '19:30'}</td>
+                                    <td className="compact-p py-1 px-2 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
+                                    <td className="compact-p py-1 px-2 border border-gray-300">
+                                      {item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-')}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
 
                   {/* Avisos para Irmandade */}
                   {avisos && (
                     <div className="mt-4 space-y-1">
-                      <div className="relative bg-gray-400 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs">
+                      <div 
+                        className="relative bg-gray-400 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-gray-500 transition-colors"
+                        onClick={() => setAvisosEnabled(!avisosEnabled)}
+                      >
                         AVISOS PARA IRMANDADE
-                        <div className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-4 bg-green-500 rounded-full flex items-center px-0.5">
-                          <div className="w-3 h-3 bg-white rounded-full ml-auto"></div>
+                        <div className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${
+                          avisosEnabled ? 'bg-green-500' : 'bg-gray-300'
+                        }`}>
+                          <div className={`w-3 h-3 bg-white rounded-full transition-all ${
+                            avisosEnabled ? 'ml-auto' : 'mr-auto'
+                          }`}></div>
                         </div>
                       </div>
-                      <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
-                        {avisos}
-                      </div>
+                      {avisosEnabled && (
+                        <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
+                          {avisos}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
