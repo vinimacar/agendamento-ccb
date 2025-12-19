@@ -984,6 +984,13 @@ export default function Lists() {
                       )}
                     </div>
                   )}
+
+                  {/* Rodapé com data e horário de encerramento */}
+                  <div className="mt-4 pt-2 border-t text-center">
+                    <p className="text-xs text-gray-500">
+                      Gerado em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </p>
+                  </div>
                 </div>
               )}
             </CardContent>
