@@ -24,9 +24,18 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { eventService } from '@/services/eventService';
 import { congregationService, CongregationData } from '@/services/congregationService';
+import { eventTypeService, CustomEventType } from '@/services/eventTypeService';
 import { EventType, eventTypeLabels } from '@/types';
-import { ArrowLeft, CalendarIcon, Clock, Loader2, Save, FileText, MapPin, Users, Trash2 } from 'lucide-react';
+import { ArrowLeft, CalendarIcon, Clock, Loader2, Save, FileText, MapPin, Users, Trash2, Plus, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function EventForm() {
   const navigate = useNavigate();
@@ -43,11 +52,16 @@ export default function EventForm() {
   const [allDeacons, setAllDeacons] = useState<string[]>([]);
   const [allYouthCooperators, setAllYouthCooperators] = useState<string[]>([]);
   const [loadingMinisters, setLoadingMinisters] = useState(true);
+  const [customEventTypes, setCustomEventTypes] = useState<CustomEventType[]>([]);
+  const [showAddEventTypeDialog, setShowAddEventTypeDialog] = useState(false);
+  const [newEventTypeName, setNewEventTypeName] = useState('');
+  const [newEventTypeLabel, setNewEventTypeLabel] = useState('');
+  const [loadingNewEventType, setLoadingNewEventType] = useState(false);
   const isEditMode = !!id;
 
   const [formData, setFormData] = useState({
     title: '',
-    type: '' as EventType | '',
+    type: '' as EventType | string,
     date: undefined as Date | undefined,
     time: '',
     congregationId: '',
@@ -63,9 +77,10 @@ export default function EventForm() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [congregationsData, ministersData] = await Promise.all([
+        const [congregationsData, ministersData, customTypes] = await Promise.all([
           congregationService.getAll(),
           congregationService.getAllMinisters(),
+          eventTypeService.getAll(),
         ]);
         
         setCongregations(congregationsData);
@@ -73,6 +88,7 @@ export default function EventForm() {
         setAllCooperators(ministersData.cooperators);
         setAllDeacons(ministersData.deacons);
         setAllYouthCooperators(ministersData.youthCooperators);
+        setCustomEventTypes(customTypes);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -150,6 +166,86 @@ export default function EventForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddEventType = async () => {
+    if (!newEventTypeLabel.trim()) {
+      toast({
+        title: 'Campo obrigatório',
+        description: 'Digite o nome do tipo de evento.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setLoadingNewEventType(true);
+    try {
+      // Gerar um nome automaticamente baseado no label
+      const name = newEventTypeLabel
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove acentos
+        .replace(/[^a-z0-9\s]/g, '') // Remove caracteres especiais
+        .replace(/\s+/g, '-') // Substitui espaços por hífens
+        .trim();
+
+      await eventTypeService.create({
+        name: `custom-${name}`,
+        label: newEventTypeLabel.trim(),
+      });
+
+      // Recarregar tipos personalizados
+      const customTypes = await eventTypeService.getAll();
+      setCustomEventTypes(customTypes);
+
+      toast({
+        title: 'Tipo adicionado!',
+        description: 'O novo tipo de evento foi criado com sucesso.',
+      });
+
+      setShowAddEventTypeDialog(false);
+      setNewEventTypeLabel('');
+      setNewEventTypeName('');
+    } catch (error) {
+      console.error('Error adding event type:', error);
+      toast({
+        title: 'Erro ao adicionar',
+        description: 'Não foi possível criar o tipo de evento.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingNewEventType(false);
+    }
+  };
+
+  const handleDeleteCustomEventType = async (typeId: string) => {
+    try {
+      await eventTypeService.delete(typeId);
+      
+      // Recarregar tipos personalizados
+      const customTypes = await eventTypeService.getAll();
+      setCustomEventTypes(customTypes);
+
+      toast({
+        title: 'Tipo removido!',
+        description: 'O tipo de evento foi removido com sucesso.',
+      });
+    } catch (error) {
+      console.error('Error deleting event type:', error);
+      toast({
+        title: 'Erro ao remover',
+        description: 'Não foi possível remover o tipo de evento.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Combinar tipos padrão e personalizados
+  const allEventTypes = {
+    ...eventTypeLabels,
+    ...Object.fromEntries(
+      customEventTypes.map(ct => [ct.name, ct.label])
+    ),
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -279,7 +375,19 @@ export default function EventForm() {
               </div>
 
               <div className="space-y-2">
-                <Label>Tipo de Evento *</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Tipo de Evento *</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddEventTypeDialog(true)}
+                    className="h-8"
+                  >
+                    <Plus className="h-3 w-3 mr-1" />
+                    Adicionar Tipo
+                  </Button>
+                </div>
                 <Select
                   value={formData.type}
                   onValueChange={(value) => setFormData({ ...formData, type: value as EventType })}
@@ -288,13 +396,56 @@ export default function EventForm() {
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
+                    <div className="font-semibold text-xs text-muted-foreground px-2 py-1.5">
+                      Tipos Padrão
+                    </div>
                     {Object.entries(eventTypeLabels).map(([value, label]) => (
                       <SelectItem key={value} value={value}>
                         {label}
                       </SelectItem>
                     ))}
+                    {customEventTypes.length > 0 && (
+                      <>
+                        <div className="font-semibold text-xs text-muted-foreground px-2 py-1.5 border-t mt-1 pt-2">
+                          Tipos Personalizados
+                        </div>
+                        {customEventTypes.map((customType) => (
+                          <SelectItem key={customType.name} value={customType.name}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{customType.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
+                
+                {/* Lista de tipos personalizados para gerenciar */}
+                {customEventTypes.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    <Label className="text-xs text-muted-foreground">Tipos Personalizados Criados:</Label>
+                    <div className="space-y-1">
+                      {customEventTypes.map((customType) => (
+                        <div
+                          key={customType.id}
+                          className="flex items-center justify-between bg-muted/50 px-3 py-2 rounded-md text-sm"
+                        >
+                          <span>{customType.label}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteCustomEventType(customType.id)}
+                            className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -670,6 +821,68 @@ export default function EventForm() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Add Event Type Dialog */}
+        <Dialog open={showAddEventTypeDialog} onOpenChange={setShowAddEventTypeDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Adicionar Novo Tipo de Evento</DialogTitle>
+              <DialogDescription>
+                Crie um novo tipo de evento personalizado que estará disponível para todos os futuros agendamentos.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="eventTypeLabel">Nome do Tipo de Evento *</Label>
+                <Input
+                  id="eventTypeLabel"
+                  placeholder="Ex: Vigília de Oração"
+                  value={newEventTypeLabel}
+                  onChange={(e) => setNewEventTypeLabel(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddEventType();
+                    }
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Este nome aparecerá na lista de tipos de eventos.
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowAddEventTypeDialog(false);
+                  setNewEventTypeLabel('');
+                  setNewEventTypeName('');
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleAddEventType}
+                disabled={loadingNewEventType || !newEventTypeLabel.trim()}
+              >
+                {loadingNewEventType ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Adicionando...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

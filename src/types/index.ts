@@ -51,7 +51,7 @@ export interface EBISchedule {
 export interface Event {
   id: string;
   title: string;
-  type: EventType;
+  type: EventType | string; // Permite tipos personalizados
   date: Date;
   time: string;
   congregationId?: string;
