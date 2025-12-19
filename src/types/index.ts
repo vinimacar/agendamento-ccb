@@ -74,6 +74,7 @@ export type EventType =
   | 'santa-ceia'
   | 'ordenacao'
   | 'reuniao-ministerial'
+  | 'ensaio-regional'
   | 'culto-oficial-reforco'
   | 'rjm-reforco';
 
@@ -85,6 +86,7 @@ export const eventTypeLabels: Record<EventType, string> = {
   'santa-ceia': 'Santa Ceia',
   'ordenacao': 'Ordenação',
   'reuniao-ministerial': 'Reunião Ministerial',
+  'ensaio-regional': 'Ensaio Regional',
   'culto-oficial-reforco': 'Culto Oficial para Reforço de Coletas',
   'rjm-reforco': 'RJM para Reforço de Coletas',
 };
