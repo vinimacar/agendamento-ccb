@@ -1,4 +1,4 @@
-import { Book, Calendar, Users, BarChart3, Settings, Home, LogOut, Menu, X, CalendarCheck, UserPlus, Music, Heart, Baby, ClipboardList } from 'lucide-react';
+import { Book, Calendar, Users, BarChart3, Settings, Home, LogOut, Menu, X, CalendarCheck, UserPlus, Music, Heart, Baby, ClipboardList, Megaphone } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ const navItems = [
   { to: '/musical', icon: Music, label: 'Musical' },
   { to: '/darpe', icon: Heart, label: 'DARPE' },
   { to: '/ebi', icon: Baby, label: 'EBI' },
+  { to: '/evangelizacao', icon: Megaphone, label: 'Evangelização' },
   { to: '/lists', icon: ClipboardList, label: 'Listas' },
   { to: '/reports', icon: BarChart3, label: 'Relatórios' },
   { to: '/settings', icon: Settings, label: 'Configurações' },

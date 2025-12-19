@@ -196,6 +196,20 @@ export interface RJMMember {
   updatedAt: Date;
 }
 
+// Membro de Evangelização
+export interface EvangelizacaoMember {
+  id?: string;
+  name: string;
+  gender: 'male' | 'female';
+  phone: string;
+  age: number;
+  congregationId: string;
+  congregationName: string;
+  city: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Lançamento de recitativos por reunião
 export interface RecitativeData {
   id?: string;

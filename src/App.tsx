@@ -22,6 +22,7 @@ import RJMManagement from "./pages/RJMManagement";
 import Musical from "./pages/Musical";
 import DarpeManagement from "./pages/DarpeManagement";
 import EBIManagement from "./pages/EBIManagement";
+import EvangelizacaoManagement from "./pages/EvangelizacaoManagement";
 import Lists from "./pages/Lists";
 import NotFound from "./pages/NotFound";
 
@@ -148,6 +149,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <EBIManagement />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/evangelizacao"
+              element={
+                <ProtectedRoute>
+                  <EvangelizacaoManagement />
                 </ProtectedRoute>
               }
             />
