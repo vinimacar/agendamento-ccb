@@ -475,12 +475,16 @@ export default function Lists() {
       // Tabela
       const hasEventsInGroup = eventItems.some(item => item.eventTitle);
       const hasReforcosInGroup = eventType.includes('Reforço');
-      const tableData = eventItems.map(item => [
-        format(item.date, "dd/MM EEE", { locale: ptBR }).replace(/\w+$/, (day) => day.substring(0, 3).toUpperCase()),
-        item.time || '19:30',
-        `${item.congregationName.toUpperCase()} (${item.city})`,
-        item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-'),
-      ]);
+      const tableData = eventItems.map(item => {
+        const dateStr = format(item.date, "dd/MM", { locale: ptBR });
+        const dayOfWeek = format(item.date, "EEE", { locale: ptBR }).toUpperCase().substring(0, 3);
+        return [
+          `${dateStr} ${dayOfWeek}`,
+          item.time || '19:30',
+          `${item.congregationName.toUpperCase()} (${item.city})`,
+          item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-'),
+        ];
+      });
 
       autoTable(doc, {
         startY: currentY,
