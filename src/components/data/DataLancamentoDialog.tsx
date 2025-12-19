@@ -221,13 +221,26 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
     }
   }, [open, loadAvailableElders, loadSavedEvents]);
 
-  const generatePDF = (type: 'batismo' | 'santa-ceia', congregation: Congregation | undefined, data: Record<string, unknown>) => {
+  const generatePDF = async (type: 'batismo' | 'santa-ceia', congregation: Congregation | undefined, data: Record<string, unknown>) => {
     const doc = new jsPDF();
     
-    // Header com logo CCB (texto por enquanto, pode adicionar imagem depois)
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 20, { align: 'center' });
+    // Adicionar logo da CCB no cabeçalho (contém "CONGREGAÇÃO CRISTÃ NO BRASIL")
+    const logoUrl = '/ccb-logo.svg';
+    const img = new Image();
+    img.src = logoUrl;
+    
+    await new Promise((resolve) => {
+      img.onload = () => {
+        doc.addImage(img, 'SVG', 65, 5, 80, 28);
+        resolve(true);
+      };
+      img.onerror = () => {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 15, { align: 'center' });
+        resolve(true);
+      };
+    });
     
     // Endereço da congregação
     if (congregation) {
@@ -235,24 +248,24 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
       doc.setFont('helvetica', 'normal');
       const address = `${congregation.street}, ${congregation.number} - ${congregation.neighborhood}`;
       const cityState = `${congregation.city}/${congregation.state}`;
-      doc.text(address, 105, 28, { align: 'center' });
-      doc.text(cityState, 105, 34, { align: 'center' });
+      doc.text(address, 105, 38, { align: 'center' });
+      doc.text(cityState, 105, 44, { align: 'center' });
     }
     
     // Linha separadora
     doc.setLineWidth(0.5);
-    doc.line(20, 40, 190, 40);
+    doc.line(20, 50, 190, 50);
     
     // Título do documento
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     const title = type === 'batismo' ? 'REGISTRO DE BATISMO' : 'REGISTRO DE SANTA CEIA';
-    doc.text(title, 105, 50, { align: 'center' });
+    doc.text(title, 105, 60, { align: 'center' });
     
     // Dados
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    let yPos = 65;
+    let yPos = 75;
     
     // Validação de tipo para data.date
     const dataDate = data.date;

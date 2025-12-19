@@ -149,7 +149,7 @@ export default function CongregationForm() {
   const [viewYear, setViewYear] = useState(new Date().getFullYear());
 
   // Função para gerar relatório PDF dos ensaios
-  const generateRehearsalReport = () => {
+  const generateRehearsalReport = async () => {
     if (!name) {
       toast({
         title: "Erro",
@@ -161,13 +161,26 @@ export default function CongregationForm() {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 20;
-
-    // Logo CCB
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', pageWidth / 2, yPos, { align: 'center' });
-    yPos += 10;
+    
+    // Adicionar logo da CCB
+    const logoUrl = '/ccb-logo.svg';
+    const img = new Image();
+    img.src = logoUrl;
+    
+    await new Promise((resolve) => {
+      img.onload = () => {
+        doc.addImage(img, 'SVG', 65, 5, 80, 28);
+        resolve(true);
+      };
+      img.onerror = () => {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', pageWidth / 2, 15, { align: 'center' });
+        resolve(true);
+      };
+    });
+    
+    let yPos = 38;
 
     // Nome da congregação
     doc.setFontSize(14);
@@ -310,7 +323,7 @@ export default function CongregationForm() {
   };
 
   // Função para gerar tabela de ensaios em PDF
-  const generateRehearsalsTablePDF = () => {
+  const generateRehearsalsTablePDF = async () => {
     if (rehearsals.length === 0) {
       toast({
         title: "Nenhum ensaio cadastrado",
@@ -322,7 +335,26 @@ export default function CongregationForm() {
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    let yPos = 20;
+    
+    // Adicionar logo da CCB
+    const logoUrl = '/ccb-logo.svg';
+    const img = new Image();
+    img.src = logoUrl;
+    
+    await new Promise((resolve) => {
+      img.onload = () => {
+        doc.addImage(img, 'SVG', 65, 5, 80, 28);
+        resolve(true);
+      };
+      img.onerror = () => {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', pageWidth / 2, 15, { align: 'center' });
+        resolve(true);
+      };
+    });
+    
+    let yPos = 38;
 
     // Cabeçalho
     doc.setFontSize(16);

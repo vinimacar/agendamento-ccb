@@ -871,18 +871,36 @@ export default function Musical() {
 
     const doc = new jsPDF();
     
+    // Adicionar logo da CCB
+    const logoUrl = '/ccb-logo.svg';
+    const img = new Image();
+    img.src = logoUrl;
+    
+    await new Promise((resolve) => {
+      img.onload = () => {
+        doc.addImage(img, 'SVG', 65, 5, 80, 28);
+        resolve(true);
+      };
+      img.onerror = () => {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 15, { align: 'center' });
+        resolve(true);
+      };
+    });
+    
     // Configurar fonte e cores
     doc.setFont('helvetica');
     
     // Título
     doc.setFontSize(20);
     doc.setTextColor(31, 41, 55);
-    doc.text('Calendário de Ensaios Musicais', 105, 20, { align: 'center' });
+    doc.text('Calendário de Ensaios Musicais', 105, 40, { align: 'center' });
     
     // Filtros aplicados
     doc.setFontSize(9);
     doc.setTextColor(107, 114, 128);
-    let yPos = 28;
+    let yPos = 48;
     
     if (filterCalendarCongregation) {
       const cong = congregations.find(c => c.id === filterCalendarCongregation);

@@ -322,23 +322,41 @@ export default function Reports() {
   }, [events]);
 
   // Exportar para PDF
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     const doc = new jsPDF();
+    
+    // Adicionar logo da CCB
+    const logoUrl = '/ccb-logo.svg';
+    const img = new Image();
+    img.src = logoUrl;
+    
+    await new Promise((resolve) => {
+      img.onload = () => {
+        doc.addImage(img, 'SVG', 65, 5, 80, 28);
+        resolve(true);
+      };
+      img.onerror = () => {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 15, { align: 'center' });
+        resolve(true);
+      };
+    });
     
     // Título
     doc.setFontSize(18);
-    doc.text('Relatório de Batismos e Santa Ceia', 14, 20);
+    doc.text('Relatório de Batismos e Santa Ceia', 14, 40);
     
     // Filtros aplicados
     doc.setFontSize(10);
     const filterText = `Ano: ${selectedYear === 'all' ? 'Todos' : selectedYear} | Tipo: ${selectedEventType === 'all' ? 'Todos' : selectedEventType} | Congregação: ${selectedCongregation === 'all' ? 'Todas' : congregations.find(c => c.id === selectedCongregation)?.name || 'Todas'}`;
-    doc.text(filterText, 14, 28);
+    doc.text(filterText, 14, 48);
     
     // Estatísticas de Batismo
     doc.setFontSize(14);
-    doc.text('Batismos', 14, 38);
+    doc.text('Batismos', 14, 58);
     autoTable(doc, {
-      startY: 42,
+      startY: 62,
       head: [['Métrica', 'Valor']],
       body: [
         ['Total de Eventos', batismoStats.total.toString()],
