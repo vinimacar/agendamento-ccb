@@ -165,6 +165,52 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
       console.error('Error loading scheduled batismos:', error);
     }
   };
+
+  // Carregar eventos já realizados
+  const loadSavedEvents = useCallback(async () => {
+    setLoadingSavedEvents(true);
+    try {
+      const [batismos, ceias, ensaios, events, reforcos] = await Promise.all([
+        batismoDataService.getAll(),
+        santaCeiaDataService.getAll(),
+        ensaioDataService.getAll(),
+        eventService.getAll(),
+        reforcoService.getAll(),
+      ]);
+      
+      // Filtrar apenas eventos já realizados (data passada)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const pastEvents = events.filter(event => {
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate < today;
+      });
+      
+      const pastReforcos = reforcos.filter(reforco => {
+        const reforcoDate = new Date(reforco.date);
+        reforcoDate.setHours(0, 0, 0, 0);
+        return reforcoDate < today;
+      });
+      
+      setSavedBatismos(batismos);
+      setSavedSantaCeias(ceias);
+      setSavedEnsaios(ensaios);
+      setSavedEvents(pastEvents);
+      setSavedReforcos(pastReforcos);
+      setShowSavedEvents(true);
+    } catch (error) {
+      console.error('Error loading saved events:', error);
+      toast({
+        title: 'Erro ao carregar',
+        description: 'Não foi possível carregar os eventos salvos.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingSavedEvents(false);
+    }
+  }, [toast]);
   
   // Buscar batismos agendados ao abrir o diálogo
   useEffect(() => {
@@ -258,52 +304,6 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
     const fileName = `${type}_${congregation?.name || 'congregacao'}_${fileDate}.pdf`;
     doc.save(fileName);
   };
-
-  // Carregar eventos já realizados
-  const loadSavedEvents = useCallback(async () => {
-    setLoadingSavedEvents(true);
-    try {
-      const [batismos, ceias, ensaios, events, reforcos] = await Promise.all([
-        batismoDataService.getAll(),
-        santaCeiaDataService.getAll(),
-        ensaioDataService.getAll(),
-        eventService.getAll(),
-        reforcoService.getAll(),
-      ]);
-      
-      // Filtrar apenas eventos já realizados (data passada)
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const pastEvents = events.filter(event => {
-        const eventDate = new Date(event.date);
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate < today;
-      });
-      
-      const pastReforcos = reforcos.filter(reforco => {
-        const reforcoDate = new Date(reforco.date);
-        reforcoDate.setHours(0, 0, 0, 0);
-        return reforcoDate < today;
-      });
-      
-      setSavedBatismos(batismos);
-      setSavedSantaCeias(ceias);
-      setSavedEnsaios(ensaios);
-      setSavedEvents(pastEvents);
-      setSavedReforcos(pastReforcos);
-      setShowSavedEvents(true);
-    } catch (error) {
-      console.error('Error loading saved events:', error);
-      toast({
-        title: 'Erro ao carregar',
-        description: 'Não foi possível carregar os eventos salvos.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoadingSavedEvents(false);
-    }
-  }, [toast]);
 
   // Editar evento
   const handleEditEvent = (event: BatismoData | SantaCeiaData | EnsaioData, type: 'batismo' | 'santa-ceia' | 'ensaio') => {
