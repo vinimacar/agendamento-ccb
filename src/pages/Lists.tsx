@@ -456,9 +456,31 @@ export default function Lists() {
       return acc;
     }, {} as Record<string, ListItem[]>);
 
+    // Ordem específica dos tipos de evento (mesma do preview)
+    const eventTypeOrder: Record<string, number> = {
+      'Batismo': 1,
+      'batismo': 1,
+      'reuniao-mocidade': 2,
+      'Santa Ceia': 3,
+      'santa-ceia': 3,
+      'Ensaio Regional': 4,
+      'culto-oficial-reforco': 5,
+      'rjm-reforco': 5,
+      'Reforço - Culto Oficial': 5,
+      'Reforço - RJM': 5,
+      'culto-busca-dons': 6,
+    };
+
+    // Ordenar grupos pela mesma ordem do preview
+    const sortedGrouped = Object.entries(grouped).sort(([typeA], [typeB]) => {
+      const orderA = eventTypeOrder[typeA] || 999;
+      const orderB = eventTypeOrder[typeB] || 999;
+      return orderA - orderB;
+    });
+
     let currentY = 35;
 
-    Object.entries(grouped).forEach(([eventType, eventItems], index) => {
+    sortedGrouped.forEach(([eventType, eventItems], index) => {
       if (index > 0 && currentY > 250) {
         doc.addPage();
         currentY = 20;
