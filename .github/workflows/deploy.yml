@@ -36,11 +36,12 @@ jobs:
           publish_dir: ./dist
           cname: false
 
-      - name: Deploy to Firebase Hosting
-        continue-on-error: true
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          projectId: directed-optics-460823-q5
-          channelId: live
+      # Descomente as linhas abaixo após adicionar o secret FIREBASE_SERVICE_ACCOUNT
+      # - name: Deploy to Firebase Hosting
+      #   continue-on-error: true
+      #   uses: FirebaseExtended/action-hosting-deploy@v0
+      #   with:
+      #     repoToken: ${{ secrets.GITHUB_TOKEN }}
+      #     firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      #     projectId: directed-optics-460823-q5
+      #     channelId: live
