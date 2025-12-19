@@ -492,8 +492,11 @@ export default function Reports() {
       const arrayBuffer = await file.arrayBuffer();
       
       try {
-        // Configurar worker do PDF.js
-        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+        // Configurar worker do PDF.js usando o worker local do bundle
+        pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+          'pdfjs-dist/build/pdf.worker.min.mjs',
+          import.meta.url
+        ).toString();
         
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         let extractedText = '';
