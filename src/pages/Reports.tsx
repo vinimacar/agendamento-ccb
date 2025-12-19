@@ -16,6 +16,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import * as pdfjsLib from 'pdfjs-dist';
 import {
   BarChart,
   Bar,
@@ -460,11 +461,58 @@ export default function Reports() {
     });
   };
 
-  // Importar dados de Excel
+  // Importar dados de Excel ou PDF
   const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Detectar tipo de arquivo
+    const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    
+    if (isPDF) {
+      // Processar PDF
+      const arrayBuffer = await file.arrayBuffer();
+      
+      try {
+        // Configurar worker do PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+        
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        let extractedText = '';
+        
+        // Extrair texto de todas as páginas
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          const pageText = textContent.items.map((item: any) => item.str).join(' ');
+          extractedText += pageText + '\n';
+        }
+        
+        toast({
+          title: 'PDF processado',
+          description: 'O conteúdo do PDF foi extraído. Nota: A importação automática de dados de PDF ainda está em desenvolvimento. Por favor, use arquivos Excel (.xlsx) para importação automática de dados.',
+          variant: 'default',
+        });
+        
+        console.log('Texto extraído do PDF:', extractedText);
+        
+      } catch (error) {
+        console.error('Erro ao processar PDF:', error);
+        toast({
+          title: 'Erro ao processar PDF',
+          description: 'Não foi possível ler o arquivo PDF. Por favor, use arquivos Excel (.xlsx) para importação.',
+          variant: 'destructive',
+        });
+      }
+      
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+    
+    // Processar Excel
     const reader = new FileReader();
     reader.onload = async (evt) => {
       try {
@@ -628,12 +676,12 @@ export default function Reports() {
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="h-4 w-4" />
-              Importar XLSX
+              Importar XLSX/PDF
             </Button>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xlsx,.xls"
+              accept=".xlsx,.xls,.pdf"
               onChange={handleImportExcel}
               style={{ display: 'none' }}
             />
