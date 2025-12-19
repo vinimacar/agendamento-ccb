@@ -481,7 +481,7 @@ export default function Lists() {
         return [
           `${dateStr} ${dayOfWeek}`,
           item.time || '19:30',
-          `${item.congregationName.toUpperCase()} (${item.city})`,
+          `${item.congregationName.toUpperCase()} - ${item.city.toUpperCase()}`,
           item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-'),
         ];
       });
@@ -894,16 +894,20 @@ export default function Lists() {
                                 </tr>
                               </thead>
                               <tbody>
-                                {items.map((item, idx) => (
-                                  <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                    <td className="compact-p py-1 px-2 border border-gray-300">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toLowerCase())}</td>
-                                    <td className="compact-p py-1 px-2 border border-gray-300">{item.time || '19:30'}</td>
-                                    <td className="compact-p py-1 px-2 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
-                                    <td className="compact-p py-1 px-2 border border-gray-300">
-                                      {item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-')}
-                                    </td>
-                                  </tr>
-                                ))}
+                                {items.map((item, idx) => {
+                                  const dateStr = format(item.date, "dd/MM", { locale: ptBR });
+                                  const dayOfWeek = format(item.date, "EEE", { locale: ptBR }).toUpperCase().substring(0, 3);
+                                  return (
+                                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                      <td className="compact-p py-1 px-2 border border-gray-300">{dateStr} {dayOfWeek}</td>
+                                      <td className="compact-p py-1 px-2 border border-gray-300">{item.time || '19:30'}</td>
+                                      <td className="compact-p py-1 px-2 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
+                                      <td className="compact-p py-1 px-2 border border-gray-300">
+                                        {item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-')}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
