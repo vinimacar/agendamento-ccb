@@ -171,8 +171,9 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
     if (open) {
       loadScheduledBatismos();
       loadAvailableElders();
+      loadSavedEvents(); // Carregar eventos salvos automaticamente
     }
-  }, [open, loadAvailableElders]);
+  }, [open, loadAvailableElders, loadSavedEvents]);
 
   const generatePDF = (type: 'batismo' | 'santa-ceia', congregation: Congregation | undefined, data: Record<string, unknown>) => {
     const doc = new jsPDF();
@@ -259,7 +260,7 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
   };
 
   // Carregar eventos já realizados
-  const loadSavedEvents = async () => {
+  const loadSavedEvents = useCallback(async () => {
     setLoadingSavedEvents(true);
     try {
       const [batismos, ceias, ensaios, events, reforcos] = await Promise.all([
@@ -269,11 +270,28 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
         eventService.getAll(),
         reforcoService.getAll(),
       ]);
+      
+      // Filtrar apenas eventos já realizados (data passada)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const pastEvents = events.filter(event => {
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate < today;
+      });
+      
+      const pastReforcos = reforcos.filter(reforco => {
+        const reforcoDate = new Date(reforco.date);
+        reforcoDate.setHours(0, 0, 0, 0);
+        return reforcoDate < today;
+      });
+      
       setSavedBatismos(batismos);
       setSavedSantaCeias(ceias);
       setSavedEnsaios(ensaios);
-      setSavedEvents(events);
-      setSavedReforcos(reforcos);
+      setSavedEvents(pastEvents);
+      setSavedReforcos(pastReforcos);
       setShowSavedEvents(true);
     } catch (error) {
       console.error('Error loading saved events:', error);
@@ -285,7 +303,7 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
     } finally {
       setLoadingSavedEvents(false);
     }
-  };
+  }, [toast]);
 
   // Editar evento
   const handleEditEvent = (event: BatismoData | SantaCeiaData | EnsaioData, type: 'batismo' | 'santa-ceia' | 'ensaio') => {
