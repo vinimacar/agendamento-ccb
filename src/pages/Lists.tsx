@@ -438,14 +438,14 @@ export default function Lists() {
 
     // Cabeçalho
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
     doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 15, { align: 'center' });
     
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.text('ADMINISTRAÇÃO ITUIUTABA', 105, 22, { align: 'center' });
     
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text(getPeriodText(), 105, 28, { align: 'center' });
 
@@ -468,7 +468,7 @@ export default function Lists() {
       doc.setFillColor(240, 240, 240);
       doc.rect(10, currentY, 190, 8, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.text(eventType.toUpperCase(), 105, currentY + 5, { align: 'center' });
       currentY += 10;
 
@@ -491,18 +491,18 @@ export default function Lists() {
           fillColor: [200, 200, 200],
           textColor: [0, 0, 0],
           fontStyle: 'bold',
-          fontSize: 9,
+          fontSize: 8,
           halign: 'left',
         },
         bodyStyles: {
-          fontSize: 8,
+          fontSize: 7,
           textColor: [0, 0, 0],
         },
         alternateRowStyles: {
           fillColor: [245, 245, 245],
         },
         styles: {
-          cellPadding: 2,
+          cellPadding: 1.5,
           lineColor: [0, 0, 0],
           lineWidth: 0.1,
         },
@@ -529,12 +529,12 @@ export default function Lists() {
       doc.setFillColor(240, 240, 240);
       doc.rect(10, currentY, 190, 8, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.text('AVISOS PARA IRMANDADE', 105, currentY + 5, { align: 'center' });
       currentY += 12;
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(8);
       const splitAvisos = doc.splitTextToSize(avisos, 180);
       doc.text(splitAvisos, 15, currentY);
     }
