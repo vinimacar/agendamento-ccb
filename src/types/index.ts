@@ -202,10 +202,44 @@ export interface EvangelizacaoMember {
   name: string;
   gender: 'male' | 'female';
   phone: string;
-  age: number;
   congregationId: string;
   congregationName: string;
   city: string;
+  isMusician: boolean;
+  instrument?: string; // Se for músico
+  hasMinistry: boolean;
+  ministryType?: string; // Tipo de ministério (ancião, cooperador, diácono, etc)
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Ponto de Evangelização
+export interface EvangelizacaoPonto {
+  id?: string;
+  name: string; // Nome do ponto
+  address: string; // Endereço
+  neighborhood: string;
+  city: string;
+  responsible?: string; // Responsável pelo ponto
+  congregationId: string; // Congregação que administra
+  congregationName: string;
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Reunião de Evangelização
+export interface EvangelizacaoReuniao {
+  id?: string;
+  pontoId: string;
+  pontoName: string;
+  date: Date;
+  time: string;
+  theme?: string; // Tema da reunião
+  responsibleId?: string;
+  responsibleName?: string;
+  attendees?: string[]; // IDs dos membros presentes
+  notes?: string;
   createdAt: Date;
   updatedAt: Date;
 }
