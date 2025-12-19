@@ -852,7 +852,7 @@ export default function Lists() {
                           <tbody>
                             {items.map((item, idx) => (
                               <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                <td className="compact-p py-1 px-2 border border-gray-300">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toUpperCase())}</td>
+                                <td className="compact-p py-1 px-2 border border-gray-300">{format(item.date, "dd/MM 'SEX'", { locale: ptBR }).replace('SEX', format(item.date, 'EEEE', { locale: ptBR }).substring(0, 3).toLowerCase())}</td>
                                 <td className="compact-p py-1 px-2 border border-gray-300">{item.time || '19:30'}</td>
                                 <td className="compact-p py-1 px-2 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
                                 <td className="compact-p py-1 px-2 border border-gray-300">
