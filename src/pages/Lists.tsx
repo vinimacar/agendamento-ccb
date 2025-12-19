@@ -444,29 +444,33 @@ export default function Lists() {
     // Aguardar carregamento da imagem
     await new Promise((resolve) => {
       img.onload = () => {
-        // Adicionar logo centralizada no topo (80mm de largura para melhor visualização)
-        doc.addImage(img, 'SVG', 65, 5, 80, 28);
+        // Adicionar logo centralizada no topo (60mm de largura - reduzida)
+        doc.addImage(img, 'SVG', 75, 3, 60, 21);
         resolve(true);
       };
       img.onerror = () => {
         // Se falhar ao carregar, adicionar texto alternativo
         console.warn('Erro ao carregar logo CCB');
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12);
-        doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 15, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 12, { align: 'center' });
         resolve(true);
       };
     });
 
-    // Cabeçalho - texto abaixo da logo
+    // Título principal
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(0, 0, 0);
-    doc.text('ADMINISTRAÇÃO ITUIUTABA', 105, 38, { align: 'center' });
-    
     doc.setFontSize(9);
+    doc.setTextColor(0, 0, 0);
+    doc.text('LISTA DE SERVIÇOS E DIVERSOS', 105, 27, { align: 'center' });
+    
+    // Cabeçalho - administração e período
+    doc.setFontSize(8);
+    doc.text('ADMINISTRAÇÃO ITUIUTABA', 105, 32, { align: 'center' });
+    
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'normal');
-    doc.text(getPeriodText(), 105, 44, { align: 'center' });
+    doc.text(getPeriodText(), 105, 36, { align: 'center' });
 
     // Agrupar por tipo
     const grouped = items.reduce((acc, item) => {
@@ -497,21 +501,21 @@ export default function Lists() {
       return orderA - orderB;
     });
 
-    let currentY = 51;
+    let currentY = 40;
 
     sortedGrouped.forEach(([eventType, eventItems], index) => {
-      if (index > 0 && currentY > 250) {
+      if (index > 0 && currentY > 260) {
         doc.addPage();
-        currentY = 20;
+        currentY = 15;
       }
 
-      // Categoria
+      // Categoria (reduzida)
       doc.setFillColor(240, 240, 240);
-      doc.rect(10, currentY, 190, 8, 'F');
+      doc.rect(10, currentY, 190, 6, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text(eventType.toUpperCase(), 105, currentY + 5, { align: 'center' });
-      currentY += 10;
+      doc.setFontSize(8);
+      doc.text(eventType.toUpperCase(), 105, currentY + 4, { align: 'center' });
+      currentY += 7;
 
       // Tabela
       const hasEventsInGroup = eventItems.some(item => item.eventTitle);
@@ -536,50 +540,50 @@ export default function Lists() {
           fillColor: [200, 200, 200],
           textColor: [0, 0, 0],
           fontStyle: 'bold',
-          fontSize: 8,
+          fontSize: 7,
           halign: 'left',
         },
         bodyStyles: {
-          fontSize: 7,
+          fontSize: 6.5,
           textColor: [0, 0, 0],
         },
         alternateRowStyles: {
           fillColor: [245, 245, 245],
         },
         styles: {
-          cellPadding: 1.5,
+          cellPadding: 1,
           lineColor: [0, 0, 0],
           lineWidth: 0.1,
         },
         columnStyles: {
-          0: { cellWidth: 30 },
-          1: { cellWidth: 20 },
-          2: { cellWidth: 90 },
-          3: { cellWidth: 50 },
+          0: { cellWidth: 28 },
+          1: { cellWidth: 18 },
+          2: { cellWidth: 88 },
+          3: { cellWidth: 56 },
         },
       });
 
       currentY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || currentY + 50;
-      currentY += 5;
+      currentY += 3;
     });
 
     // Adicionar avisos se houver e estiver habilitado
     if (avisos && avisosEnabled) {
-      if (currentY > 250) {
+      if (currentY > 260) {
         doc.addPage();
-        currentY = 20;
+        currentY = 15;
       }
 
-      currentY += 5;
+      currentY += 3;
       doc.setFillColor(240, 240, 240);
-      doc.rect(10, currentY, 190, 8, 'F');
+      doc.rect(10, currentY, 190, 6, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.text('AVISOS PARA IRMANDADE', 105, currentY + 5, { align: 'center' });
-      currentY += 12;
+      doc.setFontSize(8);
+      doc.text('AVISOS PARA IRMANDADE', 105, currentY + 4, { align: 'center' });
+      currentY += 9;
 
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       const splitAvisos = doc.splitTextToSize(avisos, 180);
       doc.text(splitAvisos, 15, currentY);
     }
