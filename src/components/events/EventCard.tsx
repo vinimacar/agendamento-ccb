@@ -32,27 +32,35 @@ export function EventCard({ event, compact = false, showDataEntry = false }: Eve
   
   if (compact) {
     return (
-      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
-        <div className="w-12 h-12 rounded-lg gradient-primary flex flex-col items-center justify-center text-primary-foreground">
-          <span className="text-xs font-medium">
-            {format(eventDate, 'MMM', { locale: ptBR }).toUpperCase()}
+      <div className="flex flex-col gap-2 p-3 rounded-lg bg-muted/30 hover:bg-muted/60 transition-all duration-200 border border-border/40 hover:border-primary/30 hover:shadow-md group">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-md gradient-primary flex flex-col items-center justify-center text-primary-foreground shrink-0 group-hover:scale-105 transition-transform">
+            <span className="text-[10px] font-medium leading-none">
+              {format(eventDate, 'MMM', { locale: ptBR }).toUpperCase()}
+            </span>
+            <span className="text-base font-bold leading-none mt-0.5">
+              {format(eventDate, 'dd')}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-foreground truncate leading-tight">{event.title}</p>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              {eventTypeLabels[event.type]}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-2 pl-[52px]">
+          <span className="text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {event.time}
           </span>
-          <span className="text-lg font-bold leading-none">
-            {format(eventDate, 'dd')}
+          <span className={cn(
+            "px-2 py-0.5 rounded-full text-[10px] font-medium border",
+            eventTypeColors[event.type] || 'bg-muted text-muted-foreground'
+          )}>
+            {format(eventDate, 'EEE', { locale: ptBR }).toUpperCase()}
           </span>
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-medium text-foreground truncate">{event.title}</p>
-          <p className="text-sm text-muted-foreground truncate">
-            {eventTypeLabels[event.type]}
-          </p>
-        </div>
-        <span className={cn(
-          "px-2 py-1 rounded-full text-xs font-medium border",
-          eventTypeColors[event.type] || 'bg-muted text-muted-foreground'
-        )}>
-          {event.time}
-        </span>
       </div>
     );
   }

@@ -21,7 +21,7 @@ export default function Dashboard() {
           eventService.getAll(),
           congregationService.getAll(),
         ]);
-        setEvents(eventsData.slice(0, 4)); // Mostrar apenas 4 eventos próximos
+        setEvents(eventsData);
         setCongregationsCount(congregationsData.length);
       } catch (error: any) {
         console.error('Error loading dashboard data:', error);
@@ -38,7 +38,21 @@ export default function Dashboard() {
     loadData();
   }, []);
 
-  const upcomingEvents = events.filter(e => e.date >= new Date()).slice(0, 4);
+  // Filtrar eventos do mês atual e futuros
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  
+  const upcomingEventsThisMonth = events.filter(e => {
+    const eventDate = e.date instanceof Date ? e.date : new Date(e.date);
+    return eventDate >= now && 
+           eventDate.getMonth() === currentMonth && 
+           eventDate.getFullYear() === currentYear;
+  }).sort((a, b) => {
+    const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+    const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+    return dateA.getTime() - dateB.getTime();
+  });
   const stats = {
     congregations: congregationsCount,
     events: events.length,
@@ -96,7 +110,7 @@ export default function Dashboard() {
           {/* Upcoming Events */}
           <div className="lg:col-span-2 bg-card rounded-2xl p-6 shadow-md hover:shadow-lg transition-shadow duration-300 border border-border/40">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-foreground">Próximos Eventos</h2>
+              <h2 className="text-xl font-semibold text-foreground">Próximos Eventos do Mês</h2>
               <Link to="/events">
                 <Button variant="ghost" size="sm">
                   Ver todos
@@ -107,14 +121,14 @@ export default function Dashboard() {
               <div className="flex justify-center items-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : upcomingEvents.length > 0 ? (
-              <div className="space-y-5">
-                {upcomingEvents.map((event) => (
+            ) : upcomingEventsThisMonth.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {upcomingEventsThisMonth.map((event) => (
                   <EventCard key={event.id} event={event} compact />
                 ))}
               </div>
             ) : (
-              <p className="text-muted-foreground text-center py-8">Nenhum evento agendado</p>
+              <p className="text-muted-foreground text-center py-8">Nenhum evento agendado para este mês</p>
             )}
           </div>
 
