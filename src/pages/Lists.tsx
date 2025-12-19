@@ -422,7 +422,7 @@ export default function Lists() {
     });
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     const items = getFilteredItems().filter(item => enabledCategories[item.type] !== false);
 
     if (items.length === 0) {
@@ -436,18 +436,34 @@ export default function Lists() {
 
     const doc = new jsPDF();
 
-    // Cabeçalho
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
-    doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 15, { align: 'center' });
+    // Adicionar logo da CCB no cabeçalho
+    const logoUrl = '/ccb-logo.svg';
+    const img = new Image();
+    img.src = logoUrl;
     
+    // Aguardar carregamento da imagem
+    await new Promise((resolve) => {
+      img.onload = () => {
+        // Adicionar logo centralizada no topo (70mm de largura, proporção mantida)
+        doc.addImage(img, 'SVG', 70, 5, 70, 25);
+        resolve(true);
+      };
+      img.onerror = () => {
+        // Se falhar ao carregar, continuar sem logo
+        console.warn('Erro ao carregar logo CCB');
+        resolve(true);
+      };
+    });
+
+    // Cabeçalho - texto abaixo da logo
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.text('ADMINISTRAÇÃO ITUIUTABA', 105, 22, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+    doc.text('ADMINISTRAÇÃO ITUIUTABA', 105, 35, { align: 'center' });
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(getPeriodText(), 105, 28, { align: 'center' });
+    doc.text(getPeriodText(), 105, 41, { align: 'center' });
 
     // Agrupar por tipo
     const grouped = items.reduce((acc, item) => {
@@ -478,7 +494,7 @@ export default function Lists() {
       return orderA - orderB;
     });
 
-    let currentY = 35;
+    let currentY = 48;
 
     sortedGrouped.forEach(([eventType, eventItems], index) => {
       if (index > 0 && currentY > 250) {

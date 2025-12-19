@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 200">
+  <!-- Ornamentos superiores -->
+  <g fill="none" stroke="#000" stroke-width="2">
+    <path d="M 50 20 L 60 20 L 60 40 L 50 40 Z"/>
+    <path d="M 70 20 L 80 20 L 80 40 L 70 40 Z"/>
+    <path d="M 90 20 L 100 20 L 100 40 L 90 40 Z"/>
+    <path d="M 460 20 L 470 20 L 470 40 L 460 40 Z"/>
+    <path d="M 480 20 L 490 20 L 490 40 L 480 40 Z"/>
+    <path d="M 500 20 L 510 20 L 510 40 L 500 40 Z"/>
+  </g>
+  
+  <!-- Banner CCB -->
+  <rect x="190" y="10" width="180" height="35" fill="#000"/>
+  <text x="280" y="32" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#fff" text-anchor="middle">CCB</text>
+  
+  <!-- Moldura do texto -->
+  <rect x="20" y="50" width="520" height="120" fill="none" stroke="#000" stroke-width="3" rx="5"/>
+  <rect x="25" y="55" width="510" height="110" fill="none" stroke="#000" stroke-width="1" rx="3"/>
+  
+  <!-- Texto principal -->
+  <text x="280" y="95" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle">CONGREGAÇÃO CRISTÃ</text>
+  <text x="280" y="120" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle">NO</text>
+  <text x="280" y="145" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle">BRASIL</text>
+  
+  <!-- Ornamentos inferiores -->
+  <g fill="none" stroke="#000" stroke-width="2">
+    <path d="M 160 175 Q 200 185, 240 175"/>
+    <path d="M 240 175 Q 280 185, 320 175"/>
+    <path d="M 160 180 Q 200 190, 240 180"/>
+    <path d="M 240 180 Q 280 190, 320 180"/>
+  </g>
+  
+  <!-- Molduras laterais decorativas -->
+  <g fill="none" stroke="#000" stroke-width="2">
+    <path d="M 15 50 Q 10 50, 10 55 L 10 165 Q 10 170, 15 170"/>
+    <path d="M 545 50 Q 550 50, 550 55 L 550 165 Q 550 170, 545 170"/>
+  </g>
+</svg>
