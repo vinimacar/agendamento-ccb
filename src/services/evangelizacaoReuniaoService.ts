@@ -56,7 +56,8 @@ export const evangelizacaoReuniaoService = {
 
   async update(id: string, data: Partial<EvangelizacaoReuniao>): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
-    const updateData: any = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: Record<string, any> = {
       ...data,
       updatedAt: Timestamp.now(),
     };
