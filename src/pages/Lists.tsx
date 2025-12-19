@@ -333,18 +333,26 @@ export default function Lists() {
               ? event.otherElderName 
               : event.elderName || cong?.admin || '-';
             
-            // Apenas reuniões (mocidade e ministerial) usam eventTitle
+            // Verificar se é reunião ou evento customizado - ambos usam eventTitle
             const isReuniao = event.type === 'reuniao-mocidade' || event.type === 'reuniao-ministerial';
+            const isCustomEvent = event.type?.startsWith('custom-');
+            
+            // Remover prefixo "custom-" do tipo de evento para exibição
+            const displayType = isCustomEvent 
+              ? event.type.replace('custom-', '').split('-').map(word => 
+                  word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ')
+              : event.type || 'Evento';
             
             items.push({
               date: event.date,
               time: event.time || '19:30',
-              type: event.type || 'Evento',
+              type: displayType,
               congregationName: event.congregationName || cong?.name || '-',
               city: cong?.city || '-',
               details: event.description || event.title,
               responsavel: anciaoResponsavel,
-              eventTitle: isReuniao ? event.title : undefined, // Apenas reuniões mostram título
+              eventTitle: (isReuniao || isCustomEvent) ? event.title : undefined, // Reuniões e eventos customizados mostram título
             });
           }
         }
