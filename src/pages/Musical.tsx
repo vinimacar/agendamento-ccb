@@ -102,6 +102,7 @@ export default function Musical() {
   const [filterCalendarCity, setFilterCalendarCity] = useState('all');
   const [filterCalendarMonth, setFilterCalendarMonth] = useState('all');
   const [filterCalendarYear, setFilterCalendarYear] = useState(new Date().getFullYear().toString());
+  const [filterCalendarType, setFilterCalendarType] = useState<'all' | 'local' | 'regional'>('all');
 
   const loadMusicians = useCallback(async () => {
     setLoadingMusicians(true);
@@ -775,6 +776,11 @@ export default function Musical() {
       filtered = filtered.filter(e => getMonth(e.date) === monthIndex);
     }
 
+    // Filtro por tipo de ensaio
+    if (filterCalendarType && filterCalendarType !== 'all') {
+      filtered = filtered.filter(e => e.type === filterCalendarType);
+    }
+
     return filtered;
   };
 
@@ -805,6 +811,9 @@ export default function Musical() {
     }
     if (filterCalendarCity) {
       filters.push(`Cidade: ${filterCalendarCity}`);
+    }
+    if (filterCalendarType && filterCalendarType !== 'all') {
+      filters.push(`Tipo: ${filterCalendarType === 'local' ? 'Local' : 'Regional'}`);
     }
     if (filterCalendarMonth && filterCalendarMonth !== 'all' && filterCalendarMonth !== 'annual') {
       const monthName = format(new Date(2000, parseInt(filterCalendarMonth) - 1, 1), 'MMMM', { locale: ptBR });
@@ -882,6 +891,10 @@ export default function Musical() {
     }
     if (filterCalendarCity) {
       doc.text(`Cidade: ${filterCalendarCity}`, 105, yPos, { align: 'center' });
+      yPos += 5;
+    }
+    if (filterCalendarType && filterCalendarType !== 'all') {
+      doc.text(`Tipo: ${filterCalendarType === 'local' ? 'Local' : 'Regional'}`, 105, yPos, { align: 'center' });
       yPos += 5;
     }
     if (filterCalendarMonth && filterCalendarMonth !== 'all' && filterCalendarMonth !== 'annual') {
@@ -1465,6 +1478,24 @@ export default function Musical() {
                         {city}
                       </SelectItem>
                     ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Filtro de Tipo de Ensaio */}
+            <div className="space-y-2">
+              <Label>Tipo de Ensaio</Label>
+              <Select
+                value={filterCalendarType}
+                onValueChange={(value: 'all' | 'local' | 'regional') => setFilterCalendarType(value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os Tipos</SelectItem>
+                  <SelectItem value="local">Local</SelectItem>
+                  <SelectItem value="regional">Regional</SelectItem>
                 </SelectContent>
               </Select>
             </div>

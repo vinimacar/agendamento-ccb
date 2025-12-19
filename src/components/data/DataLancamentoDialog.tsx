@@ -10,7 +10,9 @@ import { useToast } from '@/hooks/use-toast';
 import { useCongregations } from '@/hooks/useCongregations';
 import { batismoDataService, santaCeiaDataService, ensaioDataService } from '@/services/dataLancamentoService';
 import { eventService } from '@/services/eventService';
-import type { InstrumentCounts, Event, Congregation, BatismoData, SantaCeiaData, EnsaioData } from '@/types';
+import { reforcoService } from '@/services/reforcoService';
+import type { InstrumentCounts, Event, Congregation, BatismoData, SantaCeiaData, EnsaioData, ReforcoSchedule } from '@/types';
+import { eventTypeLabels } from '@/types';
 import { Loader2, Plus, Music, Users2, Droplet, Printer, Search, Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
@@ -81,6 +83,8 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
   const [savedBatismos, setSavedBatismos] = useState<BatismoData[]>([]);
   const [savedSantaCeias, setSavedSantaCeias] = useState<SantaCeiaData[]>([]);
   const [savedEnsaios, setSavedEnsaios] = useState<EnsaioData[]>([]);
+  const [savedEvents, setSavedEvents] = useState<Event[]>([]);
+  const [savedReforcos, setSavedReforcos] = useState<ReforcoSchedule[]>([]);
   const [loadingSavedEvents, setLoadingSavedEvents] = useState(false);
   
   // Estados para dados salvos (para impressão)
@@ -258,14 +262,18 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
   const loadSavedEvents = async () => {
     setLoadingSavedEvents(true);
     try {
-      const [batismos, ceias, ensaios] = await Promise.all([
+      const [batismos, ceias, ensaios, events, reforcos] = await Promise.all([
         batismoDataService.getAll(),
         santaCeiaDataService.getAll(),
         ensaioDataService.getAll(),
+        eventService.getAll(),
+        reforcoService.getAll(),
       ]);
       setSavedBatismos(batismos);
       setSavedSantaCeias(ceias);
       setSavedEnsaios(ensaios);
+      setSavedEvents(events);
+      setSavedReforcos(reforcos);
       setShowSavedEvents(true);
     } catch (error) {
       console.error('Error loading saved events:', error);
@@ -576,10 +584,12 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="batismo-list" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-5">
                   <TabsTrigger value="batismo-list">Batismos ({savedBatismos.length})</TabsTrigger>
                   <TabsTrigger value="santa-ceia-list">Santa Ceia ({savedSantaCeias.length})</TabsTrigger>
                   <TabsTrigger value="ensaio-list">Ensaios ({savedEnsaios.length})</TabsTrigger>
+                  <TabsTrigger value="eventos-list">Eventos ({savedEvents.length})</TabsTrigger>
+                  <TabsTrigger value="reforcos-list">Reforços ({savedReforcos.length})</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="batismo-list" className="space-y-2 max-h-60 overflow-y-auto">
@@ -675,6 +685,46 @@ export function DataLancamentoDialog({ open, onOpenChange, onDataSaved }: DataLa
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </TabsContent>
+
+                <TabsContent value="eventos-list" className="space-y-2 max-h-60 overflow-y-auto">
+                  {savedEvents.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum evento agendado</p>
+                  ) : (
+                    savedEvents.map((event) => (
+                      <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{eventTypeLabels[event.type]}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {event.congregationName} - {format(event.date, 'dd/MM/yyyy')} {event.time}
+                          </p>
+                          {event.description && (
+                            <p className="text-xs text-muted-foreground mt-1">{event.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </TabsContent>
+
+                <TabsContent value="reforcos-list" className="space-y-2 max-h-60 overflow-y-auto">
+                  {savedReforcos.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum reforço cadastrado</p>
+                  ) : (
+                    savedReforcos.map((reforco) => (
+                      <div key={reforco.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">{reforco.congregationName}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(reforco.date, 'dd/MM/yyyy')} {reforco.time} - {reforco.type === 'culto-oficial' ? 'Culto Oficial' : 'RJM'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Responsável: {reforco.responsibleName} {reforco.isFromOutside && `(${reforco.outsideLocation})`}
+                          </p>
                         </div>
                       </div>
                     ))
