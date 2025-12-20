@@ -24,7 +24,7 @@ import { reforcoService } from '@/services/reforcoService';
 import { eventService } from '@/services/eventService';
 import { savedListService } from '@/services/savedListService';
 import type { BatismoData, SantaCeiaData, EnsaioData, Event as EventType, SavedList } from '@/types';
-import { FileSpreadsheet, FileText, Eye, Loader2, Calendar, Filter, Save, FolderOpen, Trash2, Columns2 } from 'lucide-react';
+import { FileSpreadsheet, FileText, Eye, Loader2, Calendar, Filter, Save, FolderOpen, Trash2, Columns2, Mail, MessageCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -433,6 +433,150 @@ export default function Lists() {
     toast({
       title: 'Lista exportada!',
       description: 'O arquivo Excel foi gerado com sucesso.',
+    });
+  };
+
+  const shareViaEmail = () => {
+    const items = getFilteredItems().filter(item => enabledCategories[item.type] !== false);
+    
+    if (items.length === 0) {
+      toast({
+        title: 'Nenhum item encontrado',
+        description: 'Não há dados para compartilhar com os filtros selecionados.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let emailBody = `LISTA DE BATISMOS E DIVERSOS\n`;
+    emailBody += `ADMINISTRAÇÃO ITUIUTABA\n`;
+    emailBody += `${getPeriodText()}\n\n`;
+
+    // Agrupar por tipo
+    const grouped = items.reduce((acc, item) => {
+      if (!acc[item.type]) acc[item.type] = [];
+      acc[item.type].push(item);
+      return acc;
+    }, {} as Record<string, ListItem[]>);
+
+    const eventTypeOrder: Record<string, number> = {
+      'Batismo': 1, 'batismo': 1, 'reuniao-mocidade': 2,
+      'Santa Ceia': 3, 'santa-ceia': 3, 'Ensaio Regional': 4,
+      'culto-oficial-reforco': 5, 'rjm-reforco': 5,
+      'Reforço - Culto Oficial': 5, 'Reforço - RJM': 5,
+      'culto-busca-dons': 6, 'rjm-busca-dons': 7,
+    };
+
+    const sortedGrouped = Object.entries(grouped).sort(([typeA], [typeB]) => {
+      const orderA = eventTypeOrder[typeA] || 999;
+      const orderB = eventTypeOrder[typeB] || 999;
+      return orderA - orderB;
+    });
+
+    sortedGrouped.forEach(([eventType, eventItems]) => {
+      if (enabledCategories[eventType] === false) return;
+      
+      emailBody += `\n=== ${eventType.toUpperCase()} ===\n`;
+      eventItems.forEach(item => {
+        const dateStr = format(item.date, "dd/MM EEE", { locale: ptBR });
+        emailBody += `${dateStr} | ${item.time || '19:30'} | ${item.congregationName} - ${item.city}`;
+        if (item.eventTitle) {
+          emailBody += ` | ${item.eventTitle}`;
+        } else if (item.responsavel) {
+          emailBody += ` | ${item.responsavel}`;
+        }
+        emailBody += `\n`;
+      });
+    });
+
+    if (avisosMinisterio && avisosMinisterioEnabled) {
+      emailBody += `\n\n=== AVISOS PARA MINISTÉRIO ===\n${avisosMinisterio}\n`;
+    }
+
+    if (avisos && avisosEnabled) {
+      emailBody += `\n\n=== AVISOS PARA IRMANDADE ===\n${avisos}\n`;
+    }
+
+    const subject = `Lista de Serviços - ${getPeriodText()}`;
+    const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+    
+    window.open(mailtoLink, '_blank');
+    
+    toast({
+      title: 'Email preparado',
+      description: 'O cliente de email foi aberto com a lista.',
+    });
+  };
+
+  const shareViaWhatsApp = () => {
+    const items = getFilteredItems().filter(item => enabledCategories[item.type] !== false);
+    
+    if (items.length === 0) {
+      toast({
+        title: 'Nenhum item encontrado',
+        description: 'Não há dados para compartilhar com os filtros selecionados.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    let message = `*LISTA DE BATISMOS E DIVERSOS*\n`;
+    message += `*ADMINISTRAÇÃO ITUIUTABA*\n`;
+    message += `${getPeriodText()}\n\n`;
+
+    // Agrupar por tipo
+    const grouped = items.reduce((acc, item) => {
+      if (!acc[item.type]) acc[item.type] = [];
+      acc[item.type].push(item);
+      return acc;
+    }, {} as Record<string, ListItem[]>);
+
+    const eventTypeOrder: Record<string, number> = {
+      'Batismo': 1, 'batismo': 1, 'reuniao-mocidade': 2,
+      'Santa Ceia': 3, 'santa-ceia': 3, 'Ensaio Regional': 4,
+      'culto-oficial-reforco': 5, 'rjm-reforco': 5,
+      'Reforço - Culto Oficial': 5, 'Reforço - RJM': 5,
+      'culto-busca-dons': 6, 'rjm-busca-dons': 7,
+    };
+
+    const sortedGrouped = Object.entries(grouped).sort(([typeA], [typeB]) => {
+      const orderA = eventTypeOrder[typeA] || 999;
+      const orderB = eventTypeOrder[typeB] || 999;
+      return orderA - orderB;
+    });
+
+    sortedGrouped.forEach(([eventType, eventItems]) => {
+      if (enabledCategories[eventType] === false) return;
+      
+      message += `\n*${eventType.toUpperCase()}*\n`;
+      eventItems.forEach(item => {
+        const dateStr = format(item.date, "dd/MM EEE", { locale: ptBR });
+        message += `📅 ${dateStr} | ⏰ ${item.time || '19:30'}\n`;
+        message += `📍 ${item.congregationName} - ${item.city}`;
+        if (item.eventTitle) {
+          message += `\n👤 ${item.eventTitle}`;
+        } else if (item.responsavel) {
+          message += `\n👤 ${item.responsavel}`;
+        }
+        message += `\n\n`;
+      });
+    });
+
+    if (avisosMinisterio && avisosMinisterioEnabled) {
+      message += `\n*📢 AVISOS PARA MINISTÉRIO*\n${avisosMinisterio}\n`;
+    }
+
+    if (avisos && avisosEnabled) {
+      message += `\n*📢 AVISOS PARA IRMANDADE*\n${avisos}\n`;
+    }
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: 'WhatsApp aberto',
+      description: 'A mensagem está pronta para ser enviada.',
     });
   };
 
@@ -1122,6 +1266,14 @@ export default function Lists() {
               <Button onClick={exportToPDF} disabled={loading} variant="secondary" className="gap-2">
                 <FileText className="h-4 w-4" />
                 Exportar PDF
+              </Button>
+              <Button onClick={shareViaEmail} disabled={loading} variant="outline" className="gap-2">
+                <Mail className="h-4 w-4" />
+                Enviar Email
+              </Button>
+              <Button onClick={shareViaWhatsApp} disabled={loading} variant="outline" className="gap-2 bg-green-50 hover:bg-green-100 text-green-700 border-green-200">
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp
               </Button>
             </div>
           </CardContent>
