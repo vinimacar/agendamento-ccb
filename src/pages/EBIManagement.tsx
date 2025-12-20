@@ -62,52 +62,82 @@ export default function EBIManagement() {
   };
 
   const loadMembers = async () => {
+    if (!selectedCongregation) return;
     try {
       const data = await ebiMemberService.getByCongregation(selectedCongregation);
       setMembers(data);
     } catch (error) {
+      console.error('Erro ao carregar membros:', error);
       toast({ title: 'Erro ao carregar membros', variant: 'destructive' });
     }
   };
 
   const loadActivities = async () => {
+    if (!selectedCongregation) return;
     try {
       const data = await ebiActivityService.getByCongregation(selectedCongregation);
       setActivities(data);
     } catch (error) {
+      console.error('Erro ao carregar atividades:', error);
       toast({ title: 'Erro ao carregar atividades', variant: 'destructive' });
     }
   };
 
   const loadChildren = async () => {
+    if (!selectedCongregation) return;
     try {
       const data = await ebiChildService.getByCongregation(selectedCongregation);
       setChildren(data);
     } catch (error) {
+      console.error('Erro ao carregar crianças:', error);
       toast({ title: 'Erro ao carregar crianças', variant: 'destructive' });
     }
   };
 
   const loadAttendances = async () => {
+    if (!selectedCongregation) return;
     try {
       const data = await ebiAttendanceService.getByCongregation(selectedCongregation);
       setAttendances(data);
     } catch (error) {
+      console.error('Erro ao carregar frequências:', error);
       toast({ title: 'Erro ao carregar frequências', variant: 'destructive' });
     }
   };
 
   useEffect(() => {
-    loadWorkGroups();
+    const loadData = async () => {
+      try {
+        await loadWorkGroups();
+      } catch (error) {
+        console.error('Erro ao carregar dados iniciais:', error);
+      }
+    };
+    loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (selectedCongregation) {
-      loadMembers();
-      loadActivities();
-      loadChildren();
-      loadAttendances();
+      const loadCongregationData = async () => {
+        try {
+          await Promise.all([
+            loadMembers(),
+            loadActivities(),
+            loadChildren(),
+            loadAttendances(),
+          ]);
+        } catch (error) {
+          console.error('Erro ao carregar dados da congregação:', error);
+        }
+      };
+      loadCongregationData();
+    } else {
+      // Limpar dados quando nenhuma congregação está selecionada
+      setMembers([]);
+      setActivities([]);
+      setChildren([]);
+      setAttendances([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCongregation]);
