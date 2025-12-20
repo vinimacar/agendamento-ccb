@@ -437,7 +437,7 @@ export default function Lists() {
     const doc = new jsPDF();
 
     // Adicionar logo da CCB no cabeçalho (contém "CONGREGAÇÃO CRISTÃ NO BRASIL")
-    const logoUrl = '/ccb-logo.svg';
+    const logoUrl = '/agendamento-ccb/ccb-logo.svg';
     const img = new Image();
     img.src = logoUrl;
     
@@ -891,7 +891,7 @@ export default function Lists() {
                   <div className="text-center space-y-1 border-b pb-2">
                     {/* Logo CCB */}
                     <div className="flex justify-center mb-2">
-                      <img src="/ccb-logo.svg" alt="CCB Logo" className="h-16" />
+                      <img src="/agendamento-ccb/ccb-logo.svg" alt="CCB Logo" className="h-16" />
                     </div>
                     <p className="text-xs font-semibold">ADMINISTRAÇÃO ITUIUTABA - {getPeriodText()}</p>
                     <p className="text-xs font-semibold">
