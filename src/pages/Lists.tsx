@@ -631,25 +631,27 @@ export default function Lists() {
             fillColor: [168, 85, 247],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
-            fontSize: 7,
+            fontSize: 8,
             halign: 'center',
-            cellPadding: 1.5,
+            cellPadding: 2.5,
           },
           bodyStyles: {
-            fontSize: 6.5,
+            fontSize: 7.5,
             textColor: [0, 0, 0],
-            cellPadding: 2,
+            cellPadding: 3,
             valign: 'top',
+            lineHeight: 1.4,
           },
           styles: {
-            cellPadding: 2,
-            lineColor: [0, 0, 0],
-            lineWidth: 0.1,
+            cellPadding: 3,
+            lineColor: [100, 100, 100],
+            lineWidth: 0.2,
           },
           columnStyles: {
             0: { cellWidth: 95 },
             1: { cellWidth: 95 },
           },
+          margin: { left: 10, right: 10 },
         });
       } else {
         // Layout de 1 coluna
@@ -665,24 +667,26 @@ export default function Lists() {
             fillColor: [168, 85, 247],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
-            fontSize: 7,
+            fontSize: 8,
             halign: 'center',
-            cellPadding: 1.5,
+            cellPadding: 2.5,
           },
           bodyStyles: {
-            fontSize: 6.5,
+            fontSize: 7.5,
             textColor: [0, 0, 0],
-            cellPadding: 2,
+            cellPadding: 3,
             valign: 'top',
+            lineHeight: 1.4,
           },
           styles: {
-            cellPadding: 2,
-            lineColor: [0, 0, 0],
-            lineWidth: 0.1,
+            cellPadding: 3,
+            lineColor: [100, 100, 100],
+            lineWidth: 0.2,
           },
           columnStyles: {
             0: { cellWidth: 190 },
           },
+          margin: { left: 10, right: 10 },
         });
       }
       
@@ -724,25 +728,27 @@ export default function Lists() {
             fillColor: [59, 130, 246],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
-            fontSize: 7,
+            fontSize: 8,
             halign: 'center',
-            cellPadding: 1.5,
+            cellPadding: 2.5,
           },
           bodyStyles: {
-            fontSize: 6.5,
+            fontSize: 7.5,
             textColor: [0, 0, 0],
-            cellPadding: 2,
+            cellPadding: 3,
             valign: 'top',
+            lineHeight: 1.4,
           },
           styles: {
-            cellPadding: 2,
-            lineColor: [0, 0, 0],
-            lineWidth: 0.1,
+            cellPadding: 3,
+            lineColor: [100, 100, 100],
+            lineWidth: 0.2,
           },
           columnStyles: {
             0: { cellWidth: 95 },
             1: { cellWidth: 95 },
           },
+          margin: { left: 10, right: 10 },
         });
       } else {
         // Layout de 1 coluna
@@ -758,24 +764,26 @@ export default function Lists() {
             fillColor: [59, 130, 246],
             textColor: [255, 255, 255],
             fontStyle: 'bold',
-            fontSize: 7,
+            fontSize: 8,
             halign: 'center',
-            cellPadding: 1.5,
+            cellPadding: 2.5,
           },
           bodyStyles: {
-            fontSize: 6.5,
+            fontSize: 7.5,
             textColor: [0, 0, 0],
-            cellPadding: 2,
+            cellPadding: 3,
             valign: 'top',
+            lineHeight: 1.4,
           },
           styles: {
-            cellPadding: 2,
-            lineColor: [0, 0, 0],
-            lineWidth: 0.1,
+            cellPadding: 3,
+            lineColor: [100, 100, 100],
+            lineWidth: 0.2,
           },
           columnStyles: {
             0: { cellWidth: 190 },
           },
+          margin: { left: 10, right: 10 },
         });
       }
     }
@@ -1153,7 +1161,10 @@ export default function Lists() {
                         font-weight: 700 !important;
                       }
                       .text-xl { font-size: 16px !important; }
-                      .text-base { font-size: 14px !important; }
+                      .text-base { 
+                        font-size: 13px !important;
+                        line-height: 1.6 !important;
+                      }
                       .text-sm { 
                         font-size: 11px !important;
                         line-height: 1.5 !important;
@@ -1180,6 +1191,12 @@ export default function Lists() {
                         padding: 5px 8px !important;
                         font-size: 12px !important;
                         font-weight: 700 !important;
+                      }
+                      .leading-loose { 
+                        line-height: 1.8 !important;
+                      }
+                      .border-2 {
+                        border-width: 1px !important;
                       }
                       .pb-2 { padding-bottom: 4px !important; }
                       .mt-4 { margin-top: 8px !important; }
@@ -1279,7 +1296,7 @@ export default function Lists() {
                         </div>
                       </div>
                       {avisosMinisterioEnabled && (
-                        <div className="border border-gray-300 p-3 whitespace-pre-wrap text-sm bg-white leading-relaxed">
+                        <div className="border-2 border-purple-200 rounded-md p-4 whitespace-pre-wrap text-base bg-purple-50 leading-loose shadow-sm">
                           {avisosMinisterio}
                         </div>
                       )}
@@ -1303,7 +1320,7 @@ export default function Lists() {
                         </div>
                       </div>
                       {avisosEnabled && (
-                        <div className="border border-gray-300 p-3 whitespace-pre-wrap text-sm bg-white leading-relaxed">
+                        <div className="border-2 border-blue-200 rounded-md p-4 whitespace-pre-wrap text-base bg-blue-50 leading-loose shadow-sm">
                           {avisos}
                         </div>
                       )}
