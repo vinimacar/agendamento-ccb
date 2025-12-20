@@ -3,7 +3,7 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -412,6 +412,9 @@ export default function EBIManagement() {
                         <DialogTitle>
                           {editingWorkGroup ? 'Editar Grupo de Trabalho' : 'Novo Grupo de Trabalho'}
                         </DialogTitle>
+                        <DialogDescription>
+                          Preencha os dados do grupo de trabalho do EBI
+                        </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleWorkGroupSubmit} className="space-y-4">
                         <div>
@@ -517,6 +520,9 @@ export default function EBIManagement() {
                         <DialogTitle>
                           {editingMember ? 'Editar Membro' : 'Novo Membro'}
                         </DialogTitle>
+                        <DialogDescription>
+                          Cadastre os dados do membro da equipe do EBI
+                        </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleMemberSubmit} className="space-y-4">
                         <div>
@@ -644,6 +650,9 @@ export default function EBIManagement() {
                         <DialogTitle>
                           {editingActivity ? 'Editar Atividade' : 'Nova Atividade'}
                         </DialogTitle>
+                        <DialogDescription>
+                          Registre as atividades realizadas no EBI
+                        </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleActivitySubmit} className="space-y-4">
                         <div>
@@ -775,6 +784,9 @@ export default function EBIManagement() {
                         <DialogTitle>
                           {editingChild ? 'Editar Criança' : 'Nova Criança'}
                         </DialogTitle>
+                        <DialogDescription>
+                          Cadastre os dados da criança participante do EBI
+                        </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleChildSubmit} className="space-y-4">
                         <div>
@@ -916,6 +928,9 @@ export default function EBIManagement() {
                         <DialogTitle>
                           {editingAttendance ? 'Editar Frequência' : 'Lançar Frequência'}
                         </DialogTitle>
+                        <DialogDescription>
+                          Registre a presença das crianças nas atividades do EBI
+                        </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleAttendanceSubmit} className="space-y-4">
                         <div>
