@@ -404,18 +404,18 @@ export default function Lists() {
     });
 
     // Adicionar avisos se houver e estiver habilitado
-    if (avisos && avisosEnabled) {
-      worksheetData.push([]);
-      worksheetData.push([]);
-      worksheetData.push(['AVISOS PARA IRMANDADE']);
-      worksheetData.push([avisos]);
-    }
-
     if (avisosMinisterio && avisosMinisterioEnabled) {
       worksheetData.push([]);
       worksheetData.push([]);
       worksheetData.push(['AVISOS PARA MINISTÉRIO']);
       worksheetData.push([avisosMinisterio]);
+    }
+
+    if (avisos && avisosEnabled) {
+      worksheetData.push([]);
+      worksheetData.push([]);
+      worksheetData.push(['AVISOS PARA IRMANDADE']);
+      worksheetData.push([avisos]);
     }
 
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
@@ -590,30 +590,6 @@ export default function Lists() {
       currentY += 3;
     });
 
-    // Adicionar avisos se houver e estiver habilitado
-    if (avisos && avisosEnabled) {
-      if (currentY > 260) {
-        doc.addPage();
-        currentY = 15;
-      }
-
-      currentY += 3;
-      doc.setFillColor(59, 130, 246); // blue-500
-      doc.rect(10, currentY, 190, 6, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.setTextColor(255, 255, 255); // white text
-      doc.text('AVISOS PARA IRMANDADE', 105, currentY + 4, { align: 'center' });
-      currentY += 9;
-
-      doc.setTextColor(0, 0, 0); // reset to black
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      const splitAvisos = doc.splitTextToSize(avisos, 180);
-      doc.text(splitAvisos, 15, currentY);
-      currentY += splitAvisos.length * 4;
-    }
-
     // Adicionar avisos para ministério se houver e estiver habilitado
     if (avisosMinisterio && avisosMinisterioEnabled) {
       if (currentY > 260) {
@@ -635,6 +611,30 @@ export default function Lists() {
       doc.setFontSize(7);
       const splitAvisosMinisterio = doc.splitTextToSize(avisosMinisterio, 180);
       doc.text(splitAvisosMinisterio, 15, currentY);
+      currentY += splitAvisosMinisterio.length * 4;
+    }
+
+    // Adicionar avisos se houver e estiver habilitado
+    if (avisos && avisosEnabled) {
+      if (currentY > 260) {
+        doc.addPage();
+        currentY = 15;
+      }
+
+      currentY += 3;
+      doc.setFillColor(59, 130, 246); // blue-500
+      doc.rect(10, currentY, 190, 6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255); // white text
+      doc.text('AVISOS PARA IRMANDADE', 105, currentY + 4, { align: 'center' });
+      currentY += 9;
+
+      doc.setTextColor(0, 0, 0); // reset to black
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      const splitAvisos = doc.splitTextToSize(avisos, 180);
+      doc.text(splitAvisos, 15, currentY);
     }
 
     // Adicionar rodapé com data e horário
@@ -1081,30 +1081,6 @@ export default function Lists() {
                     );
                   })}
 
-                  {/* Avisos para Irmandade */}
-                  {avisos && (
-                    <div className="mt-4 space-y-1">
-                      <div 
-                        className="relative bg-blue-500 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-blue-600 transition-colors"
-                        onClick={() => setAvisosEnabled(!avisosEnabled)}
-                      >
-                        AVISOS PARA IRMANDADE
-                        <div className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${
-                          avisosEnabled ? 'bg-green-500' : 'bg-gray-300'
-                        }`}>
-                          <div className={`w-3 h-3 bg-white rounded-full transition-all ${
-                            avisosEnabled ? 'ml-auto' : 'mr-auto'
-                          }`}></div>
-                        </div>
-                      </div>
-                      {avisosEnabled && (
-                        <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
-                          {avisos}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {/* Avisos para Ministério */}
                   {avisosMinisterio && (
                     <div className="mt-4 space-y-1">
@@ -1124,6 +1100,30 @@ export default function Lists() {
                       {avisosMinisterioEnabled && (
                         <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
                           {avisosMinisterio}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Avisos para Irmandade */}
+                  {avisos && (
+                    <div className="mt-4 space-y-1">
+                      <div 
+                        className="relative bg-blue-500 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-blue-600 transition-colors"
+                        onClick={() => setAvisosEnabled(!avisosEnabled)}
+                      >
+                        AVISOS PARA IRMANDADE
+                        <div className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${
+                          avisosEnabled ? 'bg-green-500' : 'bg-gray-300'
+                        }`}>
+                          <div className={`w-3 h-3 bg-white rounded-full transition-all ${
+                            avisosEnabled ? 'ml-auto' : 'mr-auto'
+                          }`}></div>
+                        </div>
+                      </div>
+                      {avisosEnabled && (
+                        <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
+                          {avisos}
                         </div>
                       )}
                     </div>
