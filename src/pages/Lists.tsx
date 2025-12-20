@@ -637,6 +637,17 @@ export default function Lists() {
       doc.text(splitAvisosMinisterio, 15, currentY);
     }
 
+    // Adicionar rodapé com data e horário
+    const now = new Date();
+    const dataFormatada = format(now, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    const horario = format(now, "HH:mm", { locale: ptBR });
+    const rodape = `Ituiutaba-MG, ${dataFormatada} - ${horario}`;
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(100, 100, 100);
+    doc.text(rodape, 105, 287, { align: 'center' });
+
     const filename = startDate && endDate 
       ? `lista-servicos-${format(new Date(startDate), 'yyyy-MM-dd')}_${format(new Date(endDate), 'yyyy-MM-dd')}.pdf`
       : `lista-servicos-${format(new Date(), 'yyyy-MM-dd')}.pdf`;
