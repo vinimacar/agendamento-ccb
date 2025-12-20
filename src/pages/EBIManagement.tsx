@@ -278,9 +278,7 @@ export default function EBIManagement() {
       const selectedCongregationData = congregations.find(c => c.id === selectedCongregation);
       const selectedWorkGroup = workGroups.find(g => g.id === formData.get('workGroupId') as string);
       const boysPresent = parseInt(formData.get('boysPresent') as string) || 0;
-      const boysAbsent = parseInt(formData.get('boysAbsent') as string) || 0;
       const girlsPresent = parseInt(formData.get('girlsPresent') as string) || 0;
-      const girlsAbsent = parseInt(formData.get('girlsAbsent') as string) || 0;
       
       const data = {
         congregationId: selectedCongregation,
@@ -291,11 +289,11 @@ export default function EBIManagement() {
         date: new Date(formData.get('date') as string),
         childrenPresent: [],
         boysPresent,
-        boysAbsent,
+        boysAbsent: 0,
         girlsPresent,
-        girlsAbsent,
+        girlsAbsent: 0,
         totalPresent: boysPresent + girlsPresent,
-        totalAbsent: boysAbsent + girlsAbsent,
+        totalAbsent: 0,
       };
 
       if (editingAttendance) {
@@ -1025,36 +1023,12 @@ export default function EBIManagement() {
                             />
                           </div>
                           <div>
-                            <Label htmlFor="boysAbsent">Meninos Ausentes</Label>
-                            <Input
-                              id="boysAbsent"
-                              name="boysAbsent"
-                              type="number"
-                              defaultValue={editingAttendance?.boysAbsent || 0}
-                              required
-                              min="0"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
                             <Label htmlFor="girlsPresent">Meninas Presentes</Label>
                             <Input
                               id="girlsPresent"
                               name="girlsPresent"
                               type="number"
                               defaultValue={editingAttendance?.girlsPresent || 0}
-                              required
-                              min="0"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="girlsAbsent">Meninas Ausentes</Label>
-                            <Input
-                              id="girlsAbsent"
-                              name="girlsAbsent"
-                              type="number"
-                              defaultValue={editingAttendance?.girlsAbsent || 0}
                               required
                               min="0"
                             />
@@ -1074,12 +1048,8 @@ export default function EBIManagement() {
                     <TableRow>
                       <TableHead>Data</TableHead>
                       <TableHead>Grupo</TableHead>
-                      <TableHead>Meninos P.</TableHead>
-                      <TableHead>Meninos A.</TableHead>
-                      <TableHead>Meninas P.</TableHead>
-                      <TableHead>Meninas A.</TableHead>
-                      <TableHead>Total P.</TableHead>
-                      <TableHead>Total A.</TableHead>
+                      <TableHead>Meninos</TableHead>
+                      <TableHead>Meninas</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead className="w-24">Ações</TableHead>
                     </TableRow>
@@ -1096,23 +1066,11 @@ export default function EBIManagement() {
                         <TableCell className="text-blue-600 font-medium">
                           {attendance.boysPresent || 0}
                         </TableCell>
-                        <TableCell className="text-blue-400">
-                          {attendance.boysAbsent || 0}
-                        </TableCell>
                         <TableCell className="text-pink-600 font-medium">
                           {attendance.girlsPresent || 0}
                         </TableCell>
-                        <TableCell className="text-pink-400">
-                          {attendance.girlsAbsent || 0}
-                        </TableCell>
-                        <TableCell className="text-green-600 font-medium">
+                        <TableCell className="text-green-600 font-bold">
                           {attendance.totalPresent}
-                        </TableCell>
-                        <TableCell className="text-red-600 font-medium">
-                          {attendance.totalAbsent}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {attendance.totalPresent + attendance.totalAbsent}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
