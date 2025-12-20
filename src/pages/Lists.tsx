@@ -72,6 +72,7 @@ export default function Lists() {
   const [filterCongregation, setFilterCongregation] = useState('all');
   const [showPreview, setShowPreview] = useState(false);
   const [avisos, setAvisos] = useState('');
+  const [avisosMinisterio, setAvisosMinisterio] = useState('');
   
   // Listas salvas
   const [savedLists, setSavedLists] = useState<SavedList[]>([]);
@@ -80,6 +81,7 @@ export default function Lists() {
   const [listTitle, setListTitle] = useState('');
   const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
   const [avisosEnabled, setAvisosEnabled] = useState(true);
+  const [avisosMinisterioEnabled, setAvisosMinisterioEnabled] = useState(true);
 
   useEffect(() => {
     loadAllData();
@@ -151,6 +153,7 @@ export default function Lists() {
         filterType,
         filterCongregation,
         avisos,
+        avisosMinisterio,
         items,
       });
 
@@ -178,6 +181,7 @@ export default function Lists() {
     setFilterType(list.filterType || 'all');
     setFilterCongregation(list.filterCongregation || 'all');
     setAvisos(list.avisos || '');
+    setAvisosMinisterio(list.avisosMinisterio || '');
     setLoadDialogOpen(false);
     setShowPreview(true);
 
@@ -407,6 +411,13 @@ export default function Lists() {
       worksheetData.push([avisos]);
     }
 
+    if (avisosMinisterio && avisosMinisterioEnabled) {
+      worksheetData.push([]);
+      worksheetData.push([]);
+      worksheetData.push(['AVISOS PARA MINISTÉRIO']);
+      worksheetData.push([avisosMinisterio]);
+    }
+
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Lista de Serviços');
@@ -587,17 +598,43 @@ export default function Lists() {
       }
 
       currentY += 3;
-      doc.setFillColor(240, 240, 240);
+      doc.setFillColor(59, 130, 246); // blue-500
       doc.rect(10, currentY, 190, 6, 'F');
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255); // white text
       doc.text('AVISOS PARA IRMANDADE', 105, currentY + 4, { align: 'center' });
       currentY += 9;
 
+      doc.setTextColor(0, 0, 0); // reset to black
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(7);
       const splitAvisos = doc.splitTextToSize(avisos, 180);
       doc.text(splitAvisos, 15, currentY);
+      currentY += splitAvisos.length * 4;
+    }
+
+    // Adicionar avisos para ministério se houver e estiver habilitado
+    if (avisosMinisterio && avisosMinisterioEnabled) {
+      if (currentY > 260) {
+        doc.addPage();
+        currentY = 15;
+      }
+
+      currentY += 3;
+      doc.setFillColor(168, 85, 247); // purple-500
+      doc.rect(10, currentY, 190, 6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(255, 255, 255); // white text
+      doc.text('AVISOS PARA MINISTÉRIO', 105, currentY + 4, { align: 'center' });
+      currentY += 9;
+
+      doc.setTextColor(0, 0, 0); // reset to black
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      const splitAvisosMinisterio = doc.splitTextToSize(avisosMinisterio, 180);
+      doc.text(splitAvisosMinisterio, 15, currentY);
     }
 
     const filename = startDate && endDate 
@@ -748,33 +785,72 @@ export default function Lists() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-base font-semibold flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
-                  </svg>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Avisos para Irmandade */}
+              <div className="space-y-2">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                  </div>
+                  Avisos para Irmandade
+                </Label>
+                <div className="relative">
+                  <Textarea
+                    placeholder="Digite os avisos para a irmandade...&#10;&#10;Exemplos:&#10;• Informações sobre próximos eventos&#10;• Lembretes importantes&#10;• Orientações gerais"
+                    value={avisos}
+                    onChange={(e) => setAvisos(e.target.value)}
+                    rows={5}
+                    className="resize-none border-2 focus:border-blue-500 transition-colors"
+                  />
+                  <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                    {avisos.length} caracteres
+                  </div>
                 </div>
-                Avisos para Irmandade
-              </Label>
-              <div className="relative">
-                <Textarea
-                  placeholder="Digite os avisos importantes que serão exibidos no final da lista impressa e no PDF...&#10;&#10;Exemplos:&#10;• Informações sobre próximos eventos&#10;• Lembretes importantes&#10;• Orientações gerais"
-                  value={avisos}
-                  onChange={(e) => setAvisos(e.target.value)}
-                  rows={5}
-                  className="resize-none border-2 focus:border-primary transition-colors"
-                />
-                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-                  {avisos.length} caracteres
-                </div>
+                {avisos && (
+                  <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+                    <p className="text-xs text-muted-foreground mb-1 font-medium">Prévia dos avisos:</p>
+                    <p className="text-sm whitespace-pre-wrap">{avisos}</p>
+                  </div>
+                )}
               </div>
-              {avisos && (
-                <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
-                  <p className="text-xs text-muted-foreground mb-1 font-medium">Prévia dos avisos:</p>
-                  <p className="text-sm whitespace-pre-wrap">{avisos}</p>
+
+              {/* Avisos para Ministério */}
+              <div className="space-y-2">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-600">
+                      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                  </div>
+                  Avisos para Ministério
+                </Label>
+                <div className="relative">
+                  <Textarea
+                    placeholder="Digite os avisos para o ministério...&#10;&#10;Exemplos:&#10;• Orientações para anciãos&#10;• Instruções específicas&#10;• Informações ministeriais"
+                    value={avisosMinisterio}
+                    onChange={(e) => setAvisosMinisterio(e.target.value)}
+                    rows={5}
+                    className="resize-none border-2 focus:border-purple-500 transition-colors"
+                  />
+                  <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                    {avisosMinisterio.length} caracteres
+                  </div>
                 </div>
-              )}
+                {avisosMinisterio && (
+                  <div className="rounded-lg bg-purple-50 border border-purple-200 p-3">
+                    <p className="text-xs text-muted-foreground mb-1 font-medium">Prévia dos avisos:</p>
+                    <p className="text-sm whitespace-pre-wrap">{avisosMinisterio}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -998,7 +1074,7 @@ export default function Lists() {
                   {avisos && (
                     <div className="mt-4 space-y-1">
                       <div 
-                        className="relative bg-gray-400 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-gray-500 transition-colors"
+                        className="relative bg-blue-500 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-blue-600 transition-colors"
                         onClick={() => setAvisosEnabled(!avisosEnabled)}
                       >
                         AVISOS PARA IRMANDADE
@@ -1013,6 +1089,30 @@ export default function Lists() {
                       {avisosEnabled && (
                         <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
                           {avisos}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Avisos para Ministério */}
+                  {avisosMinisterio && (
+                    <div className="mt-4 space-y-1">
+                      <div 
+                        className="relative bg-purple-500 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-purple-600 transition-colors"
+                        onClick={() => setAvisosMinisterioEnabled(!avisosMinisterioEnabled)}
+                      >
+                        AVISOS PARA MINISTÉRIO
+                        <div className={`absolute right-2 top-1/2 -translate-y-1/2 w-8 h-4 rounded-full flex items-center px-0.5 transition-colors ${
+                          avisosMinisterioEnabled ? 'bg-green-500' : 'bg-gray-300'
+                        }`}>
+                          <div className={`w-3 h-3 bg-white rounded-full transition-all ${
+                            avisosMinisterioEnabled ? 'ml-auto' : 'mr-auto'
+                          }`}></div>
+                        </div>
+                      </div>
+                      {avisosMinisterioEnabled && (
+                        <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
+                          {avisosMinisterio}
                         </div>
                       )}
                     </div>

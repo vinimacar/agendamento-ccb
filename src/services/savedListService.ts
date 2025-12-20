@@ -43,6 +43,9 @@ const savedListConverter = {
     if (list.filterCongregation && list.filterCongregation !== 'all') {
       data.filterCongregation = list.filterCongregation;
     }
+    if (list.avisosMinisterio) {
+      data.avisosMinisterio = list.avisosMinisterio;
+    }
     
     return data;
   },
@@ -56,6 +59,7 @@ const savedListConverter = {
       filterType: data.filterType,
       filterCongregation: data.filterCongregation,
       avisos: data.avisos || '',
+      avisosMinisterio: data.avisosMinisterio || '',
       items: data.items.map((item: { date: { toDate: () => Date }; [key: string]: unknown }) => ({
         ...item,
         date: item.date.toDate(),

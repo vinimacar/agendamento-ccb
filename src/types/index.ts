@@ -397,6 +397,7 @@ export interface SavedList {
   filterType?: string;
   filterCongregation?: string;
   avisos: string;
+  avisosMinisterio?: string;
   items: Array<{
     date: Date;
     time?: string;
