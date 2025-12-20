@@ -367,7 +367,20 @@ export default function EBIManagement() {
       </div>
 
       {selectedCongregation && (
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <>
+          <div className="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Congregação selecionada:</p>
+                <p className="text-lg font-semibold">
+                  {congregations.find(c => c.id === selectedCongregation)?.name} - {congregations.find(c => c.id === selectedCongregation)?.city}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="work-groups">
               <Users className="w-4 h-4 mr-2" />
@@ -1051,6 +1064,7 @@ export default function EBIManagement() {
             </Card>
           </TabsContent>
         </Tabs>
+        </>
       )}
 
       {!selectedCongregation && !congregationsLoading && (
