@@ -384,6 +384,10 @@ export interface EBIAttendance {
   workGroupId: string;
   workGroupName: string;
   childrenPresent: string[]; // IDs das crianças presentes
+  boysPresent: number;
+  boysAbsent: number;
+  girlsPresent: number;
+  girlsAbsent: number;
   totalPresent: number;
   totalAbsent: number;
   createdAt: Date;

@@ -277,8 +277,10 @@ export default function EBIManagement() {
     try {
       const selectedCongregationData = congregations.find(c => c.id === selectedCongregation);
       const selectedWorkGroup = workGroups.find(g => g.id === formData.get('workGroupId') as string);
-      const presentCount = parseInt(formData.get('presentCount') as string);
-      const absentCount = parseInt(formData.get('absentCount') as string);
+      const boysPresent = parseInt(formData.get('boysPresent') as string) || 0;
+      const boysAbsent = parseInt(formData.get('boysAbsent') as string) || 0;
+      const girlsPresent = parseInt(formData.get('girlsPresent') as string) || 0;
+      const girlsAbsent = parseInt(formData.get('girlsAbsent') as string) || 0;
       
       const data = {
         congregationId: selectedCongregation,
@@ -288,8 +290,12 @@ export default function EBIManagement() {
         workGroupName: selectedWorkGroup?.name || '',
         date: new Date(formData.get('date') as string),
         childrenPresent: [],
-        totalPresent: presentCount,
-        totalAbsent: absentCount,
+        boysPresent,
+        boysAbsent,
+        girlsPresent,
+        girlsAbsent,
+        totalPresent: boysPresent + girlsPresent,
+        totalAbsent: boysAbsent + girlsAbsent,
       };
 
       if (editingAttendance) {
@@ -1006,27 +1012,53 @@ export default function EBIManagement() {
                             required
                           />
                         </div>
-                        <div>
-                          <Label htmlFor="presentCount">Presentes</Label>
-                          <Input
-                            id="presentCount"
-                            name="presentCount"
-                            type="number"
-                            defaultValue={editingAttendance?.totalPresent || 0}
-                            required
-                            min="0"
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="boysPresent">Meninos Presentes</Label>
+                            <Input
+                              id="boysPresent"
+                              name="boysPresent"
+                              type="number"
+                              defaultValue={editingAttendance?.boysPresent || 0}
+                              required
+                              min="0"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="boysAbsent">Meninos Ausentes</Label>
+                            <Input
+                              id="boysAbsent"
+                              name="boysAbsent"
+                              type="number"
+                              defaultValue={editingAttendance?.boysAbsent || 0}
+                              required
+                              min="0"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <Label htmlFor="absentCount">Ausentes</Label>
-                          <Input
-                            id="absentCount"
-                            name="absentCount"
-                            type="number"
-                            defaultValue={editingAttendance?.totalAbsent || 0}
-                            required
-                            min="0"
-                          />
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="girlsPresent">Meninas Presentes</Label>
+                            <Input
+                              id="girlsPresent"
+                              name="girlsPresent"
+                              type="number"
+                              defaultValue={editingAttendance?.girlsPresent || 0}
+                              required
+                              min="0"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="girlsAbsent">Meninas Ausentes</Label>
+                            <Input
+                              id="girlsAbsent"
+                              name="girlsAbsent"
+                              type="number"
+                              defaultValue={editingAttendance?.girlsAbsent || 0}
+                              required
+                              min="0"
+                            />
+                          </div>
                         </div>
                         <Button type="submit" className="w-full">
                           {editingAttendance ? 'Atualizar' : 'Lançar'}
@@ -1042,8 +1074,12 @@ export default function EBIManagement() {
                     <TableRow>
                       <TableHead>Data</TableHead>
                       <TableHead>Grupo</TableHead>
-                      <TableHead>Presentes</TableHead>
-                      <TableHead>Ausentes</TableHead>
+                      <TableHead>Meninos P.</TableHead>
+                      <TableHead>Meninos A.</TableHead>
+                      <TableHead>Meninas P.</TableHead>
+                      <TableHead>Meninas A.</TableHead>
+                      <TableHead>Total P.</TableHead>
+                      <TableHead>Total A.</TableHead>
                       <TableHead>Total</TableHead>
                       <TableHead className="w-24">Ações</TableHead>
                     </TableRow>
@@ -1056,6 +1092,18 @@ export default function EBIManagement() {
                         </TableCell>
                         <TableCell>
                           {workGroups.find(g => g.id === attendance.workGroupId)?.name || '-'}
+                        </TableCell>
+                        <TableCell className="text-blue-600 font-medium">
+                          {attendance.boysPresent || 0}
+                        </TableCell>
+                        <TableCell className="text-blue-400">
+                          {attendance.boysAbsent || 0}
+                        </TableCell>
+                        <TableCell className="text-pink-600 font-medium">
+                          {attendance.girlsPresent || 0}
+                        </TableCell>
+                        <TableCell className="text-pink-400">
+                          {attendance.girlsAbsent || 0}
                         </TableCell>
                         <TableCell className="text-green-600 font-medium">
                           {attendance.totalPresent}
