@@ -737,14 +737,32 @@ export default function Lists() {
             </div>
 
             <div className="space-y-2">
-              <Label>Avisos para Irmandade</Label>
-              <Textarea
-                placeholder="Digite os avisos que serão exibidos no final da lista..."
-                value={avisos}
-                onChange={(e) => setAvisos(e.target.value)}
-                rows={3}
-                className="resize-none"
-              />
+              <Label className="text-base font-semibold flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                    <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/>
+                  </svg>
+                </div>
+                Avisos para Irmandade
+              </Label>
+              <div className="relative">
+                <Textarea
+                  placeholder="Digite os avisos importantes que serão exibidos no final da lista impressa e no PDF...&#10;&#10;Exemplos:&#10;• Informações sobre próximos eventos&#10;• Lembretes importantes&#10;• Orientações gerais"
+                  value={avisos}
+                  onChange={(e) => setAvisos(e.target.value)}
+                  rows={5}
+                  className="resize-none border-2 focus:border-primary transition-colors"
+                />
+                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
+                  {avisos.length} caracteres
+                </div>
+              </div>
+              {avisos && (
+                <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                  <p className="text-xs text-muted-foreground mb-1 font-medium">Prévia dos avisos:</p>
+                  <p className="text-sm whitespace-pre-wrap">{avisos}</p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">
