@@ -12,6 +12,7 @@ import { congregationService } from '@/services/congregationService';
 export default function Dashboard() {
   const [events, setEvents] = useState<Event[]>([]);
   const [congregationsCount, setCongregationsCount] = useState(0);
+  const [uniqueCitiesCount, setUniqueCitiesCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,6 +24,10 @@ export default function Dashboard() {
         ]);
         setEvents(eventsData);
         setCongregationsCount(congregationsData.length);
+        
+        // Contar cidades únicas
+        const cities = new Set(congregationsData.map(c => c.city).filter(Boolean));
+        setUniqueCitiesCount(cities.size);
       } catch (error: any) {
         console.error('Error loading dashboard data:', error);
         
@@ -56,7 +61,7 @@ export default function Dashboard() {
   const stats = {
     congregations: congregationsCount,
     events: events.length,
-    cities: new Set(events.map(e => e.congregationName).filter(Boolean)).size,
+    cities: uniqueCitiesCount,
     growth: 8.5,
   };
   return (
