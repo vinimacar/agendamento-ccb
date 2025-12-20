@@ -1140,7 +1140,7 @@ export default function Lists() {
                   Nenhum item encontrado com os filtros selecionados
                 </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 font-sans">
                   <style>{`
                     @media print {
                       * { 
@@ -1164,13 +1164,13 @@ export default function Lists() {
                     }
                   `}</style>
                   {/* Cabeçalho */}
-                  <div className="text-center space-y-1 border-b pb-2">
+                  <div className="text-center space-y-2 border-b pb-3">
                     {/* Logo CCB */}
                     <div className="flex justify-center mb-2">
                       <img src="/agendamento-ccb/ccb-logo.svg" alt="CCB Logo" className="h-16" />
                     </div>
-                    <p className="text-xs font-semibold">ADMINISTRAÇÃO ITUIUTABA - {getPeriodText()}</p>
-                    <p className="text-xs font-semibold">
+                    <p className="text-sm font-bold tracking-wide">{getPeriodText()}</p>
+                    <p className="text-base font-bold tracking-wide">
                       {filterType === 'batismo' ? 'LISTA DE BATISMOS' :
                        filterType === 'santa-ceia' ? 'LISTA DE SANTA CEIA' :
                        filterType === 'ensaio-regional' ? 'LISTA DE ENSAIOS REGIONAIS' :
@@ -1189,7 +1189,7 @@ export default function Lists() {
                       <div key={eventType} className="space-y-1">
                         {/* Categoria com toggle clicável */}
                         <div 
-                          className="relative bg-gray-400 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-gray-500 transition-colors"
+                          className="relative bg-gray-400 compact-header py-2 px-3 font-bold text-center text-white rounded-sm text-sm cursor-pointer hover:bg-gray-500 transition-colors"
                           onClick={() => toggleCategory(eventType)}
                         >
                           {eventType.toUpperCase()}
@@ -1205,13 +1205,13 @@ export default function Lists() {
                         {/* Tabela - só mostra se habilitado */}
                         {isEnabled && (
                           <div className="overflow-x-auto">
-                            <table className="w-full text-xs border-collapse border border-gray-300">
+                            <table className="w-full text-sm border-collapse border border-gray-300">
                               <thead>
                                 <tr className="bg-gray-100">
-                                  <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">DATA</th>
-                                  <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">HORA</th>
-                                  <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">LOCALIDADE</th>
-                                  <th className="compact-p py-1 px-2 text-left border border-gray-300 font-bold">
+                                  <th className="compact-p py-2 px-3 text-left border border-gray-300 font-bold">DATA</th>
+                                  <th className="compact-p py-2 px-3 text-left border border-gray-300 font-bold">HORA</th>
+                                  <th className="compact-p py-2 px-3 text-left border border-gray-300 font-bold">LOCALIDADE</th>
+                                  <th className="compact-p py-2 px-3 text-left border border-gray-300 font-bold">
                                     {items[0]?.eventTitle ? 'TIPO DE REUNIÃO' : 
                                      eventType.includes('Reforço') ? 'RESPONSÁVEL' : 'ANCIÃO'}
                                   </th>
@@ -1223,10 +1223,10 @@ export default function Lists() {
                                   const dayOfWeek = format(item.date, "EEE", { locale: ptBR }).toUpperCase().substring(0, 3);
                                   return (
                                     <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                      <td className="compact-p py-1 px-2 border border-gray-300">{dateStr} {dayOfWeek}</td>
-                                      <td className="compact-p py-1 px-2 border border-gray-300">{item.time || '19:30'}</td>
-                                      <td className="compact-p py-1 px-2 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
-                                      <td className="compact-p py-1 px-2 border border-gray-300">
+                                      <td className="compact-p py-2 px-3 border border-gray-300">{dateStr} {dayOfWeek}</td>
+                                      <td className="compact-p py-2 px-3 border border-gray-300">{item.time || '19:30'}</td>
+                                      <td className="compact-p py-2 px-3 border border-gray-300">{item.congregationName.toUpperCase()} - {item.city.toUpperCase()}</td>
+                                      <td className="compact-p py-2 px-3 border border-gray-300">
                                         {item.eventTitle ? item.eventTitle.toUpperCase() : (item.responsavel?.toUpperCase() || '-')}
                                       </td>
                                     </tr>
@@ -1242,9 +1242,9 @@ export default function Lists() {
 
                   {/* Avisos para Ministério */}
                   {avisosMinisterio && (
-                    <div className="mt-4 space-y-1">
+                    <div className="mt-4 space-y-2">
                       <div 
-                        className="relative bg-purple-500 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-purple-600 transition-colors"
+                        className="relative bg-purple-500 compact-header py-2 px-3 font-bold text-center text-white rounded-sm text-sm cursor-pointer hover:bg-purple-600 transition-colors"
                         onClick={() => setAvisosMinisterioEnabled(!avisosMinisterioEnabled)}
                       >
                         AVISOS PARA MINISTÉRIO
@@ -1257,7 +1257,7 @@ export default function Lists() {
                         </div>
                       </div>
                       {avisosMinisterioEnabled && (
-                        <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
+                        <div className="border border-gray-300 p-3 whitespace-pre-wrap text-sm bg-white leading-relaxed">
                           {avisosMinisterio}
                         </div>
                       )}
@@ -1266,9 +1266,9 @@ export default function Lists() {
 
                   {/* Avisos para Irmandade */}
                   {avisos && (
-                    <div className="mt-4 space-y-1">
+                    <div className="mt-4 space-y-2">
                       <div 
-                        className="relative bg-blue-500 compact-header py-1.5 px-2 font-bold text-center text-white rounded-sm text-xs cursor-pointer hover:bg-blue-600 transition-colors"
+                        className="relative bg-blue-500 compact-header py-2 px-3 font-bold text-center text-white rounded-sm text-sm cursor-pointer hover:bg-blue-600 transition-colors"
                         onClick={() => setAvisosEnabled(!avisosEnabled)}
                       >
                         AVISOS PARA IRMANDADE
@@ -1281,7 +1281,7 @@ export default function Lists() {
                         </div>
                       </div>
                       {avisosEnabled && (
-                        <div className="border border-gray-300 p-2 whitespace-pre-wrap text-xs bg-white leading-tight">
+                        <div className="border border-gray-300 p-3 whitespace-pre-wrap text-sm bg-white leading-relaxed">
                           {avisos}
                         </div>
                       )}
@@ -1289,8 +1289,8 @@ export default function Lists() {
                   )}
 
                   {/* Rodapé com data e horário de encerramento */}
-                  <div className="mt-4 pt-2 border-t text-center">
-                    <p className="text-xs text-gray-500">
+                  <div className="mt-6 pt-3 border-t text-center">
+                    <p className="text-sm text-gray-600 font-medium">
                       Gerado em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                     </p>
                   </div>
