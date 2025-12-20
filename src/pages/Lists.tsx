@@ -1144,21 +1144,43 @@ export default function Lists() {
                   <style>{`
                     @media print {
                       * { 
-                        font-size: 9px !important;
-                        line-height: 1.2 !important;
+                        font-size: 11px !important;
+                        line-height: 1.5 !important;
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
                       }
-                      h2 { font-size: 13px !important; }
-                      .text-xl { font-size: 13px !important; }
-                      .text-sm { font-size: 8px !important; }
-                      table { font-size: 8px !important; }
-                      th, td { 
-                        padding: 2px 4px !important;
-                        line-height: 1.1 !important;
+                      h2 { 
+                        font-size: 16px !important;
+                        font-weight: 700 !important;
                       }
-                      .space-y-3 > * + * { margin-top: 6px !important; }
+                      .text-xl { font-size: 16px !important; }
+                      .text-base { font-size: 14px !important; }
+                      .text-sm { 
+                        font-size: 11px !important;
+                        line-height: 1.5 !important;
+                      }
+                      table { 
+                        font-size: 11px !important;
+                        border-collapse: collapse !important;
+                      }
+                      th { 
+                        padding: 4px 6px !important;
+                        line-height: 1.4 !important;
+                        font-weight: 700 !important;
+                        background-color: #f5f5f5 !important;
+                      }
+                      td { 
+                        padding: 4px 6px !important;
+                        line-height: 1.4 !important;
+                      }
+                      .space-y-3 > * + * { margin-top: 8px !important; }
+                      .space-y-2 > * + * { margin-top: 4px !important; }
                       .space-y-1 > * + * { margin-top: 2px !important; }
-                      .compact-p { padding: 2px 4px !important; }
-                      .compact-header { padding: 3px 6px !important; }
+                      .compact-p { padding: 4px 6px !important; }
+                      .compact-header { 
+                        padding: 5px 8px !important;
+                        font-size: 12px !important;
+                        font-weight: 700 !important;
+                      }
                       .pb-2 { padding-bottom: 4px !important; }
                       .mt-4 { margin-top: 8px !important; }
                     }
