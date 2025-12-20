@@ -457,8 +457,8 @@ export default function Lists() {
       await new Promise((resolve, reject) => {
         img.onload = () => {
           try {
-            // Adicionar logo centralizada no topo (60mm de largura)
-            doc.addImage(img, 'PNG', 75, 3, 60, 21);
+            // Adicionar logo centralizada no topo (50mm de largura - reduzida)
+            doc.addImage(img, 'PNG', 80, 2, 50, 17);
             resolve(true);
           } catch (error) {
             console.error('Erro ao adicionar imagem ao PDF:', error);
@@ -477,23 +477,23 @@ export default function Lists() {
       // Se falhar ao carregar, adicionar texto alternativo
       console.warn('Usando texto alternativo para logo');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 12, { align: 'center' });
+      doc.setFontSize(9);
+      doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 10, { align: 'center' });
     }
 
     // Título principal
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(0, 0, 0);
-    doc.text('LISTA DE BATISMOS E DIVERSOS', 105, 27, { align: 'center' });
+    doc.text('LISTA DE BATISMOS E DIVERSOS', 105, 22, { align: 'center' });
     
     // Cabeçalho - administração e período
-    doc.setFontSize(8);
-    doc.text('ADMINISTRAÇÃO ITUIUTABA', 105, 32, { align: 'center' });
-    
     doc.setFontSize(7);
+    doc.text('ADMINISTRAÇÃO ITUIUTABA', 105, 26, { align: 'center' });
+    
+    doc.setFontSize(6.5);
     doc.setFont('helvetica', 'normal');
-    doc.text(getPeriodText(), 105, 36, { align: 'center' });
+    doc.text(getPeriodText(), 105, 30, { align: 'center' });
 
     // Agrupar por tipo
     const grouped = items.reduce((acc, item) => {
@@ -524,21 +524,21 @@ export default function Lists() {
       return orderA - orderB;
     });
 
-    let currentY = 40;
+    let currentY = 33;
 
     sortedGrouped.forEach(([eventType, eventItems], index) => {
-      if (index > 0 && currentY > 260) {
+      if (index > 0 && currentY > 270) {
         doc.addPage();
-        currentY = 15;
+        currentY = 10;
       }
 
       // Categoria (reduzida)
       doc.setFillColor(240, 240, 240);
-      doc.rect(10, currentY, 190, 6, 'F');
+      doc.rect(10, currentY, 190, 5, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
-      doc.text(eventType.toUpperCase(), 105, currentY + 4, { align: 'center' });
-      currentY += 7;
+      doc.setFontSize(7);
+      doc.text(eventType.toUpperCase(), 105, currentY + 3.5, { align: 'center' });
+      currentY += 5.5;
 
       // Tabela
       const hasEventsInGroup = eventItems.some(item => item.eventTitle);
@@ -563,78 +563,81 @@ export default function Lists() {
           fillColor: [200, 200, 200],
           textColor: [0, 0, 0],
           fontStyle: 'bold',
-          fontSize: 7,
+          fontSize: 6.5,
           halign: 'left',
+          cellPadding: 0.8,
         },
         bodyStyles: {
-          fontSize: 6.5,
+          fontSize: 6,
           textColor: [0, 0, 0],
+          cellPadding: 0.8,
         },
         alternateRowStyles: {
           fillColor: [245, 245, 245],
         },
         styles: {
-          cellPadding: 1,
+          cellPadding: 0.8,
           lineColor: [0, 0, 0],
           lineWidth: 0.1,
+          minCellHeight: 4,
         },
         columnStyles: {
-          0: { cellWidth: 28 },
-          1: { cellWidth: 18 },
-          2: { cellWidth: 88 },
-          3: { cellWidth: 56 },
+          0: { cellWidth: 25 },
+          1: { cellWidth: 16 },
+          2: { cellWidth: 95 },
+          3: { cellWidth: 54 },
         },
       });
 
       currentY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || currentY + 50;
-      currentY += 3;
+      currentY += 2;
     });
 
     // Adicionar avisos para ministério se houver e estiver habilitado
     if (avisosMinisterio && avisosMinisterioEnabled) {
-      if (currentY > 260) {
+      if (currentY > 270) {
         doc.addPage();
-        currentY = 15;
+        currentY = 10;
       }
 
-      currentY += 3;
+      currentY += 2;
       doc.setFillColor(168, 85, 247); // purple-500
-      doc.rect(10, currentY, 190, 6, 'F');
+      doc.rect(10, currentY, 190, 5, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setTextColor(255, 255, 255); // white text
-      doc.text('AVISOS PARA MINISTÉRIO', 105, currentY + 4, { align: 'center' });
-      currentY += 9;
+      doc.text('AVISOS PARA MINISTÉRIO', 105, currentY + 3.5, { align: 'center' });
+      currentY += 6;
 
       doc.setTextColor(0, 0, 0); // reset to black
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      const splitAvisosMinisterio = doc.splitTextToSize(avisosMinisterio, 180);
-      doc.text(splitAvisosMinisterio, 15, currentY);
-      currentY += splitAvisosMinisterio.length * 4;
+      doc.setFontSize(6.5);
+      const splitAvisosMinisterio = doc.splitTextToSize(avisosMinisterio, 185);
+      doc.text(splitAvisosMinisterio, 12, currentY);
+      currentY += splitAvisosMinisterio.length * 3.5;
     }
 
     // Adicionar avisos se houver e estiver habilitado
     if (avisos && avisosEnabled) {
-      if (currentY > 260) {
+      if (currentY > 270) {
         doc.addPage();
-        currentY = 15;
+        currentY = 10;
       }
 
-      currentY += 3;
+      currentY += 2;
       doc.setFillColor(59, 130, 246); // blue-500
-      doc.rect(10, currentY, 190, 6, 'F');
+      doc.rect(10, currentY, 190, 5, 'F');
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8);
+      doc.setFontSize(7);
       doc.setTextColor(255, 255, 255); // white text
-      doc.text('AVISOS PARA IRMANDADE', 105, currentY + 4, { align: 'center' });
-      currentY += 9;
+      doc.text('AVISOS PARA IRMANDADE', 105, currentY + 3.5, { align: 'center' });
+      currentY += 6;
 
       doc.setTextColor(0, 0, 0); // reset to black
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      const splitAvisos = doc.splitTextToSize(avisos, 180);
-      doc.text(splitAvisos, 15, currentY);
+      doc.setFontSize(6.5);
+      const splitAvisos = doc.splitTextToSize(avisos, 185);
+      doc.text(splitAvisos, 12, currentY);
     }
 
     // Adicionar rodapé com data e horário
