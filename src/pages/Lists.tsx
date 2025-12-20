@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -23,7 +24,7 @@ import { reforcoService } from '@/services/reforcoService';
 import { eventService } from '@/services/eventService';
 import { savedListService } from '@/services/savedListService';
 import type { BatismoData, SantaCeiaData, EnsaioData, Event as EventType, SavedList } from '@/types';
-import { FileSpreadsheet, FileText, Eye, Loader2, Calendar, Filter, Save, FolderOpen, Trash2 } from 'lucide-react';
+import { FileSpreadsheet, FileText, Eye, Loader2, Calendar, Filter, Save, FolderOpen, Trash2, Columns2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
@@ -82,6 +83,7 @@ export default function Lists() {
   const [enabledCategories, setEnabledCategories] = useState<Record<string, boolean>>({});
   const [avisosEnabled, setAvisosEnabled] = useState(true);
   const [avisosMinisterioEnabled, setAvisosMinisterioEnabled] = useState(true);
+  const [twoColumnLayout, setTwoColumnLayout] = useState(false);
 
   useEffect(() => {
     loadAllData();
@@ -601,20 +603,89 @@ export default function Lists() {
       }
 
       currentY += 2;
-      doc.setFillColor(168, 85, 247); // purple-500
-      doc.rect(10, currentY, 190, 5, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.setTextColor(255, 255, 255); // white text
-      doc.text('AVISOS PARA MINISTÉRIO', 105, currentY + 3.5, { align: 'center' });
-      currentY += 6;
-
-      doc.setTextColor(0, 0, 0); // reset to black
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      const splitAvisosMinisterio = doc.splitTextToSize(avisosMinisterio, 185);
-      doc.text(splitAvisosMinisterio, 12, currentY);
-      currentY += splitAvisosMinisterio.length * 3.5;
+      
+      // Avisos ministério com bordas usando autoTable
+      if (twoColumnLayout) {
+        // Layout de 2 colunas
+        const avisosLines = avisosMinisterio.split('\n').filter(line => line.trim());
+        const midPoint = Math.ceil(avisosLines.length / 2);
+        const column1 = avisosLines.slice(0, midPoint);
+        const column2 = avisosLines.slice(midPoint);
+        
+        const maxRows = Math.max(column1.length, column2.length);
+        const tableData = [];
+        for (let i = 0; i < maxRows; i++) {
+          tableData.push([
+            column1[i] || '',
+            column2[i] || ''
+          ]);
+        }
+        
+        autoTable(doc, {
+          startY: currentY,
+          head: [['AVISOS PARA MINISTÉRIO', '']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [168, 85, 247],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 7,
+            halign: 'center',
+            cellPadding: 1.5,
+          },
+          bodyStyles: {
+            fontSize: 6.5,
+            textColor: [0, 0, 0],
+            cellPadding: 2,
+            valign: 'top',
+          },
+          styles: {
+            cellPadding: 2,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+          },
+          columnStyles: {
+            0: { cellWidth: 95 },
+            1: { cellWidth: 95 },
+          },
+        });
+      } else {
+        // Layout de 1 coluna
+        const avisosLines = avisosMinisterio.split('\n').filter(line => line.trim());
+        const tableData = avisosLines.map(line => [line]);
+        
+        autoTable(doc, {
+          startY: currentY,
+          head: [['AVISOS PARA MINISTÉRIO']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [168, 85, 247],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 7,
+            halign: 'center',
+            cellPadding: 1.5,
+          },
+          bodyStyles: {
+            fontSize: 6.5,
+            textColor: [0, 0, 0],
+            cellPadding: 2,
+            valign: 'top',
+          },
+          styles: {
+            cellPadding: 2,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+          },
+          columnStyles: {
+            0: { cellWidth: 190 },
+          },
+        });
+      }
+      
+      currentY = (doc as jsPDF & { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY || currentY + 20;
     }
 
     // Adicionar avisos se houver e estiver habilitado
@@ -625,19 +696,87 @@ export default function Lists() {
       }
 
       currentY += 2;
-      doc.setFillColor(59, 130, 246); // blue-500
-      doc.rect(10, currentY, 190, 5, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(7);
-      doc.setTextColor(255, 255, 255); // white text
-      doc.text('AVISOS PARA IRMANDADE', 105, currentY + 3.5, { align: 'center' });
-      currentY += 6;
-
-      doc.setTextColor(0, 0, 0); // reset to black
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6.5);
-      const splitAvisos = doc.splitTextToSize(avisos, 185);
-      doc.text(splitAvisos, 12, currentY);
+      
+      // Avisos irmandade com bordas usando autoTable
+      if (twoColumnLayout) {
+        // Layout de 2 colunas
+        const avisosLines = avisos.split('\n').filter(line => line.trim());
+        const midPoint = Math.ceil(avisosLines.length / 2);
+        const column1 = avisosLines.slice(0, midPoint);
+        const column2 = avisosLines.slice(midPoint);
+        
+        const maxRows = Math.max(column1.length, column2.length);
+        const tableData = [];
+        for (let i = 0; i < maxRows; i++) {
+          tableData.push([
+            column1[i] || '',
+            column2[i] || ''
+          ]);
+        }
+        
+        autoTable(doc, {
+          startY: currentY,
+          head: [['AVISOS PARA IRMANDADE', '']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [59, 130, 246],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 7,
+            halign: 'center',
+            cellPadding: 1.5,
+          },
+          bodyStyles: {
+            fontSize: 6.5,
+            textColor: [0, 0, 0],
+            cellPadding: 2,
+            valign: 'top',
+          },
+          styles: {
+            cellPadding: 2,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+          },
+          columnStyles: {
+            0: { cellWidth: 95 },
+            1: { cellWidth: 95 },
+          },
+        });
+      } else {
+        // Layout de 1 coluna
+        const avisosLines = avisos.split('\n').filter(line => line.trim());
+        const tableData = avisosLines.map(line => [line]);
+        
+        autoTable(doc, {
+          startY: currentY,
+          head: [['AVISOS PARA IRMANDADE']],
+          body: tableData,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [59, 130, 246],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 7,
+            halign: 'center',
+            cellPadding: 1.5,
+          },
+          bodyStyles: {
+            fontSize: 6.5,
+            textColor: [0, 0, 0],
+            cellPadding: 2,
+            valign: 'top',
+          },
+          styles: {
+            cellPadding: 2,
+            lineColor: [0, 0, 0],
+            lineWidth: 0.1,
+          },
+          columnStyles: {
+            0: { cellWidth: 190 },
+          },
+        });
+      }
     }
 
     // Adicionar rodapé com data e horário
@@ -866,6 +1005,21 @@ export default function Lists() {
                 )}
               </div>
             </div>
+
+            {/* Opção de layout de 2 colunas para avisos no PDF */}
+            {(avisos || avisosMinisterio) && (
+              <div className="flex items-center space-x-2 p-4 bg-gray-50 rounded-lg border">
+                <Switch
+                  id="two-column-layout"
+                  checked={twoColumnLayout}
+                  onCheckedChange={setTwoColumnLayout}
+                />
+                <Label htmlFor="two-column-layout" className="flex items-center gap-2 cursor-pointer">
+                  <Columns2 className="h-4 w-4" />
+                  Imprimir avisos com 2 colunas no PDF (economiza espaço)
+                </Label>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button onClick={() => setShowPreview(!showPreview)} variant="outline" className="gap-2">
