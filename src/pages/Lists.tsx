@@ -29,6 +29,7 @@ import { ptBR } from 'date-fns/locale';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import logoCCB from '@/components/logoccb.png';
 
 interface ReforcoSchedule {
   id?: string;
@@ -437,26 +438,37 @@ export default function Lists() {
     const doc = new jsPDF();
 
     // Adicionar logo da CCB no cabeçalho (contém "CONGREGAÇÃO CRISTÃ NO BRASIL")
-    const logoUrl = '/agendamento-ccb/ccb-logo.svg';
-    const img = new Image();
-    img.src = logoUrl;
-    
-    // Aguardar carregamento da imagem
-    await new Promise((resolve) => {
-      img.onload = () => {
-        // Adicionar logo centralizada no topo (60mm de largura - reduzida)
-        doc.addImage(img, 'SVG', 75, 3, 60, 21);
-        resolve(true);
-      };
-      img.onerror = () => {
-        // Se falhar ao carregar, adicionar texto alternativo
-        console.warn('Erro ao carregar logo CCB');
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(10);
-        doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 12, { align: 'center' });
-        resolve(true);
-      };
-    });
+    try {
+      const img = new Image();
+      img.src = logoCCB;
+      
+      // Aguardar carregamento da imagem
+      await new Promise((resolve, reject) => {
+        img.onload = () => {
+          try {
+            // Adicionar logo centralizada no topo (60mm de largura)
+            doc.addImage(img, 'PNG', 75, 3, 60, 21);
+            resolve(true);
+          } catch (error) {
+            console.error('Erro ao adicionar imagem ao PDF:', error);
+            reject(error);
+          }
+        };
+        img.onerror = (error) => {
+          console.warn('Erro ao carregar logo CCB:', error);
+          reject(error);
+        };
+        
+        // Timeout de segurança
+        setTimeout(() => reject(new Error('Timeout ao carregar imagem')), 5000);
+      });
+    } catch (error) {
+      // Se falhar ao carregar, adicionar texto alternativo
+      console.warn('Usando texto alternativo para logo');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 12, { align: 'center' });
+    }
 
     // Título principal
     doc.setFont('helvetica', 'bold');
