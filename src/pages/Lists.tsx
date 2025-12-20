@@ -172,11 +172,11 @@ export default function Lists() {
   };
 
   const loadList = (list: SavedList) => {
-    setStartDate(list.startDate);
-    setEndDate(list.endDate);
-    setFilterType(list.filterType);
-    setFilterCongregation(list.filterCongregation);
-    setAvisos(list.avisos);
+    setStartDate(list.startDate || '');
+    setEndDate(list.endDate || '');
+    setFilterType(list.filterType || 'all');
+    setFilterCongregation(list.filterCongregation || 'all');
+    setAvisos(list.avisos || '');
     setLoadDialogOpen(false);
     setShowPreview(true);
 
@@ -889,7 +889,10 @@ export default function Lists() {
                   `}</style>
                   {/* Cabeçalho */}
                   <div className="text-center space-y-1 border-b pb-2">
-                    <h2 className="text-base font-bold">CONGREGAÇÃO CRISTÃ NO BRASIL</h2>
+                    {/* Logo CCB */}
+                    <div className="flex justify-center mb-2">
+                      <img src="/ccb-logo.svg" alt="CCB Logo" className="h-16" />
+                    </div>
                     <p className="text-xs font-semibold">ADMINISTRAÇÃO ITUIUTABA - {getPeriodText()}</p>
                     <p className="text-xs font-semibold">
                       {filterType === 'batismo' ? 'LISTA DE BATISMOS' :

@@ -8,22 +8,39 @@ const savedListConverter = {
   toFirestore: (list: SavedList) => {
     const data: Record<string, unknown> = {
       title: list.title,
-      startDate: list.startDate,
-      endDate: list.endDate,
+      startDate: list.startDate || '',
+      endDate: list.endDate || '',
       avisos: list.avisos || '',
-      items: list.items.map(item => ({
-        ...item,
-        date: Timestamp.fromDate(item.date),
-      })),
+      items: list.items.map(item => {
+        // Remove undefined values from items
+        const cleanItem: Record<string, unknown> = {
+          date: Timestamp.fromDate(item.date),
+          type: item.type,
+          congregationName: item.congregationName,
+          city: item.city,
+        };
+        
+        if (item.time !== undefined && item.time !== null) {
+          cleanItem.time = item.time;
+        }
+        if (item.details !== undefined && item.details !== null) {
+          cleanItem.details = item.details;
+        }
+        if (item.responsavel !== undefined && item.responsavel !== null) {
+          cleanItem.responsavel = item.responsavel;
+        }
+        
+        return cleanItem;
+      }),
       createdAt: list.createdAt ? Timestamp.fromDate(list.createdAt) : Timestamp.now(),
       updatedAt: Timestamp.now(),
     };
     
-    // Only add optional fields if they have values
-    if (list.filterType) {
+    // Only add optional fields if they have values and are not 'all' (default filter value)
+    if (list.filterType && list.filterType !== 'all') {
       data.filterType = list.filterType;
     }
-    if (list.filterCongregation) {
+    if (list.filterCongregation && list.filterCongregation !== 'all') {
       data.filterCongregation = list.filterCongregation;
     }
     
@@ -34,8 +51,8 @@ const savedListConverter = {
     return {
       id: snapshot.id,
       title: data.title,
-      startDate: data.startDate,
-      endDate: data.endDate,
+      startDate: data.startDate || '',
+      endDate: data.endDate || '',
       filterType: data.filterType,
       filterCongregation: data.filterCongregation,
       avisos: data.avisos || '',

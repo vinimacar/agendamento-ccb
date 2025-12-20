@@ -394,8 +394,8 @@ export interface SavedList {
   title: string;
   startDate: string;
   endDate: string;
-  filterType: string;
-  filterCongregation: string;
+  filterType?: string;
+  filterCongregation?: string;
   avisos: string;
   items: Array<{
     date: Date;
