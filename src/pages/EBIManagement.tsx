@@ -358,9 +358,10 @@ export default function EBIManagement() {
               key={congregation.id}
               variant={selectedCongregation === congregation.id ? 'default' : 'outline'}
               onClick={() => setSelectedCongregation(congregation.id)}
-              className="h-20"
+              className="h-20 flex flex-col items-center justify-center gap-1"
             >
-              {congregation.name}
+              <span className="font-semibold">{congregation.name}</span>
+              <span className="text-xs opacity-80">{congregation.city}</span>
             </Button>
           ))
         )}
