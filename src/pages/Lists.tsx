@@ -1178,10 +1178,12 @@ export default function Lists() {
                         line-height: 1.4 !important;
                         font-weight: 700 !important;
                         background-color: #f5f5f5 !important;
+                        text-align: left !important;
                       }
                       td { 
                         padding: 4px 6px !important;
                         line-height: 1.4 !important;
+                        text-align: left !important;
                       }
                       .space-y-3 > * + * { margin-top: 8px !important; }
                       .space-y-2 > * + * { margin-top: 4px !important; }
