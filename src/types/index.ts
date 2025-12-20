@@ -68,6 +68,7 @@ export interface Event {
 
 export type EventType = 
   | 'culto-busca-dons'
+  | 'rjm-busca-dons'
   | 'culto-jovens'
   | 'reuniao-mocidade'
   | 'batismo'
@@ -80,6 +81,7 @@ export type EventType =
 
 export const eventTypeLabels: Record<EventType, string> = {
   'culto-busca-dons': 'Culto para Busca dos Dons',
+  'rjm-busca-dons': 'RJM - Busca dos Dons',
   'culto-jovens': 'Culto para Jovens',
   'reuniao-mocidade': 'Reunião para Mocidade',
   'batismo': 'Batismo',

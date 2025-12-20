@@ -517,6 +517,7 @@ export default function Lists() {
       'Reforço - Culto Oficial': 5,
       'Reforço - RJM': 5,
       'culto-busca-dons': 6,
+      'rjm-busca-dons': 7,
     };
 
     // Ordenar grupos pela mesma ordem do preview
@@ -836,6 +837,7 @@ export default function Lists() {
     'Reforço - Culto Oficial': 5,
     'Reforço - RJM': 5,
     'culto-busca-dons': 6,
+    'rjm-busca-dons': 7,
   };
   
   // Agrupar itens por tipo de evento
