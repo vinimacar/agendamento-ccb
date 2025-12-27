@@ -1170,7 +1170,11 @@ export default function Musical() {
     if (locais.length > 0) {
       const locaisPorCidade = locais.reduce((acc, ensaio) => {
         const cong = congregations.find(c => c.id === ensaio.congregationId);
-        const cidade = cong?.city || 'Sem cidade';
+        // Chaveslândia é distrito de Santa Vitória
+        let cidade = cong?.city || 'Sem cidade';
+        if (cong?.name.toLowerCase().includes('chaveslândia') || cong?.name.toLowerCase().includes('chaveslandia')) {
+          cidade = 'Santa Vitória';
+        }
         if (!acc[cidade]) {
           acc[cidade] = {};
         }
@@ -1995,7 +1999,11 @@ export default function Musical() {
               // Agrupar ensaios locais por cidade e congregação
               const locaisPorCidade = ensaiosPorTipo['local'].reduce((acc, ensaio) => {
                 const cong = congregations.find(c => c.id === ensaio.congregationId);
-                const cidade = cong?.city || 'Sem cidade';
+                // Chaveslândia é distrito de Santa Vitória
+                let cidade = cong?.city || 'Sem cidade';
+                if (cong?.name.toLowerCase().includes('chaveslândia') || cong?.name.toLowerCase().includes('chaveslandia')) {
+                  cidade = 'Santa Vitória';
+                }
                 if (!acc[cidade]) {
                   acc[cidade] = {};
                 }

@@ -24,6 +24,7 @@ import DarpeManagement from "./pages/DarpeManagement";
 import EBIManagement from "./pages/EBIManagement";
 import EvangelizacaoManagement from "./pages/EvangelizacaoManagement";
 import Lists from "./pages/Lists";
+import AddRehearsals from "./pages/AddRehearsals";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -173,6 +174,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/add-rehearsals"
+              element={
+                <ProtectedRoute>
+                  <AddRehearsals />
                 </ProtectedRoute>
               }
             />
