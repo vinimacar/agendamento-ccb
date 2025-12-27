@@ -70,12 +70,21 @@ export const congregationService = {
       return acc;
     }, {} as Record<string, any>);
     
-    // Converter dates em rehearsals para Timestamp
+    // Converter dates em rehearsals para Timestamp e remover campos undefined
     if (cleanData.rehearsals) {
-      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => ({
-        ...r,
-        date: r.date instanceof Date ? Timestamp.fromDate(r.date) : r.date,
-      }));
+      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => {
+        const cleanRehearsal = Object.entries(r).reduce((acc, [key, value]) => {
+          if (value !== undefined) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {} as Record<string, any>);
+        
+        return {
+          ...cleanRehearsal,
+          date: cleanRehearsal.date instanceof Date ? Timestamp.fromDate(cleanRehearsal.date) : cleanRehearsal.date,
+        };
+      });
     }
     
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
@@ -175,12 +184,21 @@ export const congregationService = {
       return acc;
     }, {} as Record<string, any>);
     
-    // Converter dates em rehearsals para Timestamp
+    // Converter dates em rehearsals para Timestamp e remover campos undefined
     if (cleanData.rehearsals) {
-      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => ({
-        ...r,
-        date: r.date instanceof Date ? Timestamp.fromDate(r.date) : r.date,
-      }));
+      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => {
+        const cleanRehearsal = Object.entries(r).reduce((acc, [key, value]) => {
+          if (value !== undefined) {
+            acc[key] = value;
+          }
+          return acc;
+        }, {} as Record<string, any>);
+        
+        return {
+          ...cleanRehearsal,
+          date: cleanRehearsal.date instanceof Date ? Timestamp.fromDate(cleanRehearsal.date) : cleanRehearsal.date,
+        };
+      });
     }
     
     await updateDoc(docRef, {
