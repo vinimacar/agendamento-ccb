@@ -70,6 +70,14 @@ export const congregationService = {
       return acc;
     }, {} as Record<string, any>);
     
+    // Converter dates em rehearsals para Timestamp
+    if (cleanData.rehearsals) {
+      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => ({
+        ...r,
+        date: r.date instanceof Date ? Timestamp.fromDate(r.date) : r.date,
+      }));
+    }
+    
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...cleanData,
       createdAt: Timestamp.fromDate(data.createdAt),
@@ -166,6 +174,14 @@ export const congregationService = {
       }
       return acc;
     }, {} as Record<string, any>);
+    
+    // Converter dates em rehearsals para Timestamp
+    if (cleanData.rehearsals) {
+      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => ({
+        ...r,
+        date: r.date instanceof Date ? Timestamp.fromDate(r.date) : r.date,
+      }));
+    }
     
     await updateDoc(docRef, {
       ...cleanData,
