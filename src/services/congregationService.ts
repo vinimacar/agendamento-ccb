@@ -62,29 +62,30 @@ const COLLECTION_NAME = 'congregations';
 
 export const congregationService = {
   async create(data: Omit<CongregationData, 'id'>): Promise<string> {
-    // Remove undefined values to avoid Firestore errors
-    const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {} as Record<string, any>);
-    
-    // Converter dates em rehearsals para Timestamp e remover campos undefined
-    if (cleanData.rehearsals) {
-      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => {
-        const cleanRehearsal = Object.entries(r).reduce((acc, [key, value]) => {
+    // Função recursiva para limpar valores undefined
+    const removeUndefined = (obj: any): any => {
+      if (Array.isArray(obj)) {
+        return obj.map(item => removeUndefined(item));
+      } else if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
+        return Object.entries(obj).reduce((acc, [key, value]) => {
           if (value !== undefined) {
-            acc[key] = value;
+            acc[key] = removeUndefined(value);
           }
           return acc;
         }, {} as Record<string, any>);
-        
-        return {
-          ...cleanRehearsal,
-          date: cleanRehearsal.date instanceof Date ? Timestamp.fromDate(cleanRehearsal.date) : cleanRehearsal.date,
-        };
-      });
+      }
+      return obj;
+    };
+    
+    // Remove undefined values to avoid Firestore errors
+    const cleanData = removeUndefined(data);
+    
+    // Converter dates em rehearsals para Timestamp
+    if (cleanData.rehearsals) {
+      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => ({
+        ...r,
+        date: r.date instanceof Date ? Timestamp.fromDate(r.date) : r.date,
+      }));
     }
     
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
@@ -176,29 +177,30 @@ export const congregationService = {
   async update(id: string, data: Partial<CongregationData>): Promise<void> {
     const docRef = doc(db, COLLECTION_NAME, id);
     
-    // Remove undefined values to avoid Firestore errors
-    const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
-      if (value !== undefined) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {} as Record<string, any>);
-    
-    // Converter dates em rehearsals para Timestamp e remover campos undefined
-    if (cleanData.rehearsals) {
-      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => {
-        const cleanRehearsal = Object.entries(r).reduce((acc, [key, value]) => {
+    // Função recursiva para limpar valores undefined
+    const removeUndefined = (obj: any): any => {
+      if (Array.isArray(obj)) {
+        return obj.map(item => removeUndefined(item));
+      } else if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
+        return Object.entries(obj).reduce((acc, [key, value]) => {
           if (value !== undefined) {
-            acc[key] = value;
+            acc[key] = removeUndefined(value);
           }
           return acc;
         }, {} as Record<string, any>);
-        
-        return {
-          ...cleanRehearsal,
-          date: cleanRehearsal.date instanceof Date ? Timestamp.fromDate(cleanRehearsal.date) : cleanRehearsal.date,
-        };
-      });
+      }
+      return obj;
+    };
+    
+    // Remove undefined values to avoid Firestore errors
+    const cleanData = removeUndefined(data);
+    
+    // Converter dates em rehearsals para Timestamp
+    if (cleanData.rehearsals) {
+      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => ({
+        ...r,
+        date: r.date instanceof Date ? Timestamp.fromDate(r.date) : r.date,
+      }));
     }
     
     await updateDoc(docRef, {
