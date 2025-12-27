@@ -50,7 +50,7 @@ const DAYS_OF_WEEK = [
   { id: 'sabado', label: 'Sábado' },
 ];
 
-const REHEARSAL_TYPES = ['Local', 'Regional', 'GEM', 'Geral'] as const;
+const REHEARSAL_TYPES = ['Local', 'Regional', 'GEM', 'Geral', 'DARPE'] as const;
 const RECURRENCE_TYPES = ['Semanal', 'Mensal', 'Agendado'] as const;
 
 interface PersonEntry {
@@ -207,7 +207,7 @@ export default function CongregationForm() {
     yPos += 10;
 
     // Agrupar ensaios por tipo
-    const types = ['Local', 'Regional', 'GEM', 'Geral'];
+    const types = ['Local', 'Regional', 'GEM', 'Geral', 'DARPE'];
     
     types.forEach((tipo) => {
       const rehearsalsOfType = rehearsals.filter(r => r.type === tipo);
@@ -1801,7 +1801,7 @@ export default function CongregationForm() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>Ensaios</CardTitle>
-                    <CardDescription>Cadastre os ensaios da congregação (Local, Regional, GEM ou Geral)</CardDescription>
+                    <CardDescription>Cadastre os ensaios da congregação (Local, Regional, GEM, Geral ou DARPE)</CardDescription>
                   </div>
                   {rehearsals.length > 0 && (
                     <div className="flex items-center gap-2">
@@ -2121,7 +2121,7 @@ export default function CongregationForm() {
                     </div>
 
                     {/* Agrupar ensaios por tipo */}
-                    {['Local', 'Regional', 'GEM', 'Geral'].map((tipo) => {
+                    {['Local', 'Regional', 'GEM', 'Geral', 'DARPE'].map((tipo) => {
                       const rehearsalsOfType = rehearsals.filter(r => r.type === tipo);
                       if (rehearsalsOfType.length === 0) return null;
 

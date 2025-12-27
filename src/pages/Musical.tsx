@@ -102,7 +102,7 @@ export default function Musical() {
   const [filterCalendarCity, setFilterCalendarCity] = useState('all');
   const [filterCalendarMonth, setFilterCalendarMonth] = useState('all');
   const [filterCalendarYear, setFilterCalendarYear] = useState(new Date().getFullYear().toString());
-  const [filterCalendarType, setFilterCalendarType] = useState<'all' | 'local' | 'regional' | 'gem' | 'geral'>('all');
+  const [filterCalendarType, setFilterCalendarType] = useState<'all' | 'local' | 'regional' | 'gem' | 'geral' | 'darpe'>('all');
   const [showCalendarPreview, setShowCalendarPreview] = useState(false);
 
   const loadMusicians = useCallback(async () => {
@@ -802,7 +802,7 @@ export default function Musical() {
 
       congregation.rehearsals.forEach(rehearsal => {
         // Filtrar por tipo de ensaio
-        const rehearsalType = rehearsal.type.toLowerCase() as 'local' | 'regional' | 'gem' | 'geral';
+        const rehearsalType = rehearsal.type.toLowerCase() as 'local' | 'regional' | 'gem' | 'geral' | 'darpe';
         if (filterCalendarType && filterCalendarType !== 'all' && filterCalendarType !== rehearsalType) {
           return;
         }
@@ -970,7 +970,8 @@ export default function Musical() {
     if (filterCalendarType && filterCalendarType !== 'all') {
       const tipoLabel = filterCalendarType === 'local' ? 'Local' : 
                        filterCalendarType === 'regional' ? 'Regional' :
-                       filterCalendarType === 'gem' ? 'GEM' : 'Geral';
+                       filterCalendarType === 'gem' ? 'GEM' : 
+                       filterCalendarType === 'darpe' ? 'DARPE' : 'Geral';
       filters.push(`Tipo: ${tipoLabel}`);
     }
     if (filterCalendarMonth && filterCalendarMonth !== 'all' && filterCalendarMonth !== 'annual') {
@@ -992,7 +993,8 @@ export default function Musical() {
       const congregation = congregations.find(c => c.id === ensaio.congregationId);
       const tipoLabel = ensaio.type === 'regional' ? 'Regional' : 
                        ensaio.type === 'local' ? 'Local' :
-                       ensaio.type === 'gem' ? 'GEM' : 'Geral';
+                       ensaio.type === 'gem' ? 'GEM' : 
+                       ensaio.type === 'darpe' ? 'DARPE' : 'Geral';
       worksheetData.push([
         format(ensaio.date, 'dd/MM/yyyy'),
         ensaio.congregationName,
@@ -1068,12 +1070,13 @@ export default function Musical() {
       'local': filteredEnsaios.filter(e => e.type === 'local'),
       'gem': filteredEnsaios.filter(e => e.type === 'gem'),
       'geral': filteredEnsaios.filter(e => e.type === 'geral'),
+      'darpe': filteredEnsaios.filter(e => e.type === 'darpe'),
     };
     
     const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
     
-    // ENSAIOS REGIONAIS, GEM e GERAIS (sem agrupamento por cidade)
-    ['regional', 'gem', 'geral'].forEach(tipoEnsaio => {
+    // ENSAIOS REGIONAIS, GEM, GERAIS e DARPE (sem agrupamento por cidade)
+    ['regional', 'gem', 'geral', 'darpe'].forEach(tipoEnsaio => {
       const ensaiosDoTipo = ensaiosPorTipo[tipoEnsaio];
       if (ensaiosDoTipo.length === 0) return;
       
@@ -1120,7 +1123,8 @@ export default function Musical() {
 
       const tipoLabel = tipoEnsaio === 'regional' ? 'REGIONAIS' : 
                        tipoEnsaio === 'gem' ? 'GEM' : 
-                       tipoEnsaio === 'geral' ? 'GERAIS' : '';
+                       tipoEnsaio === 'geral' ? 'GERAIS' : 
+                       tipoEnsaio === 'darpe' ? 'DARPE' : '';
 
       autoTable(doc, {
         startY: yPos,
@@ -1802,7 +1806,7 @@ export default function Musical() {
               <Label>Tipo de Ensaio</Label>
               <Select
                 value={filterCalendarType}
-                onValueChange={(value: 'all' | 'local' | 'regional' | 'gem' | 'geral') => setFilterCalendarType(value)}
+                onValueChange={(value: 'all' | 'local' | 'regional' | 'gem' | 'geral' | 'darpe') => setFilterCalendarType(value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
@@ -1813,6 +1817,7 @@ export default function Musical() {
                   <SelectItem value="regional">Regional</SelectItem>
                   <SelectItem value="gem">GEM</SelectItem>
                   <SelectItem value="geral">Geral</SelectItem>
+                  <SelectItem value="darpe">DARPE</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1884,7 +1889,8 @@ export default function Musical() {
                       const cong = congregations.find(c => c.id === ensaio.congregationId);
                       const tipoLabel = ensaio.type === 'regional' ? 'Regional' : 
                                        ensaio.type === 'local' ? 'Local' :
-                                       ensaio.type === 'gem' ? 'GEM' : 'Geral';
+                                       ensaio.type === 'gem' ? 'GEM' : 
+                                       ensaio.type === 'darpe' ? 'DARPE' : 'Geral';
                       return (
                         <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded text-xs">
                           <div className="flex-1">
@@ -1978,6 +1984,7 @@ export default function Musical() {
                 'regional': filteredEnsaios.filter(e => e.type === 'regional'),
                 'gem': filteredEnsaios.filter(e => e.type === 'gem'),
                 'geral': filteredEnsaios.filter(e => e.type === 'geral'),
+                'darpe': filteredEnsaios.filter(e => e.type === 'darpe'),
                 'local': filteredEnsaios.filter(e => e.type === 'local'),
               };
 
@@ -1999,8 +2006,8 @@ export default function Musical() {
               
               return (
                 <>
-                  {/* ENSAIOS REGIONAIS, GEM e GERAIS */}
-                  {(['regional', 'gem', 'geral'] as const).map(tipoEnsaio => {
+                  {/* ENSAIOS REGIONAIS, GEM, GERAIS e DARPE */}
+                  {(['regional', 'gem', 'geral', 'darpe'] as const).map(tipoEnsaio => {
                     const ensaiosDoTipo = ensaiosPorTipo[tipoEnsaio];
                     if (ensaiosDoTipo.length === 0) return null;
                     
@@ -2013,7 +2020,8 @@ export default function Musical() {
                     }, {} as Record<string, typeof filteredEnsaios>);
                     
                     const tipoLabel = tipoEnsaio === 'regional' ? 'REGIONAIS' : 
-                                     tipoEnsaio === 'gem' ? 'GEM' : 'GERAIS';
+                                     tipoEnsaio === 'gem' ? 'GEM' : 
+                                     tipoEnsaio === 'darpe' ? 'DARPE' : 'GERAIS';
 
                     return (
                       <div key={tipoEnsaio} className="mb-6">

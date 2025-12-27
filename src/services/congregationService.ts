@@ -19,7 +19,7 @@ export interface PersonEntry {
 }
 
 export interface RehearsalEntry {
-  type: 'Local' | 'Regional' | 'GEM' | 'Geral';
+  type: 'Local' | 'Regional' | 'GEM' | 'Geral' | 'DARPE';
   day?: string; // Dia da semana (para ensaios recorrentes)
   date?: Date; // Data específica (para ensaios pontuais)
   time: string;
