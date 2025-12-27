@@ -1039,17 +1039,20 @@ export default function Musical() {
     doc.setFont('helvetica');
     
     // Cabeçalho
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
-    doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+    doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', doc.internal.pageSize.getWidth() / 2, 10, { align: 'center' });
     
-    doc.setFontSize(12);
-    doc.text(`Calendário de Ensaios Musicais ${filterCalendarYear}`, doc.internal.pageSize.getWidth() / 2, 23, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text('Administração Ituiutaba-MG', doc.internal.pageSize.getWidth() / 2, 16, { align: 'center' });
+    
+    doc.setFontSize(11);
+    doc.text(`Calendário de Ensaios Musicais ${filterCalendarYear}`, doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
     
     // Filtros
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
+    doc.setFontSize(7);
     doc.setTextColor(60, 60, 60);
     let filterText = '';
     if (filterCalendarCongregation && filterCalendarCongregation !== 'all') {
@@ -1060,10 +1063,10 @@ export default function Musical() {
       filterText += `Cidade: ${filterCalendarCity}  `;
     }
     if (filterText) {
-      doc.text(filterText, doc.internal.pageSize.getWidth() / 2, 29, { align: 'center' });
+      doc.text(filterText, doc.internal.pageSize.getWidth() / 2, 27, { align: 'center' });
     }
     
-    let yPos = 38;
+    let yPos = 32;
     
     // Agrupar ensaios por tipo (case-insensitive)
     const ensaiosPorTipo: Record<string, typeof filteredEnsaios> = {
@@ -1130,7 +1133,7 @@ export default function Musical() {
       autoTable(doc, {
         startY: yPos,
         head: [
-          [{ content: `ENSAIOS ${tipoLabel}`, colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 9, fontStyle: 'bold' } }],
+          [{ content: `ENSAIOS ${tipoLabel}`, colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 8, fontStyle: 'bold' } }],
           ['LOCALIDADE', 'DIA', 'HORA', ...meses]
         ],
         body: tableData,
@@ -1139,7 +1142,7 @@ export default function Musical() {
           fillColor: [209, 213, 219],
           textColor: [0, 0, 0],
           fontStyle: 'bold',
-          fontSize: 7,
+          fontSize: 6.5,
           halign: 'center',
         },
         bodyStyles: {
@@ -1147,19 +1150,19 @@ export default function Musical() {
           textColor: [0, 0, 0],
         },
         columnStyles: {
-          0: { cellWidth: 35, halign: 'left' },
-          1: { cellWidth: 12, halign: 'center' },
-          2: { cellWidth: 12, halign: 'center' },
+          0: { cellWidth: 32, halign: 'left' },
+          1: { cellWidth: 11, halign: 'center' },
+          2: { cellWidth: 11, halign: 'center' },
         },
         styles: {
-          cellPadding: 2,
+          cellPadding: 1.5,
           lineColor: [100, 100, 100],
           lineWidth: 0.1,
           halign: 'center',
         },
       });
 
-      yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
+      yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 3;
     });
 
     // ENSAIOS LOCAIS POR CIDADE
@@ -1220,8 +1223,8 @@ export default function Musical() {
         autoTable(doc, {
           startY: yPos,
           head: [
-            [{ content: 'ENSAIOS LOCAIS', colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 9, fontStyle: 'bold' } }],
-            [{ content: cidade.toUpperCase(), colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 8, fontStyle: 'bold' } }],
+            [{ content: 'ENSAIOS LOCAIS', colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 8, fontStyle: 'bold' } }],
+            [{ content: cidade.toUpperCase(), colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 7.5, fontStyle: 'bold' } }],
             ['LOCALIDADE', 'DIA', 'HORA', ...meses]
           ],
           body: tableData,
@@ -1230,7 +1233,7 @@ export default function Musical() {
             fillColor: [209, 213, 219],
             textColor: [0, 0, 0],
             fontStyle: 'bold',
-            fontSize: 7,
+            fontSize: 6.5,
             halign: 'center',
           },
           bodyStyles: {
@@ -1238,19 +1241,19 @@ export default function Musical() {
             textColor: [0, 0, 0],
           },
           columnStyles: {
-            0: { cellWidth: 35, halign: 'left' },
-            1: { cellWidth: 12, halign: 'center' },
-            2: { cellWidth: 12, halign: 'center' },
+            0: { cellWidth: 32, halign: 'left' },
+            1: { cellWidth: 11, halign: 'center' },
+            2: { cellWidth: 11, halign: 'center' },
           },
           styles: {
-            cellPadding: 2,
+            cellPadding: 1.5,
             lineColor: [100, 100, 100],
             lineWidth: 0.1,
             halign: 'center',
           },
         });
 
-        yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
+        yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 3;
       });
     }
 
