@@ -28,7 +28,7 @@ export interface Congregation {
 }
 
 export interface Rehearsal {
-  type: 'Local' | 'Regional' | 'GEM' | 'Geral';
+  type: 'Local' | 'Regional' | 'GEM' | 'Geral' | 'DARPE';
   day?: string; // Dia da semana (para ensaios recorrentes)
   date?: Date; // Data específica (para ensaios pontuais)
   time: string;
@@ -178,7 +178,7 @@ export interface EnsaioData {
   congregationId: string;
   congregationName: string;
   date: Date;
-  type: 'regional' | 'local';
+  type: 'regional' | 'local' | 'gem' | 'geral' | 'darpe';
   instruments: InstrumentCounts;
   anciao?: string; // Nome do ancião (para ensaio regional)
   encarregadoRegional?: string; // Nome do encarregado regional (para ensaio regional)
