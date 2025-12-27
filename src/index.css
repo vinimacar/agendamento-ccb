@@ -200,3 +200,69 @@
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
 }
+/* Print Styles */
+@media print {
+  @page {
+    size: landscape;
+    margin: 1cm;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .print\:mb-4 {
+    margin-bottom: 1rem;
+  }
+
+  .print\:text-xl {
+    font-size: 1.25rem;
+  }
+
+  .print\:text-base {
+    font-size: 1rem;
+  }
+
+  .print\:text-xs {
+    font-size: 0.75rem;
+  }
+
+  .print\:text-\[10px\] {
+    font-size: 10px;
+  }
+
+  /* Hide elements that shouldn't be printed */
+  button, 
+  .no-print,
+  [data-radix-dialog-overlay],
+  [role="dialog"] > div:first-child {
+    display: none !important;
+  }
+
+  /* Show only the content */
+  #calendar-preview-content {
+    display: block !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  /* Table print styles */
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+}

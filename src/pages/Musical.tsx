@@ -29,7 +29,7 @@ import { useCongregations } from '@/hooks/useCongregations';
 import { musicianService } from '@/services/musicianService';
 import { ensaioDataService } from '@/services/dataLancamentoService';
 import type { Musician, EnsaioData } from '@/types';
-import { Music, Plus, Trash2, Loader2, Search, Calendar, FileDown, Filter, FileSpreadsheet, FileText, Upload, FileUp } from 'lucide-react';
+import { Music, Plus, Trash2, Loader2, Search, Calendar, FileDown, Filter, FileSpreadsheet, FileText, Upload, FileUp, Printer } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import * as XLSX from 'xlsx';
@@ -1009,102 +1009,214 @@ export default function Musical() {
       return;
     }
 
-    const doc = new jsPDF();
-    
-    // Adicionar logo da CCB
-    const logoUrl = '/ccb-logo.svg';
-    const img = new Image();
-    img.src = logoUrl;
-    
-    await new Promise((resolve) => {
-      img.onload = () => {
-        doc.addImage(img, 'SVG', 65, 5, 80, 28);
-        resolve(true);
-      };
-      img.onerror = () => {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', 105, 15, { align: 'center' });
-        resolve(true);
-      };
-    });
+    const doc = new jsPDF('landscape');
     
     // Configurar fonte e cores
     doc.setFont('helvetica');
     
-    // Título
-    doc.setFontSize(20);
-    doc.setTextColor(31, 41, 55);
-    doc.text('Calendário de Ensaios Musicais', 105, 40, { align: 'center' });
+    // Cabeçalho
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
     
-    // Filtros aplicados
-    doc.setFontSize(9);
-    doc.setTextColor(107, 114, 128);
-    let yPos = 48;
+    doc.setFontSize(12);
+    doc.text(`Calendário de Ensaios Musicais ${filterCalendarYear}`, doc.internal.pageSize.getWidth() / 2, 23, { align: 'center' });
     
-    if (filterCalendarCongregation) {
+    // Filtros
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(60, 60, 60);
+    let filterText = '';
+    if (filterCalendarCongregation && filterCalendarCongregation !== 'all') {
       const cong = congregations.find(c => c.id === filterCalendarCongregation);
-      doc.text(`Congregação: ${cong?.name}`, 105, yPos, { align: 'center' });
-      yPos += 5;
+      filterText += `Congregação: ${cong?.name}  `;
     }
-    if (filterCalendarCity) {
-      doc.text(`Cidade: ${filterCalendarCity}`, 105, yPos, { align: 'center' });
-      yPos += 5;
+    if (filterCalendarCity && filterCalendarCity !== 'all') {
+      filterText += `Cidade: ${filterCalendarCity}  `;
     }
-    if (filterCalendarType && filterCalendarType !== 'all') {
-      doc.text(`Tipo: ${filterCalendarType === 'local' ? 'Local' : 'Regional'}`, 105, yPos, { align: 'center' });
-      yPos += 5;
+    if (filterText) {
+      doc.text(filterText, doc.internal.pageSize.getWidth() / 2, 29, { align: 'center' });
     }
-    if (filterCalendarMonth && filterCalendarMonth !== 'all' && filterCalendarMonth !== 'annual') {
-      const monthName = format(new Date(2000, parseInt(filterCalendarMonth) - 1, 1), 'MMMM', { locale: ptBR });
-      doc.text(`Mês: ${monthName}`, 105, yPos, { align: 'center' });
-      yPos += 5;
-    } else if (filterCalendarMonth === 'annual') {
-      doc.text(`Período: Anual`, 105, yPos, { align: 'center' });
-      yPos += 5;
-    }
-    doc.text(`Ano: ${filterCalendarYear}`, 105, yPos, { align: 'center' });
-    yPos += 5;
     
-    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 105, yPos, { align: 'center' });
+    let yPos = 38;
+    
+    // Agrupar ensaios
+    const regionais = filteredEnsaios.filter(e => e.type === 'regional');
+    const locais = filteredEnsaios.filter(e => e.type === 'local');
+    
+    const regionaisPorCongregacao = regionais.reduce((acc, ensaio) => {
+      if (!acc[ensaio.congregationId]) {
+        acc[ensaio.congregationId] = [];
+      }
+      acc[ensaio.congregationId].push(ensaio);
+      return acc;
+    }, {} as Record<string, typeof filteredEnsaios>);
 
-    // Ordenar por data
-    const sortedEnsaios = filteredEnsaios.sort((a, b) => a.date.getTime() - b.date.getTime());
+    const locaisPorCidade = locais.reduce((acc, ensaio) => {
+      const cong = congregations.find(c => c.id === ensaio.congregationId);
+      const cidade = cong?.city || 'Sem cidade';
+      if (!acc[cidade]) {
+        acc[cidade] = {};
+      }
+      if (!acc[cidade][ensaio.congregationId]) {
+        acc[cidade][ensaio.congregationId] = [];
+      }
+      acc[cidade][ensaio.congregationId].push(ensaio);
+      return acc;
+    }, {} as Record<string, Record<string, typeof filteredEnsaios>>);
 
-    const tableData: string[][] = sortedEnsaios.map(ensaio => {
-      const congregation = congregations.find(c => c.id === ensaio.congregationId);
-      return [
-        format(ensaio.date, 'dd/MM/yyyy'),
-        ensaio.congregationName,
-        ensaio.type === 'regional' ? 'Regional' : 'Local',
-        congregation?.city || '-',
-      ];
-    });
+    const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+    
+    // ENSAIOS REGIONAIS
+    if (Object.keys(regionaisPorCongregacao).length > 0) {
+      const tableData = Object.entries(regionaisPorCongregacao).map(([congId, ensaios]) => {
+        const cong = congregations.find(c => c.id === congId);
+        const ensaioPorMes: Record<number, number[]> = {};
+        
+        ensaios.forEach(e => {
+          const mes = e.date.getMonth();
+          if (!ensaioPorMes[mes]) ensaioPorMes[mes] = [];
+          ensaioPorMes[mes].push(e.date.getDate());
+        });
 
-    autoTable(doc, {
-      startY: yPos + 10,
-      head: [['Data', 'Congregação', 'Tipo', 'Cidade']],
-      body: tableData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [59, 130, 246],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 10,
-      },
-      bodyStyles: {
-        fontSize: 9,
-        textColor: [31, 41, 55],
-      },
-      alternateRowStyles: {
-        fillColor: [249, 250, 251],
-      },
-      styles: {
-        cellPadding: 4,
-        lineColor: [229, 231, 235],
-        lineWidth: 0.1,
-      },
-    });
+        const primeiroEnsaio = ensaios[0];
+        const diaSemana = format(primeiroEnsaio.date, 'EEEE', { locale: ptBR }).substring(0, 3);
+        const hora = cong?.rehearsals?.find(r => r.type.toLowerCase() === 'regional')?.time || '09h00';
+
+        const row = [
+          cong?.name || '',
+          diaSemana,
+          hora,
+        ];
+        
+        meses.forEach((_, idx) => {
+          row.push(ensaioPorMes[idx] ? ensaioPorMes[idx].join(', ') : '-');
+        });
+        
+        return row;
+      });
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [
+          [{ content: 'ENSAIOS REGIONAIS', colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 9, fontStyle: 'bold' } }],
+          ['LOCALIDADE', 'DIA', 'HORA', ...meses]
+        ],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [209, 213, 219],
+          textColor: [0, 0, 0],
+          fontStyle: 'bold',
+          fontSize: 7,
+          halign: 'center',
+        },
+        bodyStyles: {
+          fontSize: 6,
+          textColor: [0, 0, 0],
+        },
+        columnStyles: {
+          0: { cellWidth: 35, halign: 'left' },
+          1: { cellWidth: 12, halign: 'center' },
+          2: { cellWidth: 12, halign: 'center' },
+        },
+        styles: {
+          cellPadding: 2,
+          lineColor: [100, 100, 100],
+          lineWidth: 0.1,
+          halign: 'center',
+        },
+      });
+
+      yPos = (doc as any).lastAutoTable.finalY + 5;
+    }
+
+    // ENSAIOS LOCAIS POR CIDADE
+    if (Object.keys(locaisPorCidade).length > 0) {
+      Object.entries(locaisPorCidade).forEach(([cidade, congregacoes]) => {
+        if (yPos > 160) {
+          doc.addPage();
+          yPos = 15;
+        }
+
+        const tableData = Object.entries(congregacoes).map(([congId, ensaios]) => {
+          const cong = congregations.find(c => c.id === congId);
+          const ensaioPorMes: Record<number, number[]> = {};
+          
+          ensaios.forEach(e => {
+            const mes = e.date.getMonth();
+            if (!ensaioPorMes[mes]) ensaioPorMes[mes] = [];
+            ensaioPorMes[mes].push(e.date.getDate());
+          });
+
+          const primeiroEnsaio = ensaios[0];
+          const diaSemana = format(primeiroEnsaio.date, 'EEEE', { locale: ptBR }).substring(0, 3);
+          const hora = cong?.rehearsals?.find(r => r.type.toLowerCase() === 'local')?.time || '19h30';
+
+          const row = [
+            cong?.name || '',
+            diaSemana,
+            hora,
+          ];
+          
+          meses.forEach((_, idx) => {
+            row.push(ensaioPorMes[idx] ? ensaioPorMes[idx].join(', ') : '-');
+          });
+          
+          return row;
+        });
+
+        autoTable(doc, {
+          startY: yPos,
+          head: [
+            [{ content: 'ENSAIOS LOCAIS', colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 9, fontStyle: 'bold' } }],
+            [{ content: cidade.toUpperCase(), colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 8, fontStyle: 'bold' } }],
+            ['LOCALIDADE', 'DIA', 'HORA', ...meses]
+          ],
+          body: tableData,
+          theme: 'grid',
+          headStyles: {
+            fillColor: [209, 213, 219],
+            textColor: [0, 0, 0],
+            fontStyle: 'bold',
+            fontSize: 7,
+            halign: 'center',
+          },
+          bodyStyles: {
+            fontSize: 6,
+            textColor: [0, 0, 0],
+          },
+          columnStyles: {
+            0: { cellWidth: 35, halign: 'left' },
+            1: { cellWidth: 12, halign: 'center' },
+            2: { cellWidth: 12, halign: 'center' },
+          },
+          styles: {
+            cellPadding: 2,
+            lineColor: [100, 100, 100],
+            lineWidth: 0.1,
+            halign: 'center',
+          },
+        });
+
+        yPos = (doc as any).lastAutoTable.finalY + 5;
+      });
+    }
+
+    // Rodapé
+    const pageCount = doc.internal.pages.length - 1;
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(120, 120, 120);
+      doc.text(
+        `Total de ensaios: ${filteredEnsaios.length} | Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+        doc.internal.pageSize.getWidth() / 2,
+        doc.internal.pageSize.getHeight() - 7,
+        { align: 'center' }
+      );
+    }
 
     const fileName = `calendario-ensaios-${filterCalendarYear}${filterCalendarMonth === 'annual' ? '-anual' : filterCalendarMonth && filterCalendarMonth !== 'all' ? `-${filterCalendarMonth.padStart(2, '0')}` : ''}.pdf`;
     doc.save(fileName);
@@ -1748,21 +1860,248 @@ export default function Musical() {
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
+              onClick={() => {
+                if (getFilteredEnsaios().length === 0) {
+                  toast({
+                    title: 'Nenhum ensaio encontrado',
+                    description: 'Não há ensaios cadastrados com os filtros selecionados.',
+                    variant: 'destructive',
+                  });
+                  return;
+                }
+                setShowCalendarPreview(true);
+              }}
+              disabled={loadingEnsaios}
+              variant="default"
+              className="w-full sm:w-auto"
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Preview e Imprimir
+            </Button>
+            <Button
               onClick={exportToExcel}
               disabled={loadingEnsaios}
+              variant="outline"
               className="w-full sm:w-auto"
             >
               <FileSpreadsheet className="h-4 w-4 mr-2" />
               Exportar Excel
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Calendar Preview Dialog */}
+      <Dialog open={showCalendarPreview} onOpenChange={setShowCalendarPreview}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Preview do Calendário de Ensaios Musicais</DialogTitle>
+            <DialogDescription>
+              Visualize o calendário antes de imprimir
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto border rounded-lg p-6 bg-white" id="calendar-preview-content">
+            {/* Header com logo */}
+            <div className="text-center mb-6 print:mb-4">
+              <h1 className="text-2xl font-bold text-gray-800 mb-1 print:text-xl">
+                CONGREGAÇÃO CRISTÃ NO BRASIL
+              </h1>
+              <h2 className="text-lg font-semibold text-gray-700 mb-1 print:text-base">
+                Calendário de Ensaios Musicais {filterCalendarYear}
+              </h2>
+              <div className="text-sm text-gray-600 mb-4 print:text-xs">
+                {filterCalendarCongregation && filterCalendarCongregation !== 'all' && (
+                  <span className="mr-3">📍 {congregations.find(c => c.id === filterCalendarCongregation)?.name}</span>
+                )}
+                {filterCalendarCity && filterCalendarCity !== 'all' && (
+                  <span className="mr-3">🏙️ {filterCalendarCity}</span>
+                )}
+              </div>
+            </div>
+
+            {(() => {
+              const filteredEnsaios = getFilteredEnsaios().sort((a, b) => a.date.getTime() - b.date.getTime());
+              
+              // Agrupar ensaios por tipo e congregação
+              const regionais = filteredEnsaios.filter(e => e.type === 'regional');
+              const locais = filteredEnsaios.filter(e => e.type === 'local');
+              
+              // Agrupar ensaios regionais por congregação
+              const regionaisPorCongregacao = regionais.reduce((acc, ensaio) => {
+                if (!acc[ensaio.congregationId]) {
+                  acc[ensaio.congregationId] = [];
+                }
+                acc[ensaio.congregationId].push(ensaio);
+                return acc;
+              }, {} as Record<string, typeof filteredEnsaios>);
+
+              // Agrupar ensaios locais por cidade e congregação
+              const locaisPorCidade = locais.reduce((acc, ensaio) => {
+                const cong = congregations.find(c => c.id === ensaio.congregationId);
+                const cidade = cong?.city || 'Sem cidade';
+                if (!acc[cidade]) {
+                  acc[cidade] = {};
+                }
+                if (!acc[cidade][ensaio.congregationId]) {
+                  acc[cidade][ensaio.congregationId] = [];
+                }
+                acc[cidade][ensaio.congregationId].push(ensaio);
+                return acc;
+              }, {} as Record<string, Record<string, typeof filteredEnsaios>>);
+
+              const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+              
+              return (
+                <>
+                  {/* ENSAIOS REGIONAIS */}
+                  {Object.keys(regionaisPorCongregacao).length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="bg-blue-900 text-white text-center font-bold py-2 text-sm print:text-xs">
+                        ENSAIOS REGIONAIS
+                      </h3>
+                      <table className="w-full border-collapse text-xs print:text-[10px]">
+                        <thead>
+                          <tr className="bg-gray-300">
+                            <th className="border border-gray-400 px-2 py-1 text-left font-semibold">LOCALIDADE</th>
+                            <th className="border border-gray-400 px-2 py-1 text-center font-semibold">DIA</th>
+                            <th className="border border-gray-400 px-2 py-1 text-center font-semibold">HORA</th>
+                            {meses.map(mes => (
+                              <th key={mes} className="border border-gray-400 px-1 py-1 text-center font-semibold">{mes}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {Object.entries(regionaisPorCongregacao).map(([congId, ensaios]) => {
+                            const cong = congregations.find(c => c.id === congId);
+                            const ensaioPorMes: Record<number, number[]> = {};
+                            
+                            ensaios.forEach(e => {
+                              const mes = e.date.getMonth();
+                              if (!ensaioPorMes[mes]) ensaioPorMes[mes] = [];
+                              ensaioPorMes[mes].push(e.date.getDate());
+                            });
+
+                            // Pegar dia da semana e hora do primeiro ensaio
+                            const primeiroEnsaio = ensaios[0];
+                            const diaSemana = format(primeiroEnsaio.date, 'EEEE', { locale: ptBR });
+                            const hora = cong?.rehearsals?.find(r => r.type.toLowerCase() === 'regional')?.time || '09h00';
+
+                            return (
+                              <tr key={congId} className="hover:bg-gray-50">
+                                <td className="border border-gray-400 px-2 py-1">{cong?.name}</td>
+                                <td className="border border-gray-400 px-2 py-1 text-center capitalize">{diaSemana.substring(0, 3)}</td>
+                                <td className="border border-gray-400 px-2 py-1 text-center">{hora}</td>
+                                {meses.map((_, idx) => (
+                                  <td key={idx} className="border border-gray-400 px-1 py-1 text-center">
+                                    {ensaioPorMes[idx] ? ensaioPorMes[idx].join(', ') : '-'}
+                                  </td>
+                                ))}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* ENSAIOS LOCAIS POR CIDADE */}
+                  {Object.keys(locaisPorCidade).length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="bg-blue-900 text-white text-center font-bold py-2 text-sm print:text-xs">
+                        ENSAIOS LOCAIS
+                      </h3>
+                      {Object.entries(locaisPorCidade).map(([cidade, congregacoes]) => (
+                        <div key={cidade} className="mb-4">
+                          <h4 className="bg-blue-900 text-white text-center font-bold py-1.5 text-sm print:text-xs">
+                            {cidade.toUpperCase()}
+                          </h4>
+                          <table className="w-full border-collapse text-xs print:text-[10px]">
+                            <thead>
+                              <tr className="bg-gray-300">
+                                <th className="border border-gray-400 px-2 py-1 text-left font-semibold">LOCALIDADE</th>
+                                <th className="border border-gray-400 px-2 py-1 text-center font-semibold">DIA</th>
+                                <th className="border border-gray-400 px-2 py-1 text-center font-semibold">HORA</th>
+                                {meses.map(mes => (
+                                  <th key={mes} className="border border-gray-400 px-1 py-1 text-center font-semibold">{mes}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {Object.entries(congregacoes).map(([congId, ensaios]) => {
+                                const cong = congregations.find(c => c.id === congId);
+                                const ensaioPorMes: Record<number, number[]> = {};
+                                
+                                ensaios.forEach(e => {
+                                  const mes = e.date.getMonth();
+                                  if (!ensaioPorMes[mes]) ensaioPorMes[mes] = [];
+                                  ensaioPorMes[mes].push(e.date.getDate());
+                                });
+
+                                const primeiroEnsaio = ensaios[0];
+                                const diaSemana = format(primeiroEnsaio.date, 'EEEE', { locale: ptBR });
+                                const hora = cong?.rehearsals?.find(r => r.type.toLowerCase() === 'local')?.time || '19h30';
+
+                                return (
+                                  <tr key={congId} className="hover:bg-gray-50">
+                                    <td className="border border-gray-400 px-2 py-1">{cong?.name}</td>
+                                    <td className="border border-gray-400 px-2 py-1 text-center capitalize">{diaSemana.substring(0, 3)}</td>
+                                    <td className="border border-gray-400 px-2 py-1 text-center">{hora}</td>
+                                    {meses.map((_, idx) => (
+                                      <td key={idx} className="border border-gray-400 px-1 py-1 text-center">
+                                        {ensaioPorMes[idx] ? ensaioPorMes[idx].join(', ') : '-'}
+                                      </td>
+                                    ))}
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {filteredEnsaios.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>Nenhum ensaio encontrado com os filtros selecionados</p>
+                    </div>
+                  )}
+
+                  {/* Rodapé */}
+                  <div className="mt-6 text-xs text-gray-600 print:text-[10px]">
+                    <p className="font-semibold">Total de ensaios: {filteredEnsaios.length}</p>
+                    <p className="mt-1">Gerado em {format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          <DialogFooter className="gap-2 no-print">
             <Button
-              onClick={exportToPDF}
-              disabled={loadingEnsaios}
-              variant="secondary"
-              className="w-full sm:w-auto"
+              onClick={() => setShowCalendarPreview(false)}
+              variant="outline"
             >
-              <FileText className="h-4 w-4 mr-2" />
-              Exportar PDF
+              Fechar
+            </Button>
+            <Button
+              onClick={() => window.print()}
+              variant="outline"
+              className="gap-2"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimir Direto
+            </Button>
+            <Button
+              onClick={() => {
+                exportToPDF();
+                setShowCalendarPreview(false);
+              }}
+              className="gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Salvar como PDF
             </Button>
           </DialogFooter>
         </DialogContent>
