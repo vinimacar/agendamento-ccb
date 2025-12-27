@@ -38,7 +38,7 @@ export default function AddRehearsals() {
         addLog(`✅ Santa Vitória encontrada: ${santaVitoriaData.name} - ${santaVitoriaData.city}`);
         
         // Verificar se já existe o ensaio Local
-        const hasLocal = santaVitoriaData.rehearsals?.some((r: any) => 
+        const hasLocal = santaVitoriaData.rehearsals?.some((r) => 
           r.type === 'Local'
         );
         
@@ -85,7 +85,7 @@ export default function AddRehearsals() {
           addLog(`✅ Central encontrada: ${congregationData.name} - ${congregationData.city}`);
           
           // Verificar se já existe ensaio DARPE
-          const hasDARPE = congregationData.rehearsals?.some((r: any) => r.type === 'DARPE');
+          const hasDARPE = congregationData.rehearsals?.some((r) => r.type === 'DARPE');
           
           if (!hasDARPE) {
             const updatedRehearsals = [
