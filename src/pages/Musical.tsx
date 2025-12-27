@@ -1129,7 +1129,7 @@ export default function Musical() {
         },
       });
 
-      yPos = (doc as any).lastAutoTable.finalY + 5;
+      yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
     }
 
     // ENSAIOS LOCAIS POR CIDADE
@@ -1200,7 +1200,7 @@ export default function Musical() {
           },
         });
 
-        yPos = (doc as any).lastAutoTable.finalY + 5;
+        yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
       });
     }
 
