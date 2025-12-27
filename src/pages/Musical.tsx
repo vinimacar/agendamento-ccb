@@ -1175,6 +1175,8 @@ export default function Musical() {
         if (cong?.name.toLowerCase().includes('chaveslândia') || cong?.name.toLowerCase().includes('chaveslandia')) {
           cidade = 'Santa Vitória';
         }
+        // Normalizar o nome da cidade para evitar duplicação
+        cidade = cidade.trim();
         if (!acc[cidade]) {
           acc[cidade] = {};
         }
@@ -2004,6 +2006,8 @@ export default function Musical() {
                 if (cong?.name.toLowerCase().includes('chaveslândia') || cong?.name.toLowerCase().includes('chaveslandia')) {
                   cidade = 'Santa Vitória';
                 }
+                // Normalizar o nome da cidade para evitar duplicação
+                cidade = cidade.trim();
                 if (!acc[cidade]) {
                   acc[cidade] = {};
                 }
