@@ -848,7 +848,21 @@ export default function Musical() {
             const allDates = eachDayOfInterval({ start: startDate, end: endDate });
             const rehearsalDates = allDates.filter(date => getDay(date) === dayIndex);
 
+            // Agrupar por mês e pegar apenas o primeiro ensaio de cada mês
+            const ensaiosPorMes = new Map<number, Date>();
             rehearsalDates.forEach(date => {
+              const mes = getMonth(date);
+              const ano = getYear(date);
+              const chave = `${ano}-${mes}`;
+              const mesKey = parseInt(chave.split('-')[1]);
+              
+              if (!ensaiosPorMes.has(mesKey) || date < ensaiosPorMes.get(mesKey)!) {
+                ensaiosPorMes.set(mesKey, date);
+              }
+            });
+
+            // Gerar apenas o primeiro ensaio de cada mês
+            ensaiosPorMes.forEach(date => {
               generated.push({
                 id: `${congregation.id}-${format(date, 'yyyy-MM-dd')}-${rehearsal.type}`,
                 congregationId: congregation.id!,
