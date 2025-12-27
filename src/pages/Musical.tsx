@@ -796,7 +796,7 @@ export default function Musical() {
       filteredCongregations = filteredCongregations.filter(c => c.city === filterCalendarCity);
     }
 
-    // Para cada congregação, gerar ensaios recorrentes
+    // Para cada congregação, gerar ensaios baseado nas configurações salvas
     filteredCongregations.forEach(congregation => {
       if (!congregation.rehearsals || congregation.rehearsals.length === 0) return;
 
@@ -807,92 +807,88 @@ export default function Musical() {
           return;
         }
 
-        // Se for ensaio com data específica
-        if (rehearsal.date && !rehearsal.repeats) {
-          const rehearsalDate = rehearsal.date instanceof Date ? rehearsal.date : new Date(rehearsal.date);
-          if (rehearsalDate >= startDate && rehearsalDate <= endDate) {
-            generated.push({
-              id: `${congregation.id}-${rehearsal.date}-${rehearsal.type}`,
-              congregationId: congregation.id!,
-              congregationName: congregation.name,
-              date: rehearsalDate,
-              type: rehearsalType,
-              instruments: {
-                clarinete: 0,
-                clarone: 0,
-                saxSoprano: 0,
-                saxAlto: 0,
-                saxTenor: 0,
-                saxBaritono: 0,
-                trompete: 0,
-                flugelhorn: 0,
-                euphonio: 0,
-                trombone: 0,
-                trombonito: 0,
-                tuba: 0,
-                viola: 0,
-                violino: 0,
-                cello: 0,
-                organista: 0,
-              },
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            });
-          }
-        }
+        const dates: Date[] = [];
 
-        // Se for ensaio recorrente (semanal)
-        if (rehearsal.day && rehearsal.repeats) {
+        // Ensaio Agendado (data específica)
+        if (rehearsal.recurrenceType === 'Agendado') {
+          if (rehearsal.date) {
+            const rehearsalDate = rehearsal.date instanceof Date ? rehearsal.date : new Date(rehearsal.date);
+            if (rehearsalDate >= startDate && rehearsalDate <= endDate) {
+              dates.push(rehearsalDate);
+            }
+          }
+        } 
+        // Ensaio Semanal ou Mensal
+        else if (rehearsal.day) {
           const dayIndex = dayToIndex[rehearsal.day.toLowerCase()];
           if (dayIndex !== undefined) {
-            const allDates = eachDayOfInterval({ start: startDate, end: endDate });
-            const rehearsalDates = allDates.filter(date => getDay(date) === dayIndex);
-
-            // Agrupar por mês e pegar apenas o primeiro ensaio de cada mês
-            const ensaiosPorMes = new Map<number, Date>();
-            rehearsalDates.forEach(date => {
-              const mes = getMonth(date);
-              const ano = getYear(date);
-              const chave = `${ano}-${mes}`;
-              const mesKey = parseInt(chave.split('-')[1]);
+            const monthsToProcess = rehearsal.recurrenceType === 'Mensal' && rehearsal.months && rehearsal.months.length > 0
+              ? rehearsal.months
+              : Array.from({ length: 12 }, (_, i) => i + 1);
+            
+            monthsToProcess.forEach(month => {
+              const firstDay = new Date(year, month - 1, 1);
+              const lastDay = new Date(year, month, 0);
               
-              if (!ensaiosPorMes.has(mesKey) || date < ensaiosPorMes.get(mesKey)!) {
-                ensaiosPorMes.set(mesKey, date);
+              // Verificar se o mês está dentro do período filtrado
+              if (lastDay < startDate || firstDay > endDate) return;
+              
+              // Encontrar o primeiro dia da semana alvo no mês
+              const currentDate = new Date(firstDay);
+              while (currentDate.getDay() !== dayIndex) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                if (currentDate > lastDay) break;
               }
-            });
-
-            // Gerar apenas o primeiro ensaio de cada mês
-            ensaiosPorMes.forEach(date => {
-              generated.push({
-                id: `${congregation.id}-${format(date, 'yyyy-MM-dd')}-${rehearsal.type}`,
-                congregationId: congregation.id!,
-                congregationName: congregation.name,
-                date: date,
-                type: rehearsalType,
-                instruments: {
-                  clarinete: 0,
-                  clarone: 0,
-                  saxSoprano: 0,
-                  saxAlto: 0,
-                  saxTenor: 0,
-                  saxBaritono: 0,
-                  trompete: 0,
-                  flugelhorn: 0,
-                  euphonio: 0,
-                  trombone: 0,
-                  trombonito: 0,
-                  tuba: 0,
-                  viola: 0,
-                  violino: 0,
-                  cello: 0,
-                  organista: 0,
-                },
-                createdAt: new Date(),
-                updatedAt: new Date(),
-              });
+              
+              // Se for ensaio mensal com semana específica
+              if (rehearsal.recurrenceType === 'Mensal' && rehearsal.weekOfMonth) {
+                const weeksToAdvance = rehearsal.weekOfMonth - 1;
+                currentDate.setDate(currentDate.getDate() + (weeksToAdvance * 7));
+                
+                if (currentDate <= lastDay && currentDate >= startDate && currentDate <= endDate) {
+                  dates.push(new Date(currentDate));
+                }
+              } 
+              // Ensaio semanal - pegar apenas o primeiro de cada mês
+              else {
+                if (currentDate <= lastDay && currentDate >= startDate && currentDate <= endDate) {
+                  dates.push(new Date(currentDate));
+                }
+              }
             });
           }
         }
+
+        // Criar os objetos EnsaioData
+        dates.forEach(date => {
+          generated.push({
+            id: `${congregation.id}-${format(date, 'yyyy-MM-dd')}-${rehearsal.type}`,
+            congregationId: congregation.id!,
+            congregationName: congregation.name,
+            date: date,
+            type: rehearsalType,
+            instruments: {
+              clarinete: 0,
+              clarone: 0,
+              saxSoprano: 0,
+              saxAlto: 0,
+              saxTenor: 0,
+              saxBaritono: 0,
+              trompete: 0,
+              flugelhorn: 0,
+              euphonio: 0,
+              trombone: 0,
+              trombonito: 0,
+              tuba: 0,
+              viola: 0,
+              violino: 0,
+              cello: 0,
+              organista: 0,
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        });
       });
     });
 
