@@ -1101,7 +1101,7 @@ export default function Musical() {
         const hora = cong?.rehearsals?.find(r => r.type.toLowerCase() === 'regional')?.time || '09h00';
 
         const row = [
-          cong?.name || '',
+          cong?.city ? `${cong.city} - ${cong.name}` : (cong?.name || ''),
           diaSemana,
           hora,
         ];
@@ -2007,7 +2007,7 @@ export default function Musical() {
 
                             return (
                               <tr key={congId} className="hover:bg-gray-50">
-                                <td className="border border-gray-400 px-2 py-1">{cong?.name}</td>
+                                <td className="border border-gray-400 px-2 py-1">{cong?.city ? `${cong.city} - ${cong.name}` : cong?.name}</td>
                                 <td className="border border-gray-400 px-2 py-1 text-center capitalize">{diaSemana.substring(0, 3)}</td>
                                 <td className="border border-gray-400 px-2 py-1 text-center">{hora}</td>
                                 {meses.map((_, idx) => (
