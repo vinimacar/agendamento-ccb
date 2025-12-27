@@ -103,6 +103,7 @@ export default function Musical() {
   const [filterCalendarMonth, setFilterCalendarMonth] = useState('all');
   const [filterCalendarYear, setFilterCalendarYear] = useState(new Date().getFullYear().toString());
   const [filterCalendarType, setFilterCalendarType] = useState<'all' | 'local' | 'regional'>('all');
+  const [showCalendarPreview, setShowCalendarPreview] = useState(false);
 
   const loadMusicians = useCallback(async () => {
     setLoadingMusicians(true);
@@ -746,10 +747,149 @@ export default function Musical() {
     }
   };
 
-  // Função para carregar ensaios do Firebase
+  // Mapear dias da semana para índices (0 = Domingo, 6 = Sábado)
+  const dayToIndex: Record<string, number> = {
+    'domingo': 0,
+    'segunda': 1,
+    'terca': 2,
+    'quarta': 3,
+    'quinta': 4,
+    'sexta': 5,
+    'sabado': 6,
+  };
+
+  // Função para gerar ensaios recorrentes das congregações
+  const generateRecurringRehearsals = (): EnsaioData[] => {
+    const generated: EnsaioData[] = [];
+    
+    // Determinar período baseado nos filtros
+    const year = parseInt(filterCalendarYear || new Date().getFullYear().toString());
+    let startDate: Date;
+    let endDate: Date;
+
+    if (filterCalendarMonth === 'all') {
+      // Próximos 3 meses
+      startDate = new Date();
+      endDate = addMonths(startDate, 3);
+    } else if (filterCalendarMonth === 'annual') {
+      // Ano inteiro
+      startDate = startOfYear(new Date(year, 0, 1));
+      endDate = endOfYear(new Date(year, 0, 1));
+    } else if (filterCalendarMonth) {
+      // Mês específico
+      const monthIndex = parseInt(filterCalendarMonth) - 1;
+      startDate = startOfMonth(new Date(year, monthIndex, 1));
+      endDate = endOfMonth(new Date(year, monthIndex, 1));
+    } else {
+      startDate = new Date();
+      endDate = addMonths(startDate, 3);
+    }
+
+    // Filtrar congregações
+    let filteredCongregations = congregations;
+    
+    if (filterCalendarCongregation && filterCalendarCongregation !== 'all') {
+      filteredCongregations = congregations.filter(c => c.id === filterCalendarCongregation);
+    }
+    
+    if (filterCalendarCity && filterCalendarCity !== 'all') {
+      filteredCongregations = filteredCongregations.filter(c => c.city === filterCalendarCity);
+    }
+
+    // Para cada congregação, gerar ensaios recorrentes
+    filteredCongregations.forEach(congregation => {
+      if (!congregation.rehearsals || congregation.rehearsals.length === 0) return;
+
+      congregation.rehearsals.forEach(rehearsal => {
+        // Filtrar por tipo de ensaio
+        const rehearsalType = rehearsal.type.toLowerCase() === 'local' ? 'local' : 'regional';
+        if (filterCalendarType && filterCalendarType !== 'all' && filterCalendarType !== rehearsalType) {
+          return;
+        }
+
+        // Se for ensaio com data específica
+        if (rehearsal.date && !rehearsal.repeats) {
+          const rehearsalDate = rehearsal.date instanceof Date ? rehearsal.date : new Date(rehearsal.date);
+          if (rehearsalDate >= startDate && rehearsalDate <= endDate) {
+            generated.push({
+              id: `${congregation.id}-${rehearsal.date}-${rehearsal.type}`,
+              congregationId: congregation.id!,
+              congregationName: congregation.name,
+              date: rehearsalDate,
+              type: rehearsalType,
+              instruments: {
+                clarinete: 0,
+                clarone: 0,
+                saxSoprano: 0,
+                saxAlto: 0,
+                saxTenor: 0,
+                saxBaritono: 0,
+                trompete: 0,
+                flugelhorn: 0,
+                euphonio: 0,
+                trombone: 0,
+                trombonito: 0,
+                tuba: 0,
+                viola: 0,
+                violino: 0,
+                cello: 0,
+                organista: 0,
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+          }
+        }
+
+        // Se for ensaio recorrente (semanal)
+        if (rehearsal.day && rehearsal.repeats) {
+          const dayIndex = dayToIndex[rehearsal.day.toLowerCase()];
+          if (dayIndex !== undefined) {
+            const allDates = eachDayOfInterval({ start: startDate, end: endDate });
+            const rehearsalDates = allDates.filter(date => getDay(date) === dayIndex);
+
+            rehearsalDates.forEach(date => {
+              generated.push({
+                id: `${congregation.id}-${format(date, 'yyyy-MM-dd')}-${rehearsal.type}`,
+                congregationId: congregation.id!,
+                congregationName: congregation.name,
+                date: date,
+                type: rehearsalType,
+                instruments: {
+                  clarinete: 0,
+                  clarone: 0,
+                  saxSoprano: 0,
+                  saxAlto: 0,
+                  saxTenor: 0,
+                  saxBaritono: 0,
+                  trompete: 0,
+                  flugelhorn: 0,
+                  euphonio: 0,
+                  trombone: 0,
+                  trombonito: 0,
+                  tuba: 0,
+                  viola: 0,
+                  violino: 0,
+                  cello: 0,
+                  organista: 0,
+                },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+              });
+            });
+          }
+        }
+      });
+    });
+
+    return generated;
+  };
+
   // Função para filtrar ensaios
   const getFilteredEnsaios = () => {
-    let filtered = [...ensaios];
+    // Combinar ensaios lançados + ensaios recorrentes gerados
+    const recurringRehearsals = generateRecurringRehearsals();
+    let filtered = [...ensaios, ...recurringRehearsals];
 
     // Filtro por ano
     if (filterCalendarYear) {
