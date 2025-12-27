@@ -5,8 +5,9 @@ import { ptBR } from 'date-fns/locale';
 import { Book, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Clock, Filter, Loader2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Event, eventTypeLabels, EventType } from '@/types';
+import { Event, eventTypeLabels, EventType, ReforcoSchedule } from '@/types';
 import { eventService } from '@/services/eventService';
+import { reforcoService } from '@/services/reforcoService';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
@@ -23,18 +24,29 @@ const eventTypeColors: Record<string, string> = {
   'rjm-reforco': 'bg-accent text-accent-foreground',
 };
 
+// Tipo combinado para eventos e reforços
+interface ScheduleItem extends Event {
+  isReforco?: boolean;
+  responsibleName?: string;
+}
+
 export default function Schedule() {
   const [selectedType, setSelectedType] = useState<string>('all');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [events, setEvents] = useState<Event[]>([]);
+  const [reforcos, setReforcos] = useState<ReforcoSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const data = await eventService.getAll();
-        setEvents(data);
+        const [eventsData, reforcosData] = await Promise.all([
+          eventService.getAll(),
+          reforcoService.getAll()
+        ]);
+        setEvents(eventsData);
+        setReforcos(reforcosData);
       } catch (error) {
         console.error('Error loading events:', error);
       } finally {
@@ -44,7 +56,26 @@ export default function Schedule() {
     loadEvents();
   }, []);
 
-  const filteredEvents = events.filter((event) => {
+  // Combinar eventos e reforços
+  const allScheduleItems: ScheduleItem[] = [
+    ...events,
+    ...reforcos.map(reforco => ({
+      id: reforco.id || '',
+      title: reforco.type === 'culto-oficial' ? 'Culto Oficial para Reforço de Coletas' : 'RJM para Reforço de Coletas',
+      type: reforco.type === 'culto-oficial' ? 'culto-oficial-reforco' : 'rjm-reforco',
+      date: reforco.date,
+      time: reforco.time,
+      congregationId: reforco.congregationId,
+      congregationName: reforco.congregationName,
+      congregationCity: reforco.congregationCity,
+      createdAt: reforco.createdAt,
+      isReforco: true,
+      responsibleName: reforco.responsibleName,
+      description: reforco.isFromOutside ? `Responsável: ${reforco.responsibleName} (${reforco.outsideLocation})` : `Responsável: ${reforco.responsibleName}`,
+    } as ScheduleItem))
+  ];
+
+  const filteredEvents = allScheduleItems.filter((event) => {
     // Filtrar por tipo
     const typeMatch = selectedType === 'all' || event.type === selectedType;
     
@@ -155,7 +186,10 @@ export default function Schedule() {
           doc.text(`Horário: ${eventTime}`, 25, yPos);
           if (event.congregationName) {
             yPos += 5;
-            doc.text(`Local: ${event.congregationName}`, 25, yPos);
+            const location = event.congregationCity 
+              ? `${event.congregationName} - ${event.congregationCity}`
+              : event.congregationName;
+            doc.text(`Local: ${location}`, 25, yPos);
           }
           yPos += 5;
 
@@ -286,9 +320,11 @@ export default function Schedule() {
                 variant="outline"
                 size="icon"
                 className="shadow-sm hover:shadow-md transition-all duration-200"
-                onClick={() =>
-                  setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() - 1)))
-                }
+                onClick={() => {
+                  const newDate = new Date(currentMonth);
+                  newDate.setMonth(newDate.getMonth() - 1);
+                  setCurrentMonth(newDate);
+                }}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -299,9 +335,11 @@ export default function Schedule() {
                 variant="outline"
                 size="icon"
                 className="shadow-sm hover:shadow-md transition-all duration-200"
-                onClick={() =>
-                  setCurrentMonth(new Date(currentMonth.setMonth(currentMonth.getMonth() + 1)))
-                }
+                onClick={() => {
+                  const newDate = new Date(currentMonth);
+                  newDate.setMonth(newDate.getMonth() + 1);
+                  setCurrentMonth(newDate);
+                }}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
@@ -352,7 +390,7 @@ export default function Schedule() {
                           {event.congregationName && (
                             <div className="flex items-center gap-1.5">
                               <MapPin className="h-4 w-4" />
-                              <span>{event.congregationName}</span>
+                              <span>{event.congregationName}{event.congregationCity ? ` - ${event.congregationCity}` : ''}</span>
                             </div>
                           )}
                         </div>

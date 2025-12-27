@@ -56,6 +56,7 @@ export interface Event {
   time: string;
   congregationId?: string;
   congregationName?: string;
+  congregationCity?: string;
   elderName?: string;
   elderFromOtherLocation?: boolean;
   otherElderName?: string;
@@ -97,6 +98,7 @@ export interface ReforcoSchedule {
   id?: string;
   congregationId: string;
   congregationName: string;
+  congregationCity?: string;
   type: 'culto-oficial' | 'rjm'; // Tipo de reforço
   date: Date;
   time: string;

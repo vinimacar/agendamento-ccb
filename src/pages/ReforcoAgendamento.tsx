@@ -264,6 +264,7 @@ export default function ReforcoAgendamento() {
         const updateData: Partial<ReforcoSchedule> = {
           congregationId: selectedCongregationId,
           congregationName: congregation?.name || '',
+          congregationCity: congregation?.city,
           type,
           date: selectedDate,
           time: selectedTime,
@@ -284,6 +285,7 @@ export default function ReforcoAgendamento() {
         const scheduleData: Omit<ReforcoSchedule, 'id'> = {
           congregationId: selectedCongregationId,
           congregationName: congregation?.name || '',
+          congregationCity: congregation?.city,
           type,
           date: selectedDate,
           time: selectedTime,

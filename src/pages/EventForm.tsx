@@ -270,6 +270,7 @@ export default function EventForm() {
         time: formData.time,
         congregationId: formData.congregationId || undefined,
         congregationName: selectedCongregation?.name || undefined,
+        congregationCity: selectedCongregation?.city || undefined,
         description: formData.description || undefined,
         elderName: undefined as string | undefined,
         elderFromOtherLocation: undefined as boolean | undefined,
