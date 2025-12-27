@@ -136,20 +136,23 @@ export default function Schedule() {
           doc.setFontSize(9);
           doc.setFont('helvetica', 'normal');
           doc.setTextColor(100, 100, 100);
-          doc.text(eventTypeLabels[event.type], 25, yPos);
+          const eventTypeLabel = eventTypeLabels[event.type] || event.type || 'Evento';
+          doc.text(eventTypeLabel, 25, yPos);
           doc.setTextColor(0, 0, 0);
           yPos += 6;
 
           // Título
           doc.setFontSize(11);
           doc.setFont('helvetica', 'bold');
-          doc.text(event.title, 25, yPos);
+          const eventTitle = event.title || 'Sem título';
+          doc.text(eventTitle, 25, yPos);
           yPos += 6;
 
           // Horário e Congregação
           doc.setFontSize(9);
           doc.setFont('helvetica', 'normal');
-          doc.text(`Horário: ${event.time}`, 25, yPos);
+          const eventTime = event.time || 'Horário não definido';
+          doc.text(`Horário: ${eventTime}`, 25, yPos);
           if (event.congregationName) {
             yPos += 5;
             doc.text(`Local: ${event.congregationName}`, 25, yPos);
