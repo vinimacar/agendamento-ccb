@@ -1156,7 +1156,13 @@ export default function Musical() {
           yPos = 15;
         }
 
-        const tableData = Object.entries(congregacoes).map(([congId, ensaios]) => {
+        const tableData = Object.entries(congregacoes)
+          .sort(([idA], [idB]) => {
+            const congA = congregations.find(c => c.id === idA);
+            const congB = congregations.find(c => c.id === idB);
+            return (congA?.name || '').localeCompare(congB?.name || '');
+          })
+          .map(([congId, ensaios]) => {
           const cong = congregations.find(c => c.id === congId);
           const ensaioPorMes: Record<number, number> = {};
           
@@ -2046,7 +2052,13 @@ export default function Musical() {
                               </tr>
                             </thead>
                             <tbody>
-                              {Object.entries(congregacoes).map(([congId, ensaios]) => {
+                              {Object.entries(congregacoes)
+                                .sort(([idA], [idB]) => {
+                                  const congA = congregations.find(c => c.id === idA);
+                                  const congB = congregations.find(c => c.id === idB);
+                                  return (congA?.name || '').localeCompare(congB?.name || '');
+                                })
+                                .map(([congId, ensaios]) => {
                                 const cong = congregations.find(c => c.id === congId);
                                 const ensaioPorMes: Record<number, number> = {};
                                 
