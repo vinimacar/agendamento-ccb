@@ -106,7 +106,10 @@ export const congregationService = {
         schedules: data.schedules || [],
         hasEBI: data.hasEBI || false,
         ebiSchedules: data.ebiSchedules || [],
-        rehearsals: data.rehearsals || [],
+        rehearsals: (data.rehearsals || []).map((r: any) => ({
+          ...r,
+          date: r.date?.toDate ? r.date.toDate() : r.date,
+        })),
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
       } as CongregationData;
@@ -144,7 +147,10 @@ export const congregationService = {
       schedules: data.schedules || [],
       hasEBI: data.hasEBI || false,
       ebiSchedules: data.ebiSchedules || [],
-      rehearsals: data.rehearsals || [],
+      rehearsals: (data.rehearsals || []).map((r: any) => ({
+        ...r,
+        date: r.date?.toDate ? r.date.toDate() : r.date,
+      })),
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),
     } as CongregationData;

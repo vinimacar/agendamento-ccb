@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Book, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Clock, Filter, Loader2 } from 'lucide-react';
+import { Book, Calendar as CalendarIcon, ChevronLeft, ChevronRight, MapPin, Clock, Filter, Loader2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Event, eventTypeLabels, EventType } from '@/types';
 import { eventService } from '@/services/eventService';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 const eventTypeColors: Record<string, string> = {
   'culto-busca-dons': 'bg-primary text-primary-foreground',
@@ -26,6 +28,7 @@ export default function Schedule() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -44,6 +47,161 @@ export default function Schedule() {
   const filteredEvents = events.filter(
     (event) => selectedType === 'all' || event.type === selectedType
   );
+
+  const generatePDF = async () => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Adicionar logo da CCB
+      const logoUrl = '/ccb-logo.svg';
+      const img = new Image();
+      img.src = logoUrl;
+      
+      await new Promise((resolve) => {
+        img.onload = () => {
+          doc.addImage(img, 'SVG', 65, 5, 80, 28);
+          resolve(true);
+        };
+        img.onerror = () => {
+          doc.setFontSize(12);
+          doc.setFont('helvetica', 'bold');
+          doc.text('CONGREGAÇÃO CRISTÃ NO BRASIL', pageWidth / 2, 15, { align: 'center' });
+          resolve(true);
+        };
+      });
+      
+      let yPos = 38;
+
+      // Título do relatório
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      const titleText = selectedType === 'all' 
+        ? 'AGENDA DE EVENTOS' 
+        : `AGENDA DE EVENTOS - ${eventTypeLabels[selectedType].toUpperCase()}`;
+      doc.text(titleText, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 7;
+
+      // Período
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR }).toUpperCase(), pageWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
+
+      // Linha separadora
+      doc.setDrawColor(0, 0, 0);
+      doc.line(20, yPos, pageWidth - 20, yPos);
+      yPos += 10;
+
+      // Eventos
+      if (filteredEvents.length === 0) {
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'italic');
+        doc.text('Nenhum evento encontrado para este período.', pageWidth / 2, yPos, { align: 'center' });
+      } else {
+        // Ordenar eventos por data
+        const sortedEvents = [...filteredEvents].sort((a, b) => {
+          const dateA = a.date instanceof Date ? a.date : new Date(a.date);
+          const dateB = b.date instanceof Date ? b.date : new Date(b.date);
+          return dateA.getTime() - dateB.getTime();
+        });
+
+        sortedEvents.forEach((event, index) => {
+          // Verificar se precisa de nova página
+          if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+          }
+
+          const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
+
+          // Data
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text(format(eventDate, "dd/MM/yyyy - EEEE", { locale: ptBR }), 20, yPos);
+          yPos += 6;
+
+          // Tipo de evento
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(100, 100, 100);
+          doc.text(eventTypeLabels[event.type], 25, yPos);
+          doc.setTextColor(0, 0, 0);
+          yPos += 6;
+
+          // Título
+          doc.setFontSize(11);
+          doc.setFont('helvetica', 'bold');
+          doc.text(event.title, 25, yPos);
+          yPos += 6;
+
+          // Horário e Congregação
+          doc.setFontSize(9);
+          doc.setFont('helvetica', 'normal');
+          doc.text(`Horário: ${event.time}`, 25, yPos);
+          if (event.congregationName) {
+            yPos += 5;
+            doc.text(`Local: ${event.congregationName}`, 25, yPos);
+          }
+          yPos += 5;
+
+          // Descrição
+          if (event.description) {
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'italic');
+            const lines = doc.splitTextToSize(event.description, pageWidth - 50);
+            doc.text(lines, 25, yPos);
+            yPos += lines.length * 4;
+          }
+
+          yPos += 8; // Espaço entre eventos
+
+          // Linha divisória entre eventos
+          if (index < sortedEvents.length - 1) {
+            doc.setDrawColor(200, 200, 200);
+            doc.line(25, yPos, pageWidth - 25, yPos);
+            yPos += 8;
+          }
+        });
+      }
+
+      // Rodapé
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text(
+          `Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: ptBR })}`,
+          pageWidth / 2,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'center' }
+        );
+        doc.text(
+          `Página ${i} de ${totalPages}`,
+          pageWidth - 20,
+          doc.internal.pageSize.getHeight() - 10,
+          { align: 'right' }
+        );
+      }
+
+      // Salvar PDF
+      const fileName = `Agenda_${format(currentMonth, 'MMMM_yyyy', { locale: ptBR })}.pdf`;
+      doc.save(fileName);
+
+      toast({
+        title: "PDF gerado com sucesso",
+        description: `O arquivo ${fileName} foi baixado.`,
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Não foi possível gerar o arquivo PDF.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -97,6 +255,15 @@ export default function Schedule() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                size="default"
+                className="gap-2 shadow-sm hover:shadow-md transition-all duration-200"
+                onClick={generatePDF}
+              >
+                <Printer className="h-4 w-4" />
+                Imprimir PDF
+              </Button>
             </div>
 
             {/* Month Navigation */}
