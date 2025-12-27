@@ -901,8 +901,13 @@ export default function Musical() {
 
   // Função para filtrar ensaios
   const getFilteredEnsaios = () => {
-    // Usar APENAS ensaios salvos no banco de dados
-    let filtered = [...ensaios];
+    // Combinar ensaios salvos + ensaios recorrentes gerados das configurações das congregações
+    const recurringRehearsals = generateRecurringRehearsals();
+    let filtered = [...ensaios, ...recurringRehearsals];
+
+    console.log('Ensaios salvos no banco:', ensaios.length);
+    console.log('Ensaios recorrentes gerados:', recurringRehearsals.length);
+    console.log('Total combinado:', filtered.length);
 
     // Filtro por ano
     if (filterCalendarYear) {
@@ -934,6 +939,7 @@ export default function Musical() {
       filtered = filtered.filter(e => e.type === filterCalendarType);
     }
 
+    console.log('Após filtros:', filtered.length);
     return filtered;
   };
 
