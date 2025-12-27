@@ -901,9 +901,8 @@ export default function Musical() {
 
   // Função para filtrar ensaios
   const getFilteredEnsaios = () => {
-    // Combinar ensaios lançados + ensaios recorrentes gerados
-    const recurringRehearsals = generateRecurringRehearsals();
-    let filtered = [...ensaios, ...recurringRehearsals];
+    // Usar APENAS ensaios salvos no banco de dados
+    let filtered = [...ensaios];
 
     // Filtro por ano
     if (filterCalendarYear) {
