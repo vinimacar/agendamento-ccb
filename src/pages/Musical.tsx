@@ -102,7 +102,7 @@ export default function Musical() {
   const [filterCalendarCity, setFilterCalendarCity] = useState('all');
   const [filterCalendarMonth, setFilterCalendarMonth] = useState('all');
   const [filterCalendarYear, setFilterCalendarYear] = useState(new Date().getFullYear().toString());
-  const [filterCalendarType, setFilterCalendarType] = useState<'all' | 'local' | 'regional'>('all');
+  const [filterCalendarType, setFilterCalendarType] = useState<'all' | 'local' | 'regional' | 'gem' | 'geral'>('all');
   const [showCalendarPreview, setShowCalendarPreview] = useState(false);
 
   const loadMusicians = useCallback(async () => {
@@ -802,7 +802,7 @@ export default function Musical() {
 
       congregation.rehearsals.forEach(rehearsal => {
         // Filtrar por tipo de ensaio
-        const rehearsalType = rehearsal.type.toLowerCase() === 'local' ? 'local' : 'regional';
+        const rehearsalType = rehearsal.type.toLowerCase() as 'local' | 'regional' | 'gem' | 'geral';
         if (filterCalendarType && filterCalendarType !== 'all' && filterCalendarType !== rehearsalType) {
           return;
         }
@@ -968,7 +968,10 @@ export default function Musical() {
       filters.push(`Cidade: ${filterCalendarCity}`);
     }
     if (filterCalendarType && filterCalendarType !== 'all') {
-      filters.push(`Tipo: ${filterCalendarType === 'local' ? 'Local' : 'Regional'}`);
+      const tipoLabel = filterCalendarType === 'local' ? 'Local' : 
+                       filterCalendarType === 'regional' ? 'Regional' :
+                       filterCalendarType === 'gem' ? 'GEM' : 'Geral';
+      filters.push(`Tipo: ${tipoLabel}`);
     }
     if (filterCalendarMonth && filterCalendarMonth !== 'all' && filterCalendarMonth !== 'annual') {
       const monthName = format(new Date(2000, parseInt(filterCalendarMonth) - 1, 1), 'MMMM', { locale: ptBR });
@@ -987,10 +990,13 @@ export default function Musical() {
 
     sortedEnsaios.forEach(ensaio => {
       const congregation = congregations.find(c => c.id === ensaio.congregationId);
+      const tipoLabel = ensaio.type === 'regional' ? 'Regional' : 
+                       ensaio.type === 'local' ? 'Local' :
+                       ensaio.type === 'gem' ? 'GEM' : 'Geral';
       worksheetData.push([
         format(ensaio.date, 'dd/MM/yyyy'),
         ensaio.congregationName,
-        ensaio.type === 'regional' ? 'Regional' : 'Local',
+        tipoLabel,
         congregation?.city || '-',
       ]);
     });
@@ -1056,36 +1062,30 @@ export default function Musical() {
     
     let yPos = 38;
     
-    // Agrupar ensaios
-    const regionais = filteredEnsaios.filter(e => e.type === 'regional');
-    const locais = filteredEnsaios.filter(e => e.type === 'local');
+    // Agrupar ensaios por tipo
+    const ensaiosPorTipo: Record<string, typeof filteredEnsaios> = {
+      'regional': filteredEnsaios.filter(e => e.type === 'regional'),
+      'local': filteredEnsaios.filter(e => e.type === 'local'),
+      'gem': filteredEnsaios.filter(e => e.type === 'gem'),
+      'geral': filteredEnsaios.filter(e => e.type === 'geral'),
+    };
     
-    const regionaisPorCongregacao = regionais.reduce((acc, ensaio) => {
-      if (!acc[ensaio.congregationId]) {
-        acc[ensaio.congregationId] = [];
-      }
-      acc[ensaio.congregationId].push(ensaio);
-      return acc;
-    }, {} as Record<string, typeof filteredEnsaios>);
-
-    const locaisPorCidade = locais.reduce((acc, ensaio) => {
-      const cong = congregations.find(c => c.id === ensaio.congregationId);
-      const cidade = cong?.city || 'Sem cidade';
-      if (!acc[cidade]) {
-        acc[cidade] = {};
-      }
-      if (!acc[cidade][ensaio.congregationId]) {
-        acc[cidade][ensaio.congregationId] = [];
-      }
-      acc[cidade][ensaio.congregationId].push(ensaio);
-      return acc;
-    }, {} as Record<string, Record<string, typeof filteredEnsaios>>);
-
     const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
     
-    // ENSAIOS REGIONAIS
-    if (Object.keys(regionaisPorCongregacao).length > 0) {
-      const tableData = Object.entries(regionaisPorCongregacao).map(([congId, ensaios]) => {
+    // ENSAIOS REGIONAIS, GEM e GERAIS (sem agrupamento por cidade)
+    ['regional', 'gem', 'geral'].forEach(tipoEnsaio => {
+      const ensaiosDoTipo = ensaiosPorTipo[tipoEnsaio];
+      if (ensaiosDoTipo.length === 0) return;
+      
+      const ensaiosPorCongregacao = ensaiosDoTipo.reduce((acc, ensaio) => {
+        if (!acc[ensaio.congregationId]) {
+          acc[ensaio.congregationId] = [];
+        }
+        acc[ensaio.congregationId].push(ensaio);
+        return acc;
+      }, {} as Record<string, typeof filteredEnsaios>);
+      
+      const tableData = Object.entries(ensaiosPorCongregacao).map(([congId, ensaios]) => {
         const cong = congregations.find(c => c.id === congId);
         const ensaioPorMes: Record<number, number> = {};
         
@@ -1098,7 +1098,7 @@ export default function Musical() {
 
         const primeiroEnsaio = ensaios[0];
         const diaSemana = format(primeiroEnsaio.date, 'EEEE', { locale: ptBR }).substring(0, 3);
-        const hora = cong?.rehearsals?.find(r => r.type.toLowerCase() === 'regional')?.time || '09h00';
+        const hora = cong?.rehearsals?.find(r => r.type.toLowerCase() === tipoEnsaio)?.time || '09h00';
 
         const row = [
           cong?.city ? `${cong.city} - ${cong.name}` : (cong?.name || ''),
@@ -1113,10 +1113,19 @@ export default function Musical() {
         return row;
       });
 
+      if (yPos > 160) {
+        doc.addPage();
+        yPos = 15;
+      }
+
+      const tipoLabel = tipoEnsaio === 'regional' ? 'REGIONAIS' : 
+                       tipoEnsaio === 'gem' ? 'GEM' : 
+                       tipoEnsaio === 'geral' ? 'GERAIS' : '';
+
       autoTable(doc, {
         startY: yPos,
         head: [
-          [{ content: 'ENSAIOS REGIONAIS', colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 9, fontStyle: 'bold' } }],
+          [{ content: `ENSAIOS ${tipoLabel}`, colSpan: 15, styles: { halign: 'center', fillColor: [30, 58, 138], textColor: 255, fontSize: 9, fontStyle: 'bold' } }],
           ['LOCALIDADE', 'DIA', 'HORA', ...meses]
         ],
         body: tableData,
@@ -1146,10 +1155,23 @@ export default function Musical() {
       });
 
       yPos = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 5;
-    }
+    });
 
     // ENSAIOS LOCAIS POR CIDADE
-    if (Object.keys(locaisPorCidade).length > 0) {
+    const locais = ensaiosPorTipo['local'];
+    if (locais.length > 0) {
+      const locaisPorCidade = locais.reduce((acc, ensaio) => {
+        const cong = congregations.find(c => c.id === ensaio.congregationId);
+        const cidade = cong?.city || 'Sem cidade';
+        if (!acc[cidade]) {
+          acc[cidade] = {};
+        }
+        if (!acc[cidade][ensaio.congregationId]) {
+          acc[cidade][ensaio.congregationId] = [];
+        }
+        acc[cidade][ensaio.congregationId].push(ensaio);
+        return acc;
+      }, {} as Record<string, Record<string, typeof filteredEnsaios>>);
       Object.entries(locaisPorCidade).forEach(([cidade, congregacoes]) => {
         if (yPos > 160) {
           doc.addPage();
@@ -1780,7 +1802,7 @@ export default function Musical() {
               <Label>Tipo de Ensaio</Label>
               <Select
                 value={filterCalendarType}
-                onValueChange={(value: 'all' | 'local' | 'regional') => setFilterCalendarType(value)}
+                onValueChange={(value: 'all' | 'local' | 'regional' | 'gem' | 'geral') => setFilterCalendarType(value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
@@ -1789,6 +1811,8 @@ export default function Musical() {
                   <SelectItem value="all">Todos os Tipos</SelectItem>
                   <SelectItem value="local">Local</SelectItem>
                   <SelectItem value="regional">Regional</SelectItem>
+                  <SelectItem value="gem">GEM</SelectItem>
+                  <SelectItem value="geral">Geral</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1858,6 +1882,9 @@ export default function Musical() {
                     .sort((a, b) => a.date.getTime() - b.date.getTime())
                     .map((ensaio, idx) => {
                       const cong = congregations.find(c => c.id === ensaio.congregationId);
+                      const tipoLabel = ensaio.type === 'regional' ? 'Regional' : 
+                                       ensaio.type === 'local' ? 'Local' :
+                                       ensaio.type === 'gem' ? 'GEM' : 'Geral';
                       return (
                         <div key={idx} className="flex items-center justify-between p-2 bg-muted/50 rounded text-xs">
                           <div className="flex-1">
@@ -1867,7 +1894,7 @@ export default function Musical() {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
-                              {ensaio.type === 'regional' ? 'Regional' : 'Local'}
+                              {tipoLabel}
                             </Badge>
                             {cong && (
                               <span className="text-muted-foreground">{cong.city}</span>
@@ -1946,21 +1973,16 @@ export default function Musical() {
             {(() => {
               const filteredEnsaios = getFilteredEnsaios().sort((a, b) => a.date.getTime() - b.date.getTime());
               
-              // Agrupar ensaios por tipo e congregação
-              const regionais = filteredEnsaios.filter(e => e.type === 'regional');
-              const locais = filteredEnsaios.filter(e => e.type === 'local');
-              
-              // Agrupar ensaios regionais por congregação
-              const regionaisPorCongregacao = regionais.reduce((acc, ensaio) => {
-                if (!acc[ensaio.congregationId]) {
-                  acc[ensaio.congregationId] = [];
-                }
-                acc[ensaio.congregationId].push(ensaio);
-                return acc;
-              }, {} as Record<string, typeof filteredEnsaios>);
+              // Agrupar ensaios por tipo
+              const ensaiosPorTipo: Record<string, typeof filteredEnsaios> = {
+                'regional': filteredEnsaios.filter(e => e.type === 'regional'),
+                'gem': filteredEnsaios.filter(e => e.type === 'gem'),
+                'geral': filteredEnsaios.filter(e => e.type === 'geral'),
+                'local': filteredEnsaios.filter(e => e.type === 'local'),
+              };
 
               // Agrupar ensaios locais por cidade e congregação
-              const locaisPorCidade = locais.reduce((acc, ensaio) => {
+              const locaisPorCidade = ensaiosPorTipo['local'].reduce((acc, ensaio) => {
                 const cong = congregations.find(c => c.id === ensaio.congregationId);
                 const cidade = cong?.city || 'Sem cidade';
                 if (!acc[cidade]) {
@@ -1977,57 +1999,72 @@ export default function Musical() {
               
               return (
                 <>
-                  {/* ENSAIOS REGIONAIS */}
-                  {Object.keys(regionaisPorCongregacao).length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="bg-blue-900 text-white text-center font-bold py-2 text-sm print:text-xs">
-                        ENSAIOS REGIONAIS
-                      </h3>
-                      <table className="w-full border-collapse text-xs print:text-[10px]">
-                        <thead>
-                          <tr className="bg-gray-300">
-                            <th className="border border-gray-400 px-2 py-1 text-left font-semibold">LOCALIDADE</th>
-                            <th className="border border-gray-400 px-2 py-1 text-center font-semibold">DIA</th>
-                            <th className="border border-gray-400 px-2 py-1 text-center font-semibold">HORA</th>
-                            {meses.map(mes => (
-                              <th key={mes} className="border border-gray-400 px-1 py-1 text-center font-semibold">{mes}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(regionaisPorCongregacao).map(([congId, ensaios]) => {
-                            const cong = congregations.find(c => c.id === congId);
-                            const ensaioPorMes: Record<number, number> = {};
-                            
-                            ensaios.forEach(e => {
-                              const mes = e.date.getMonth();
-                              if (!ensaioPorMes[mes]) {
-                                ensaioPorMes[mes] = e.date.getDate();
-                              }
-                            });
+                  {/* ENSAIOS REGIONAIS, GEM e GERAIS */}
+                  {(['regional', 'gem', 'geral'] as const).map(tipoEnsaio => {
+                    const ensaiosDoTipo = ensaiosPorTipo[tipoEnsaio];
+                    if (ensaiosDoTipo.length === 0) return null;
+                    
+                    const ensaiosPorCongregacao = ensaiosDoTipo.reduce((acc, ensaio) => {
+                      if (!acc[ensaio.congregationId]) {
+                        acc[ensaio.congregationId] = [];
+                      }
+                      acc[ensaio.congregationId].push(ensaio);
+                      return acc;
+                    }, {} as Record<string, typeof filteredEnsaios>);
+                    
+                    const tipoLabel = tipoEnsaio === 'regional' ? 'REGIONAIS' : 
+                                     tipoEnsaio === 'gem' ? 'GEM' : 'GERAIS';
 
-                            // Pegar dia da semana e hora do primeiro ensaio
-                            const primeiroEnsaio = ensaios[0];
-                            const diaSemana = format(primeiroEnsaio.date, 'EEEE', { locale: ptBR });
-                            const hora = cong?.rehearsals?.find(r => r.type.toLowerCase() === 'regional')?.time || '09h00';
+                    return (
+                      <div key={tipoEnsaio} className="mb-6">
+                        <h3 className="bg-blue-900 text-white text-center font-bold py-2 text-sm print:text-xs">
+                          ENSAIOS {tipoLabel}
+                        </h3>
+                        <table className="w-full border-collapse text-xs print:text-[10px]">
+                          <thead>
+                            <tr className="bg-gray-300">
+                              <th className="border border-gray-400 px-2 py-1 text-left font-semibold">LOCALIDADE</th>
+                              <th className="border border-gray-400 px-2 py-1 text-center font-semibold">DIA</th>
+                              <th className="border border-gray-400 px-2 py-1 text-center font-semibold">HORA</th>
+                              {meses.map(mes => (
+                                <th key={mes} className="border border-gray-400 px-1 py-1 text-center font-semibold">{mes}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(ensaiosPorCongregacao).map(([congId, ensaios]) => {
+                              const cong = congregations.find(c => c.id === congId);
+                              const ensaioPorMes: Record<number, number> = {};
+                              
+                              ensaios.forEach(e => {
+                                const mes = e.date.getMonth();
+                                if (!ensaioPorMes[mes]) {
+                                  ensaioPorMes[mes] = e.date.getDate();
+                                }
+                              });
 
-                            return (
-                              <tr key={congId} className="hover:bg-gray-50">
-                                <td className="border border-gray-400 px-2 py-1">{cong?.city ? `${cong.city} - ${cong.name}` : cong?.name}</td>
-                                <td className="border border-gray-400 px-2 py-1 text-center capitalize">{diaSemana.substring(0, 3)}</td>
-                                <td className="border border-gray-400 px-2 py-1 text-center">{hora}</td>
-                                {meses.map((_, idx) => (
-                                  <td key={idx} className="border border-gray-400 px-1 py-1 text-center">
-                                    {ensaioPorMes[idx] || '-'}
-                                  </td>
-                                ))}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                              const primeiroEnsaio = ensaios[0];
+                              const diaSemana = format(primeiroEnsaio.date, 'EEEE', { locale: ptBR });
+                              const hora = cong?.rehearsals?.find(r => r.type.toLowerCase() === tipoEnsaio)?.time || '09h00';
+
+                              return (
+                                <tr key={congId} className="hover:bg-gray-50">
+                                  <td className="border border-gray-400 px-2 py-1">{cong?.city ? `${cong.city} - ${cong.name}` : cong?.name}</td>
+                                  <td className="border border-gray-400 px-2 py-1 text-center capitalize">{diaSemana.substring(0, 3)}</td>
+                                  <td className="border border-gray-400 px-2 py-1 text-center">{hora}</td>
+                                  {meses.map((_, idx) => (
+                                    <td key={idx} className="border border-gray-400 px-1 py-1 text-center">
+                                      {ensaioPorMes[idx] || '-'}
+                                    </td>
+                                  ))}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    );
+                  })}
 
                   {/* ENSAIOS LOCAIS POR CIDADE */}
                   {Object.keys(locaisPorCidade).length > 0 && (
