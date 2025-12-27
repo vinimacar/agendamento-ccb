@@ -1072,12 +1072,13 @@ export default function Musical() {
     if (Object.keys(regionaisPorCongregacao).length > 0) {
       const tableData = Object.entries(regionaisPorCongregacao).map(([congId, ensaios]) => {
         const cong = congregations.find(c => c.id === congId);
-        const ensaioPorMes: Record<number, number[]> = {};
+        const ensaioPorMes: Record<number, number> = {};
         
         ensaios.forEach(e => {
           const mes = e.date.getMonth();
-          if (!ensaioPorMes[mes]) ensaioPorMes[mes] = [];
-          ensaioPorMes[mes].push(e.date.getDate());
+          if (!ensaioPorMes[mes]) {
+            ensaioPorMes[mes] = e.date.getDate();
+          }
         });
 
         const primeiroEnsaio = ensaios[0];
@@ -1091,7 +1092,7 @@ export default function Musical() {
         ];
         
         meses.forEach((_, idx) => {
-          row.push(ensaioPorMes[idx] ? ensaioPorMes[idx].join(', ') : '-');
+          row.push(ensaioPorMes[idx] ? ensaioPorMes[idx].toString() : '-');
         });
         
         return row;
@@ -1142,12 +1143,13 @@ export default function Musical() {
 
         const tableData = Object.entries(congregacoes).map(([congId, ensaios]) => {
           const cong = congregations.find(c => c.id === congId);
-          const ensaioPorMes: Record<number, number[]> = {};
+          const ensaioPorMes: Record<number, number> = {};
           
           ensaios.forEach(e => {
             const mes = e.date.getMonth();
-            if (!ensaioPorMes[mes]) ensaioPorMes[mes] = [];
-            ensaioPorMes[mes].push(e.date.getDate());
+            if (!ensaioPorMes[mes]) {
+              ensaioPorMes[mes] = e.date.getDate();
+            }
           });
 
           const primeiroEnsaio = ensaios[0];
@@ -1161,7 +1163,7 @@ export default function Musical() {
           ];
           
           meses.forEach((_, idx) => {
-            row.push(ensaioPorMes[idx] ? ensaioPorMes[idx].join(', ') : '-');
+            row.push(ensaioPorMes[idx] ? ensaioPorMes[idx].toString() : '-');
           });
           
           return row;
@@ -1974,12 +1976,13 @@ export default function Musical() {
                         <tbody>
                           {Object.entries(regionaisPorCongregacao).map(([congId, ensaios]) => {
                             const cong = congregations.find(c => c.id === congId);
-                            const ensaioPorMes: Record<number, number[]> = {};
+                            const ensaioPorMes: Record<number, number> = {};
                             
                             ensaios.forEach(e => {
                               const mes = e.date.getMonth();
-                              if (!ensaioPorMes[mes]) ensaioPorMes[mes] = [];
-                              ensaioPorMes[mes].push(e.date.getDate());
+                              if (!ensaioPorMes[mes]) {
+                                ensaioPorMes[mes] = e.date.getDate();
+                              }
                             });
 
                             // Pegar dia da semana e hora do primeiro ensaio
@@ -1994,7 +1997,7 @@ export default function Musical() {
                                 <td className="border border-gray-400 px-2 py-1 text-center">{hora}</td>
                                 {meses.map((_, idx) => (
                                   <td key={idx} className="border border-gray-400 px-1 py-1 text-center">
-                                    {ensaioPorMes[idx] ? ensaioPorMes[idx].join(', ') : '-'}
+                                    {ensaioPorMes[idx] || '-'}
                                   </td>
                                 ))}
                               </tr>
@@ -2030,12 +2033,13 @@ export default function Musical() {
                             <tbody>
                               {Object.entries(congregacoes).map(([congId, ensaios]) => {
                                 const cong = congregations.find(c => c.id === congId);
-                                const ensaioPorMes: Record<number, number[]> = {};
+                                const ensaioPorMes: Record<number, number> = {};
                                 
                                 ensaios.forEach(e => {
                                   const mes = e.date.getMonth();
-                                  if (!ensaioPorMes[mes]) ensaioPorMes[mes] = [];
-                                  ensaioPorMes[mes].push(e.date.getDate());
+                                  if (!ensaioPorMes[mes]) {
+                                    ensaioPorMes[mes] = e.date.getDate();
+                                  }
                                 });
 
                                 const primeiroEnsaio = ensaios[0];
@@ -2049,7 +2053,7 @@ export default function Musical() {
                                     <td className="border border-gray-400 px-2 py-1 text-center">{hora}</td>
                                     {meses.map((_, idx) => (
                                       <td key={idx} className="border border-gray-400 px-1 py-1 text-center">
-                                        {ensaioPorMes[idx] ? ensaioPorMes[idx].join(', ') : '-'}
+                                        {ensaioPorMes[idx] || '-'}
                                       </td>
                                     ))}
                                   </tr>
