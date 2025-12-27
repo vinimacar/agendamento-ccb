@@ -904,6 +904,7 @@ export default function Musical() {
     console.log('Ensaios salvos no banco:', ensaios.length);
     console.log('Ensaios recorrentes gerados:', recurringRehearsals.length);
     console.log('Total combinado:', filtered.length);
+    console.log('Tipos de ensaios gerados:', recurringRehearsals.map(e => `${e.congregationName} - ${e.type}`));
 
     // Filtro por ano
     if (filterCalendarYear) {
@@ -1064,13 +1065,13 @@ export default function Musical() {
     
     let yPos = 38;
     
-    // Agrupar ensaios por tipo
+    // Agrupar ensaios por tipo (case-insensitive)
     const ensaiosPorTipo: Record<string, typeof filteredEnsaios> = {
-      'regional': filteredEnsaios.filter(e => e.type === 'regional'),
-      'local': filteredEnsaios.filter(e => e.type === 'local'),
-      'gem': filteredEnsaios.filter(e => e.type === 'gem'),
-      'geral': filteredEnsaios.filter(e => e.type === 'geral'),
-      'darpe': filteredEnsaios.filter(e => e.type === 'darpe'),
+      'regional': filteredEnsaios.filter(e => e.type.toLowerCase() === 'regional'),
+      'local': filteredEnsaios.filter(e => e.type.toLowerCase() === 'local'),
+      'gem': filteredEnsaios.filter(e => e.type.toLowerCase() === 'gem'),
+      'geral': filteredEnsaios.filter(e => e.type.toLowerCase() === 'geral'),
+      'darpe': filteredEnsaios.filter(e => e.type.toLowerCase() === 'darpe'),
     };
     
     const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
@@ -1979,13 +1980,13 @@ export default function Musical() {
             {(() => {
               const filteredEnsaios = getFilteredEnsaios().sort((a, b) => a.date.getTime() - b.date.getTime());
               
-              // Agrupar ensaios por tipo
+              // Agrupar ensaios por tipo (case-insensitive)
               const ensaiosPorTipo: Record<string, typeof filteredEnsaios> = {
-                'regional': filteredEnsaios.filter(e => e.type === 'regional'),
-                'gem': filteredEnsaios.filter(e => e.type === 'gem'),
-                'geral': filteredEnsaios.filter(e => e.type === 'geral'),
-                'darpe': filteredEnsaios.filter(e => e.type === 'darpe'),
-                'local': filteredEnsaios.filter(e => e.type === 'local'),
+                'regional': filteredEnsaios.filter(e => e.type.toLowerCase() === 'regional'),
+                'gem': filteredEnsaios.filter(e => e.type.toLowerCase() === 'gem'),
+                'geral': filteredEnsaios.filter(e => e.type.toLowerCase() === 'geral'),
+                'darpe': filteredEnsaios.filter(e => e.type.toLowerCase() === 'darpe'),
+                'local': filteredEnsaios.filter(e => e.type.toLowerCase() === 'local'),
               };
 
               // Agrupar ensaios locais por cidade e congregação
