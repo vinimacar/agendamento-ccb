@@ -44,9 +44,20 @@ export default function Schedule() {
     loadEvents();
   }, []);
 
-  const filteredEvents = events.filter(
-    (event) => selectedType === 'all' || event.type === selectedType
-  );
+  const filteredEvents = events.filter((event) => {
+    // Filtrar por tipo
+    const typeMatch = selectedType === 'all' || event.type === selectedType;
+    
+    // Filtrar por mês
+    const eventDate = event.date instanceof Date ? event.date : new Date(event.date);
+    const eventMonth = eventDate.getMonth();
+    const eventYear = eventDate.getFullYear();
+    const selectedMonth = currentMonth.getMonth();
+    const selectedYear = currentMonth.getFullYear();
+    const monthMatch = eventMonth === selectedMonth && eventYear === selectedYear;
+    
+    return typeMatch && monthMatch;
+  });
 
   const generatePDF = async () => {
     try {
