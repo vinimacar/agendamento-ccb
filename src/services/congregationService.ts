@@ -65,11 +65,12 @@ export const congregationService = {
     // Função recursiva para limpar valores undefined
     const removeUndefined = (obj: any): any => {
       if (Array.isArray(obj)) {
-        return obj.map(item => removeUndefined(item));
-      } else if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
+        return obj.map(item => removeUndefined(item)).filter(item => item !== undefined);
+      } else if (obj !== null && typeof obj === 'object' && !(obj instanceof Date) && !(obj instanceof Timestamp)) {
         return Object.entries(obj).reduce((acc, [key, value]) => {
-          if (value !== undefined) {
-            acc[key] = removeUndefined(value);
+          const cleanValue = removeUndefined(value);
+          if (cleanValue !== undefined) {
+            acc[key] = cleanValue;
           }
           return acc;
         }, {} as Record<string, any>);
@@ -78,15 +79,22 @@ export const congregationService = {
     };
     
     // Remove undefined values to avoid Firestore errors
-    const cleanData = removeUndefined(data);
+    let cleanData = removeUndefined(data);
     
     // Converter dates em rehearsals para Timestamp
     if (cleanData.rehearsals) {
-      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => ({
-        ...r,
-        date: r.date instanceof Date ? Timestamp.fromDate(r.date) : r.date,
-      }));
+      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => {
+        const rehearsal: any = { ...r };
+        if (rehearsal.date instanceof Date) {
+          rehearsal.date = Timestamp.fromDate(rehearsal.date);
+        }
+        // Remover undefined novamente após conversão
+        return removeUndefined(rehearsal);
+      });
     }
+    
+    // Aplicar removeUndefined uma última vez para garantir
+    cleanData = removeUndefined(cleanData);
     
     const docRef = await addDoc(collection(db, COLLECTION_NAME), {
       ...cleanData,
@@ -180,11 +188,12 @@ export const congregationService = {
     // Função recursiva para limpar valores undefined
     const removeUndefined = (obj: any): any => {
       if (Array.isArray(obj)) {
-        return obj.map(item => removeUndefined(item));
-      } else if (obj !== null && typeof obj === 'object' && !(obj instanceof Date)) {
+        return obj.map(item => removeUndefined(item)).filter(item => item !== undefined);
+      } else if (obj !== null && typeof obj === 'object' && !(obj instanceof Date) && !(obj instanceof Timestamp)) {
         return Object.entries(obj).reduce((acc, [key, value]) => {
-          if (value !== undefined) {
-            acc[key] = removeUndefined(value);
+          const cleanValue = removeUndefined(value);
+          if (cleanValue !== undefined) {
+            acc[key] = cleanValue;
           }
           return acc;
         }, {} as Record<string, any>);
@@ -193,15 +202,22 @@ export const congregationService = {
     };
     
     // Remove undefined values to avoid Firestore errors
-    const cleanData = removeUndefined(data);
+    let cleanData = removeUndefined(data);
     
     // Converter dates em rehearsals para Timestamp
     if (cleanData.rehearsals) {
-      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => ({
-        ...r,
-        date: r.date instanceof Date ? Timestamp.fromDate(r.date) : r.date,
-      }));
+      cleanData.rehearsals = cleanData.rehearsals.map((r: any) => {
+        const rehearsal: any = { ...r };
+        if (rehearsal.date instanceof Date) {
+          rehearsal.date = Timestamp.fromDate(rehearsal.date);
+        }
+        // Remover undefined novamente após conversão
+        return removeUndefined(rehearsal);
+      });
     }
+    
+    // Aplicar removeUndefined uma última vez para garantir
+    cleanData = removeUndefined(cleanData);
     
     await updateDoc(docRef, {
       ...cleanData,
