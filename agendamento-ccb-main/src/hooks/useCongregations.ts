@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export interface Congregation {
   id?: string;
@@ -28,7 +28,7 @@ const mockCongregations: Congregation[] = [
 
 export const useCongregations = () => {
   const [congregations, setCongregations] = useState<Congregation[]>(mockCongregations);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   const addCongregation = async (congregation: Congregation) => {
     setCongregations([...congregations, { ...congregation, id: Date.now().toString() }]);
